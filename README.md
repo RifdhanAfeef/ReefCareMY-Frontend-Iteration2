@@ -1,8 +1,7 @@
 # ReefCare MY — Iteration 2 frontend
 
-This repository is the clean Iteration 2 starting point for the ReefCare MY
-Next.js frontend. It preserves the tested Iteration 1 baseline while the team
-develops the new public, observer and coordinator experiences.
+This repository is the Iteration 2 starting point for the ReefCare MY
+frontend preserving the Iteration 1 baseline.
 
 ## Iteration 2 focus
 
