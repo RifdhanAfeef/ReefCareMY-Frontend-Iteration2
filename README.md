@@ -44,17 +44,4 @@ Run both commands before opening a pull request.
 Route-group folders in parentheses do not appear in the URL. For example,
 `app/(observer)/my-reports/page.tsx` is served at `/my-reports`.
 
-## Data, privacy and integration rules
 
-- The backend remains responsible for authentication, authorisation, ownership,
-  exact locations, private evidence and permanent records.
-- Never include exact coordinates, private evidence or internal notes in public UI,
-  analytics or logs.
-- Keep all backend calls in `lib/api/`; do not hard-code API URLs in components.
-- Keep prototype or fallback data clearly labelled and isolated inside its feature.
-- Preserve human review and correction for every AI-assisted result.
-
-Current account role codes are `observer`, `case_coordinator` and
-`system_administrator`. A public visitor is unauthenticated, not a fourth role.
-
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the team workflow.
