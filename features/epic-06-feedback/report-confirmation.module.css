@@ -1,0 +1,56 @@
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 480px;
+  margin: 0;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.row dt {
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.row dd {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-ink);
+  text-align: right;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.primaryAction,
+.secondaryAction {
+  border: 1px solid var(--color-primary);
+  border-radius: 10px;
+  padding: 12px 18px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.primaryAction {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.secondaryAction {
+  background: #fff;
+  color: var(--color-primary);
+}
+.confirmation {
+  display: grid;
+  gap: 24px;
+}
