@@ -3,37 +3,6 @@
 This repository is the Iteration 2 starting point for the ReefCare MY
 frontend preserving the Iteration 1 baseline.
 
-## Iteration 2 focus
-
-The planned work is centred on these outcomes:
-
-- help public visitors explore reef and dive-site information before registering;
-- help observers recognise possible reef threats and prepare clearer reports;
-- use AI-assisted suggestions and summaries with explicit human confirmation;
-- give coordinators a simpler claim, review and decision workflow;
-- reduce repeated work by identifying and linking possible duplicate reports; and
-- support clear information requests and traceable follow-up for observers.
-
-AI output must remain advisory. Users must be able to review, correct and confirm
-suggested categories, summaries and structured fields before anything is saved or
-submitted.
-
-## Baseline available now
-
-The repository already includes:
-
-- public landing and learning pages;
-- observer registration, login and role-protected routes;
-- guided reef reporting, draft storage, location privacy and submission review;
-- observer report status and detail views;
-- coordinator queue, claim, case review, information-request, response and closure UI;
-- administrator preview screens; and
-- component, API-boundary and usability tests.
-
-Some coordinator and administrator behaviour still depends on backend contracts.
-The active backend requirements are documented in
-[`docs/BACKEND_API_HANDOFF_ITERATION_2.md`](docs/BACKEND_API_HANDOFF_ITERATION_2.md).
-
 ## Run locally
 
 Requirements: Node.js 20.9 or newer and npm.
