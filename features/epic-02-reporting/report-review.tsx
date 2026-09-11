@@ -22,6 +22,7 @@ export function ReportReview() {
   const [photos, setPhotos] = useState<ReviewPhoto[]>([]);
   const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmationUrl, setConfirmationUrl] = useState("");
   const submissionInProgress = useRef(false);
   const [submissionError, setSubmissionError] = useState("");
   const threat = getThreatCategory(reportDraft.threatCategoryCode);
@@ -67,8 +68,6 @@ export function ReportReview() {
     try {
       const payload = buildReportSubmissionPayload(reportDraft, locationDraft);
       const result = await submitReportApi(payload, photos.map((photo) => photo.file));
-      await clearDraftPhotos();
-      resetReportDraft();
       const query = new URLSearchParams({
         reportReference: result.reportReference,
         status: result.status,
@@ -76,12 +75,24 @@ export function ReportReview() {
         generalLocation: result.generalLocation,
         threatCategory: threat?.label ?? "Not provided",
       });
-      router.push(`/report-a-reef/confirmation?${query.toString()}`);
+      const destination = `/report-a-reef/confirmation?${query.toString()}`;
+      setConfirmationUrl(destination);
+      // A local cleanup failure cannot undo a successful server submission.
+      await clearDraftPhotos().catch(() => undefined);
+      resetReportDraft();
+      router.push(destination);
     } catch (error) {
       setSubmissionError(userFacingError(error, "The report could not be submitted."));
       setSubmitting(false);
       submissionInProgress.current = false;
     }
+  }
+
+  if (confirmationUrl) {
+    return <section className={styles.card}>
+      <div role="status"><h2>Report submitted</h2><p>Opening your confirmation…</p></div>
+      <Link className={styles.primaryButton} href={confirmationUrl}>View confirmation</Link>
+    </section>;
   }
 
   return (
