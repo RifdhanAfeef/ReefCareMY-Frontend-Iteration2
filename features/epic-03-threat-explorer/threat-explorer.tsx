@@ -40,15 +40,23 @@ export function ThreatExplorer() {
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
-        <div className={styles.heroGlow} aria-hidden="true" />
-        <p className={styles.eyebrow}>Reef Threat Explorer</p>
-        <h1>Meet the four threats</h1>
-        <p className={styles.heroCopy}>Learn the visual cues. Understand the impact. Know what to report.</p>
-        <a className={styles.heroAction} href="#threats">Start exploring <Arrow direction="right" /></a>
-        <div className={styles.heroIndex} aria-hidden="true"><span>01</span><i /><span>04</span></div>
+        <div className={styles.heroContent}>
+          <p className={styles.eyebrow}>ReefCare MY · Reef Threat Explorer</p>
+          <h1>Meet the four threats facing Malaysia’s reefs.</h1>
+          <p className={styles.heroCopy}>ReefCare helps people recognise reef damage and share useful observations with conservation teams—without needing to be a scientist.</p>
+          <div className={styles.heroActions}>
+            <a className={styles.heroAction} href="#threats">Explore the threats <Arrow direction="right" /></a>
+            <Link className={styles.heroSecondary} href={reportHref("unsure")}>Report an observation</Link>
+          </div>
+          <p className={styles.missionLine}><strong>Observe</strong><span aria-hidden="true">→</span><strong>Learn</strong><span aria-hidden="true">→</span><strong>Report</strong><span aria-hidden="true">→</span><strong>Support action</strong></p>
+        </div>
+        <figure className={styles.heroVisual}>
+          <Image src="/images/threats/generated/coral-bleaching.webp" alt="Bleached white coral surrounded by reef fish" fill priority sizes="(max-width: 900px) 100vw, 42vw" />
+          <figcaption><span>Coral bleaching</span><strong>One of four supported threats</strong></figcaption>
+        </figure>
       </header>
 
-      <main className={styles.main}>
+      <div className={styles.main}>
         <section className={styles.explorer} id="threats" aria-labelledby="threats-heading">
           <div className={styles.sectionHeader}>
             <div><p className={styles.eyebrowDark}>Four threats. Clear signals.</p><h2 id="threats-heading">Explore at your own pace</h2></div>
@@ -117,7 +125,7 @@ export function ThreatExplorer() {
           <p>Share what you saw without guessing. A clear photo, place and simple description are enough to begin.</p>
           <Link className={styles.lightAction} href={reportHref("unsure")}>I’m not sure what I saw <Arrow direction="right" /></Link>
         </section>
-      </main>
+      </div>
     </div>
   );
 }

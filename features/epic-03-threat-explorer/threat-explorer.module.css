@@ -1,15 +1,22 @@
 .page { background: #eaf7f5; color: #092f38; overflow: hidden; }
-.hero { min-height: min(760px, calc(100svh - var(--header-height))); position: relative; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: clamp(72px, 10vw, 138px) max(7vw, 32px); color: #fff; isolation: isolate; background: radial-gradient(circle at 74% 38%, rgba(82, 211, 205, .32), transparent 24%), linear-gradient(135deg, #052e3d 0%, #075468 55%, #0b7990 100%); }
-.hero::before { content: ""; position: absolute; inset: auto -8% -34% 34%; height: 64%; z-index: -1; border-radius: 50% 50% 0 0; opacity: .7; background: linear-gradient(120deg, rgba(255,255,255,.05), rgba(120,232,220,.18)); transform: rotate(-7deg); }
-.heroGlow { position: absolute; width: 36vw; height: 36vw; right: 7vw; top: 12%; z-index: -1; border: 1px solid rgba(214,255,250,.18); border-radius: 50%; box-shadow: 0 0 120px rgba(40,199,190,.15), inset 0 0 90px rgba(255,255,255,.04); }
+.hero { min-height: min(680px, calc(100svh - var(--header-height))); display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(360px, .92fr); align-items: center; gap: clamp(44px, 7vw, 108px); padding: clamp(48px, 6vw, 80px) max(5vw, 24px); background: #f4fbf9; }
+.heroContent { max-width: 720px; justify-self: end; animation: reveal .6s cubic-bezier(.2,.8,.2,1); }
 .eyebrow, .eyebrowDark { margin: 0 0 20px; font-size: .76rem; font-weight: 750; letter-spacing: .18em; text-transform: uppercase; }
-.eyebrow { color: #a6e7df; } .eyebrowDark { color: #0a7280; }
-.hero h1 { max-width: 850px; margin: 0; font-size: clamp(3.6rem, 8vw, 7.8rem); font-weight: 560; line-height: .89; letter-spacing: -.065em; text-wrap: balance; }
-.heroCopy { max-width: 510px; margin: 30px 0 0; color: rgba(255,255,255,.78); font-size: clamp(1.05rem, 1.8vw, 1.35rem); }
+.eyebrow { color: #087783; } .eyebrowDark { color: #0a7280; }
+.hero h1 { max-width: 760px; margin: 0; color: #062f3a; font-size: clamp(3.2rem, 6vw, 6.3rem); font-weight: 590; line-height: .94; letter-spacing: -.06em; text-wrap: balance; }
+.heroCopy { max-width: 650px; margin: 30px 0 0; color: #456b71; font-size: clamp(1.05rem, 1.6vw, 1.28rem); line-height: 1.65; }
+.heroActions { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
 .heroAction, .primaryAction, .lightAction { display: inline-flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 54px; margin-top: 36px; padding: 0 22px; border-radius: 999px; font-weight: 750; transition: transform .25s ease, background .25s ease; }
-.heroAction { color: #063d4c; background: #dff7f3; } .heroAction:hover, .primaryAction:hover, .lightAction:hover { transform: translateY(-2px); }
-.heroIndex { position: absolute; right: max(7vw, 32px); bottom: 58px; display: flex; align-items: center; gap: 12px; color: rgba(255,255,255,.58); font-size: .78rem; }
-.heroIndex i { width: 70px; height: 1px; background: rgba(255,255,255,.35); }
+.heroAction { color: #fff; background: #087c7e; } .heroAction:hover, .primaryAction:hover, .lightAction:hover { transform: translateY(-2px); }
+.heroAction:hover { background: #06696b; }
+.heroSecondary { margin-top: 36px; padding-block: 14px; color: #0a6870; font-weight: 750; border-bottom: 1px solid #86bcb9; }
+.missionLine { display: flex; flex-wrap: wrap; gap: 10px; margin: 42px 0 0; color: #54777b; font-size: .8rem; letter-spacing: .04em; }
+.missionLine strong { color: #214e55; }
+.heroVisual { min-height: 420px; position: relative; margin: 0; overflow: hidden; border-radius: 28px; box-shadow: 0 20px 52px rgba(7,65,75,.15); animation: reveal .7s .08s backwards cubic-bezier(.2,.8,.2,1); }
+.heroVisual img { object-fit: cover; }
+.heroVisual::after { content: ""; position: absolute; inset: 45% 0 0; background: linear-gradient(transparent, rgba(2,31,38,.72)); }
+.heroVisual figcaption { position: absolute; z-index: 1; right: 28px; bottom: 26px; left: 28px; display: flex; justify-content: space-between; gap: 16px; color: #fff; font-size: .76rem; }
+.heroVisual figcaption span { color: #b9f1e9; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; }
 .main { background: #eaf7f5; }
 .explorer { padding: clamp(72px, 10vw, 128px) 0 clamp(70px, 9vw, 112px); }
 .sectionHeader { display: flex; justify-content: space-between; align-items: end; gap: 28px; max-width: 1440px; margin: 0 auto 42px; padding: 0 max(5vw, 24px); }
@@ -19,9 +26,9 @@
 .carouselControls button { width: 46px; height: 46px; border: 1px solid #9fc7c5; border-radius: 50%; color: #073f4b; background: transparent; cursor: pointer; transition: background .2s ease, transform .2s ease; }
 .carouselControls button:hover:not(:disabled) { color: #fff; background: #075468; transform: scale(1.04); }
 .carouselControls button:disabled { opacity: .34; cursor: default; }
-.cardRail { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(300px, 27vw); gap: 18px; padding: 10px max(5vw, 24px) 24px; overflow-x: auto; overscroll-behavior-inline: contain; scroll-snap-type: inline mandatory; scrollbar-width: none; }
+.cardRail { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, 22vw); gap: 18px; padding: 10px max(5vw, 24px) 24px; overflow-x: auto; overscroll-behavior-inline: contain; scroll-snap-type: inline mandatory; scrollbar-width: none; }
 .cardRail::-webkit-scrollbar { display: none; }
-.threatCard { min-height: 430px; position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; padding: 28px; overflow: hidden; scroll-snap-align: center; color: #fff; text-align: left; border: 0; border-radius: 28px; cursor: pointer; isolation: isolate; box-shadow: 0 18px 48px rgba(6,61,76,.13); transition: transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s ease; }
+.threatCard { min-height: 340px; position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; padding: 24px; overflow: hidden; scroll-snap-align: center; color: #fff; text-align: left; border: 0; border-radius: 24px; cursor: pointer; isolation: isolate; box-shadow: 0 14px 36px rgba(6,61,76,.12); transition: transform .18s ease-out, box-shadow .18s ease-out; }
 .threatCard img { z-index: -2; object-fit: cover; transition: transform .65s cubic-bezier(.2,.8,.2,1); }
 .cardShade { position: absolute; inset: 0; z-index: -1; background: linear-gradient(to top, rgba(3,27,34,.9) 0%, rgba(3,27,34,.25) 70%, rgba(3,27,34,.08)); }
 .threatCard:hover, .threatCard[aria-pressed="true"] { transform: translateY(-8px); box-shadow: 0 26px 60px rgba(6,61,76,.22); }
@@ -31,8 +38,8 @@
 .cardEyebrow { margin-bottom: 8px; color: #a6e7df; font-size: .72rem; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }
 .threatCard strong { max-width: 260px; font-size: 1.8rem; line-height: 1.05; letter-spacing: -.025em; }
 .cardAction { display: flex; justify-content: space-between; width: 100%; margin-top: 24px; padding-top: 17px; color: rgba(255,255,255,.8); border-top: 1px solid rgba(255,255,255,.25); font-size: .85rem; }
-.detail { display: grid; grid-template-columns: minmax(0, 1.02fr) minmax(0, .98fr); min-height: 820px; background: #fff; animation: reveal .42s cubic-bezier(.2,.8,.2,1); }
-.detailImage { min-height: 700px; position: relative; margin: 0; overflow: hidden; }
+.detail { width: min(calc(100% - 48px), 1240px); display: grid; grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr); min-height: 620px; margin: 0 auto clamp(80px, 10vw, 128px); overflow: hidden; border-radius: 28px; background: #fff; box-shadow: 0 18px 54px rgba(6,61,76,.1); animation: reveal .42s ease-out; }
+.detailImage { min-height: 540px; position: relative; margin: 0; overflow: hidden; }
 .detailImage img { object-fit: cover; }
 .detailImage::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(3,31,38,.44), transparent 48%); }
 .detailImage figcaption { position: absolute; z-index: 1; left: 38px; bottom: 32px; color: #fff; font-size: .74rem; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
@@ -52,7 +59,7 @@
 .quizIntro { max-width: 700px; margin: 0 auto 48px; text-align: center; }
 .quizIntro > p:last-child { color: #a9c9ca; }
 .quizPanel { display: grid; grid-template-columns: 1.1fr .9fr; max-width: 1240px; margin: auto; overflow: hidden; border: 1px solid rgba(255,255,255,.12); border-radius: 28px; background: #0a4b59; box-shadow: 0 28px 80px rgba(0,20,28,.25); }
-.quizImage { min-height: 590px; position: relative; margin: 0; }
+.quizImage { min-height: 460px; position: relative; margin: 0; }
 .quizImage img { object-fit: cover; }
 .quizImage::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(3,31,38,.35), transparent 50%); }
 .quizImage figcaption { position: absolute; z-index: 1; left: 24px; bottom: 22px; padding: 7px 12px; border-radius: 999px; background: rgba(4,37,45,.7); font-size: .72rem; }
@@ -68,6 +75,6 @@
 .unsure h2 { max-width: 900px; } .unsure > p:not(.eyebrow) { max-width: 570px; color: #abcacc; font-size: 1.05rem; }
 .lightAction { color: #063d4c; background: #dff7f3; }
 @keyframes reveal { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
-@media (max-width: 900px) { .detail, .quizPanel { grid-template-columns: 1fr; } .detailImage, .quizImage { min-height: 55vw; } .detailCopy { padding: 54px max(6vw, 24px) 70px; } .quizImage { min-height: 480px; } }
-@media (max-width: 640px) { .hero { min-height: 650px; padding-inline: 24px; } .hero h1 { font-size: clamp(3.3rem, 17vw, 5rem); } .heroGlow { width: 74vw; height: 74vw; right: -17vw; } .heroIndex { display: none; } .sectionHeader { align-items: flex-end; } .sectionHeader h2 { font-size: 2.35rem; } .sectionHeader .eyebrowDark { margin-bottom: 12px; } .carouselControls p { display: none; } .cardRail { grid-auto-columns: 82vw; } .threatCard { min-height: 410px; } .detailImage { min-height: 78vw; } .factGrid { grid-template-columns: 1fr; gap: 22px; } .quizImage { min-height: 80vw; } .quizCopy { padding: 32px 22px 40px; } }
+@media (max-width: 900px) { .hero { grid-template-columns: 1fr; } .heroContent { max-width: 760px; justify-self: start; } .heroVisual { width: 100%; min-height: 48vw; } .detail, .quizPanel { grid-template-columns: 1fr; } .detailImage, .quizImage { min-height: 48vw; } .detailCopy { padding: 54px max(6vw, 24px) 70px; } }
+@media (max-width: 640px) { .hero { min-height: auto; gap: 32px; padding: 48px 20px 38px; } .hero h1 { font-size: clamp(3rem, 14.5vw, 4.25rem); } .heroCopy { margin-top: 22px; font-size: 1rem; } .heroActions { gap: 6px 20px; } .heroAction, .heroSecondary { margin-top: 26px; } .missionLine { margin-top: 32px; } .heroVisual { min-height: 70vw; border-radius: 22px; } .heroVisual figcaption { right: 20px; bottom: 20px; left: 20px; flex-direction: column; gap: 4px; } .sectionHeader { align-items: flex-end; } .sectionHeader h2 { font-size: 2.35rem; } .sectionHeader .eyebrowDark { margin-bottom: 12px; } .carouselControls p { display: none; } .cardRail { grid-auto-columns: 76vw; } .threatCard { min-height: 320px; } .detail { width: calc(100% - 32px); } .detailImage { min-height: 62vw; } .factGrid { grid-template-columns: 1fr; gap: 22px; } .quizImage { min-height: 64vw; } .quizCopy { padding: 32px 22px 40px; } }
 @media (prefers-reduced-motion: reduce) { .page *, .page *::before, .page *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
