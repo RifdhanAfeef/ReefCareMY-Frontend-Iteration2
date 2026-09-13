@@ -32,6 +32,20 @@ export function isFutureDisplayDate(value: string, now = new Date()) {
   return supplied > today;
 }
 
+export function isFutureDisplayDateTime(
+  dateValue: string,
+  timeValue: string,
+  now = new Date(),
+) {
+  if (!isValidDisplayDate(dateValue) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(timeValue)) {
+    return false;
+  }
+
+  const [day, month, year] = dateValue.split("/").map(Number);
+  const [hour, minute] = timeValue.split(":").map(Number);
+  return new Date(year, month - 1, day, hour, minute).getTime() > now.getTime();
+}
+
 export function displayDateToInputValue(value: string) {
   if (!value || !isValidDisplayDate(value)) return "";
   const [day, month, year] = value.split("/");

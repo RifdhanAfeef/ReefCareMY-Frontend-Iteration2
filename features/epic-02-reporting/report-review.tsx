@@ -3,10 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ReviewLocationSummary } from "@/features/epic-04-location/location-flow";
 import { useMockAppState } from "@/features/shared/mock-app-state";
-import { isFutureDisplayDate, isValidDisplayDate } from "@/lib/format/date";
+import { isFutureDisplayDateTime, isValidDisplayDate } from "@/lib/format/date";
 import { submitReport as submitReportApi } from "@/lib/api/reportsApi";
 import { userFacingError } from "@/lib/api/user-facing-error";
 import { clearDraftPhotos, loadDraftPhotos, type StoredDraftPhoto } from "./draft-storage";
@@ -22,6 +22,8 @@ export function ReportReview() {
   const [photos, setPhotos] = useState<ReviewPhoto[]>([]);
   const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmationUrl, setConfirmationUrl] = useState("");
+  const submissionInProgress = useRef(false);
   const [submissionError, setSubmissionError] = useState("");
   const threat = getThreatCategory(reportDraft.threatCategoryCode);
   const session = locationDraft.sessions.find((item) => item.id === locationDraft.selectedSessionId);
@@ -50,22 +52,22 @@ export function ReportReview() {
     const items: string[] = [];
     if (photos.length === 0) items.push("at least one photograph");
     if (!threat || !reportDraft.threatCategoryId) items.push("threat category");
-    if (!reportDraft.observationDate || !isValidDisplayDate(reportDraft.observationDate) || isFutureDisplayDate(reportDraft.observationDate)) items.push("valid, non-future observation date");
+    if (!reportDraft.observationDate || !isValidDisplayDate(reportDraft.observationDate)) items.push("valid observation date");
     if (!reportDraft.observationTime) items.push("observation time");
+    else if (isFutureDisplayDateTime(reportDraft.observationDate, reportDraft.observationTime)) items.push("observation date and time that are not in the future");
     if (!reportDraft.description.trim()) items.push("description");
     if (!session?.backendId || !locationDraft.confidence) items.push("Dive Session, location and confidence");
     return items;
   }, [locationDraft.confidence, photos.length, reportDraft, session, threat]);
 
   async function submit() {
-    if (missingItems.length > 0 || submitting) return;
+    if (missingItems.length > 0 || submissionInProgress.current) return;
+    submissionInProgress.current = true;
     setSubmitting(true);
     setSubmissionError("");
     try {
       const payload = buildReportSubmissionPayload(reportDraft, locationDraft);
       const result = await submitReportApi(payload, photos.map((photo) => photo.file));
-      await clearDraftPhotos();
-      resetReportDraft();
       const query = new URLSearchParams({
         reportReference: result.reportReference,
         status: result.status,
@@ -73,11 +75,24 @@ export function ReportReview() {
         generalLocation: result.generalLocation,
         threatCategory: threat?.label ?? "Not provided",
       });
-      router.push(`/report-a-reef/confirmation?${query.toString()}`);
+      const destination = `/report-a-reef/confirmation?${query.toString()}`;
+      setConfirmationUrl(destination);
+      // A local cleanup failure cannot undo a successful server submission.
+      await clearDraftPhotos().catch(() => undefined);
+      resetReportDraft();
+      router.push(destination);
     } catch (error) {
       setSubmissionError(userFacingError(error, "The report could not be submitted."));
       setSubmitting(false);
+      submissionInProgress.current = false;
     }
+  }
+
+  if (confirmationUrl) {
+    return <section className={styles.card}>
+      <div role="status"><h2>Report submitted</h2><p>Opening your confirmation…</p></div>
+      <Link className={styles.primaryButton} href={confirmationUrl}>View confirmation</Link>
+    </section>;
   }
 
   return (
