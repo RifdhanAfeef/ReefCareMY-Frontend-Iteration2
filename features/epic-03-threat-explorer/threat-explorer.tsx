@@ -43,12 +43,6 @@ export function ThreatExplorer() {
         <div className={styles.heroContent}>
           <p className={styles.eyebrow}>ReefCare MY · Reef Threat Explorer</p>
           <h1>Meet the four threats facing Malaysia’s reefs.</h1>
-          <p className={styles.heroCopy}>ReefCare helps people recognise reef damage and share useful observations with conservation teams—without needing to be a scientist.</p>
-          <div className={styles.heroActions}>
-            <a className={styles.heroAction} href="#threats">Explore the threats <Arrow direction="right" /></a>
-            <Link className={styles.heroSecondary} href={reportHref("unsure")}>Report an observation</Link>
-          </div>
-          <p className={styles.missionLine}><strong>Observe</strong><span aria-hidden="true">→</span><strong>Learn</strong><span aria-hidden="true">→</span><strong>Report</strong><span aria-hidden="true">→</span><strong>Support action</strong></p>
         </div>
         <figure className={styles.heroVisual}>
           <Image src="/images/threats/generated/coral-bleaching.webp" alt="Bleached white coral surrounded by reef fish" fill priority sizes="(max-width: 900px) 100vw, 42vw" />
@@ -88,10 +82,17 @@ export function ThreatExplorer() {
         </section>
 
         <section className={styles.detail} aria-live="polite" aria-labelledby="selected-threat-heading" key={selected.code}>
-          <figure className={styles.detailImage}>
-            <Image src={selected.image} alt={selected.imageAlt} fill sizes="(max-width: 900px) 100vw, 48vw" priority={selectedIndex === 0} />
-            <figcaption>{selected.number} / {selected.eyebrow}</figcaption>
-          </figure>
+          <div className={styles.detailGallery} aria-label={`${selected.label} visual examples`}>
+            {[
+              { image: selected.image, alt: selected.imageAlt },
+              { image: selected.exampleImage, alt: selected.exampleImageAlt },
+            ].map((item, index) => (
+              <figure className={styles.detailImage} key={item.image}>
+                <Image src={item.image} alt={item.alt} fill sizes="(max-width: 900px) 82vw, 34vw" priority={selectedIndex === 0 && index === 0} />
+                <figcaption>Example {index + 1} of 2</figcaption>
+              </figure>
+            ))}
+          </div>
           <div className={styles.detailCopy}>
             <p className={styles.eyebrowDark}>Know what you are seeing</p><h2 id="selected-threat-heading">{selected.label}</h2><p className={styles.lead}>{selected.summary}</p>
             <div className={styles.factGrid}>

@@ -16,6 +16,8 @@ export type ThreatExplorerItem = {
   safety: string;
   image: string;
   imageAlt: string;
+  exampleImage: string;
+  exampleImageAlt: string;
 };
 
 export const threatExplorerItems: ThreatExplorerItem[] = [
@@ -31,6 +33,8 @@ export const threatExplorerItems: ThreatExplorerItem[] = [
     safety: "Keep clear of hooks and loose lines. Photograph it from a safe distance and never attempt removal unless trained and authorised.",
     image: "/images/threats/generated/ghost-gear.webp",
     imageAlt: "Abandoned fishing net and rope tangled across a coral reef",
+    exampleImage: "/images/threats/generated/ghost-gear-example-2.webp",
+    exampleImageAlt: "Fishing line and a torn section of net caught around branching coral",
   },
   {
     code: "coral_bleaching",
@@ -44,6 +48,8 @@ export const threatExplorerItems: ThreatExplorerItem[] = [
     safety: "Observe without touching. Keep good buoyancy, avoid stirring sediment, and capture both a close and wider view if safe.",
     image: "/images/threats/generated/coral-bleaching.webp",
     imageAlt: "Pale white bleached coral beside darker healthy-looking coral",
+    exampleImage: "/images/threats/generated/coral-bleaching-example-2.webp",
+    exampleImageAlt: "Patchy paling across rounded and branching coral colonies",
   },
   {
     code: "marine_debris",
@@ -57,6 +63,8 @@ export const threatExplorerItems: ThreatExplorerItem[] = [
     safety: "Do not handle sharp, chemical, medical or entangling waste. Record the type, amount and location from a safe position.",
     image: "/images/threats/generated/marine-debris.webp",
     imageAlt: "Plastic and discarded material lying across part of a coral reef",
+    exampleImage: "/images/threats/generated/marine-debris-example-2.webp",
+    exampleImageAlt: "A plastic bag and aluminium can lodged beside coral",
   },
   {
     code: "physical_reef_damage",
@@ -70,6 +78,8 @@ export const threatExplorerItems: ThreatExplorerItem[] = [
     safety: "Do not move fragments or confront anyone. Maintain safe buoyancy and document only what you can observe safely.",
     image: "/images/threats/generated/physical-damage.webp",
     imageAlt: "Broken and damaged coral across an underwater reef area",
+    exampleImage: "/images/threats/generated/physical-damage-example-2.webp",
+    exampleImageAlt: "A narrow abrasion track and toppled coral fragments on a reef",
   },
 ];
 

@@ -1,17 +1,11 @@
 .page { background: #eaf7f5; color: #092f38; overflow: hidden; }
-.hero { min-height: min(680px, calc(100svh - var(--header-height))); display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(360px, .92fr); align-items: center; gap: clamp(44px, 7vw, 108px); padding: clamp(48px, 6vw, 80px) max(5vw, 24px); background: #f4fbf9; }
+.hero { min-height: min(560px, calc(100svh - var(--header-height))); display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(360px, .92fr); align-items: center; gap: clamp(44px, 7vw, 108px); padding: clamp(48px, 6vw, 72px) max(5vw, 24px); background: #f4fbf9; }
 .heroContent { max-width: 720px; justify-self: end; animation: reveal .6s cubic-bezier(.2,.8,.2,1); }
 .eyebrow, .eyebrowDark { margin: 0 0 20px; font-size: .76rem; font-weight: 750; letter-spacing: .18em; text-transform: uppercase; }
 .eyebrow { color: #087783; } .eyebrowDark { color: #0a7280; }
-.hero h1 { max-width: 760px; margin: 0; color: #062f3a; font-size: clamp(3.2rem, 6vw, 6.3rem); font-weight: 590; line-height: .94; letter-spacing: -.06em; text-wrap: balance; }
-.heroCopy { max-width: 650px; margin: 30px 0 0; color: #456b71; font-size: clamp(1.05rem, 1.6vw, 1.28rem); line-height: 1.65; }
-.heroActions { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
-.heroAction, .primaryAction, .lightAction { display: inline-flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 54px; margin-top: 36px; padding: 0 22px; border-radius: 999px; font-weight: 750; transition: transform .25s ease, background .25s ease; }
-.heroAction { color: #fff; background: #087c7e; } .heroAction:hover, .primaryAction:hover, .lightAction:hover { transform: translateY(-2px); }
-.heroAction:hover { background: #06696b; }
-.heroSecondary { margin-top: 36px; padding-block: 14px; color: #0a6870; font-weight: 750; border-bottom: 1px solid #86bcb9; }
-.missionLine { display: flex; flex-wrap: wrap; gap: 10px; margin: 42px 0 0; color: #54777b; font-size: .8rem; letter-spacing: .04em; }
-.missionLine strong { color: #214e55; }
+.hero h1 { max-width: 680px; margin: 0; color: #062f3a; font-size: clamp(2.9rem, 4.8vw, 5rem); font-weight: 590; line-height: .98; letter-spacing: -.04em; text-wrap: balance; }
+.primaryAction, .lightAction { display: inline-flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 54px; margin-top: 36px; padding: 0 22px; border-radius: 999px; font-weight: 750; transition: transform .25s ease, background .25s ease; }
+.primaryAction:hover, .lightAction:hover { transform: translateY(-2px); }
 .heroVisual { min-height: 420px; position: relative; margin: 0; overflow: hidden; border-radius: 28px; box-shadow: 0 20px 52px rgba(7,65,75,.15); animation: reveal .7s .08s backwards cubic-bezier(.2,.8,.2,1); }
 .heroVisual img { object-fit: cover; }
 .heroVisual::after { content: ""; position: absolute; inset: 45% 0 0; background: linear-gradient(transparent, rgba(2,31,38,.72)); }
@@ -39,10 +33,10 @@
 .threatCard strong { max-width: 260px; font-size: 1.8rem; line-height: 1.05; letter-spacing: -.025em; }
 .cardAction { display: flex; justify-content: space-between; width: 100%; margin-top: 24px; padding-top: 17px; color: rgba(255,255,255,.8); border-top: 1px solid rgba(255,255,255,.25); font-size: .85rem; }
 .detail { width: min(calc(100% - 48px), 1240px); display: grid; grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr); min-height: 620px; margin: 0 auto clamp(80px, 10vw, 128px); overflow: hidden; border-radius: 28px; background: #fff; box-shadow: 0 18px 54px rgba(6,61,76,.1); animation: reveal .42s ease-out; }
-.detailImage { min-height: 540px; position: relative; margin: 0; overflow: hidden; }
-.detailImage img { object-fit: cover; }
-.detailImage::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(3,31,38,.44), transparent 48%); }
-.detailImage figcaption { position: absolute; z-index: 1; left: 38px; bottom: 32px; color: #fff; font-size: .74rem; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+.detailGallery { display: grid; align-content: center; gap: 12px; padding: 16px; background: #073f4b; }
+.detailImage { position: relative; aspect-ratio: 3 / 2; margin: 0; overflow: hidden; border-radius: 14px; background: #052f3b; scroll-snap-align: center; }
+.detailImage img { object-fit: contain; }
+.detailImage figcaption { position: absolute; z-index: 1; right: 12px; bottom: 12px; padding: 6px 9px; color: #fff; border-radius: 999px; background: rgba(3,31,38,.78); font-size: .7rem; font-weight: 750; }
 .detailCopy { display: flex; flex-direction: column; justify-content: center; padding: clamp(56px, 7vw, 112px); }
 .lead { max-width: 640px; margin: 25px 0 38px; color: #486b71; font-size: 1.13rem; line-height: 1.7; }
 .factGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; padding: 28px 0; border-block: 1px solid #d9e9e7; }
@@ -75,6 +69,6 @@
 .unsure h2 { max-width: 900px; } .unsure > p:not(.eyebrow) { max-width: 570px; color: #abcacc; font-size: 1.05rem; }
 .lightAction { color: #063d4c; background: #dff7f3; }
 @keyframes reveal { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
-@media (max-width: 900px) { .hero { grid-template-columns: 1fr; } .heroContent { max-width: 760px; justify-self: start; } .heroVisual { width: 100%; min-height: 48vw; } .detail, .quizPanel { grid-template-columns: 1fr; } .detailImage, .quizImage { min-height: 48vw; } .detailCopy { padding: 54px max(6vw, 24px) 70px; } }
-@media (max-width: 640px) { .hero { min-height: auto; gap: 32px; padding: 48px 20px 38px; } .hero h1 { font-size: clamp(3rem, 14.5vw, 4.25rem); } .heroCopy { margin-top: 22px; font-size: 1rem; } .heroActions { gap: 6px 20px; } .heroAction, .heroSecondary { margin-top: 26px; } .missionLine { margin-top: 32px; } .heroVisual { min-height: 70vw; border-radius: 22px; } .heroVisual figcaption { right: 20px; bottom: 20px; left: 20px; flex-direction: column; gap: 4px; } .sectionHeader { align-items: flex-end; } .sectionHeader h2 { font-size: 2.35rem; } .sectionHeader .eyebrowDark { margin-bottom: 12px; } .carouselControls p { display: none; } .cardRail { grid-auto-columns: 76vw; } .threatCard { min-height: 320px; } .detail { width: calc(100% - 32px); } .detailImage { min-height: 62vw; } .factGrid { grid-template-columns: 1fr; gap: 22px; } .quizImage { min-height: 64vw; } .quizCopy { padding: 32px 22px 40px; } }
+@media (max-width: 900px) { .hero { grid-template-columns: 1fr; } .heroContent { max-width: 760px; justify-self: start; } .heroVisual { width: 100%; min-height: 48vw; } .detail, .quizPanel { grid-template-columns: 1fr; } .detailGallery { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 82%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; } .detailGallery::-webkit-scrollbar { display: none; } .detailCopy { padding: 54px max(6vw, 24px) 70px; } .quizImage { min-height: 48vw; } }
+@media (max-width: 640px) { .hero { min-height: auto; gap: 28px; padding: 44px 20px 34px; } .hero h1 { font-size: clamp(2.75rem, 12.5vw, 3.6rem); } .heroVisual { min-height: 66vw; border-radius: 22px; } .heroVisual figcaption { right: 20px; bottom: 20px; left: 20px; flex-direction: column; gap: 4px; } .sectionHeader { align-items: flex-end; } .sectionHeader h2 { font-size: 2.35rem; } .sectionHeader .eyebrowDark { margin-bottom: 12px; } .carouselControls p { display: none; } .cardRail { grid-auto-columns: 76vw; } .threatCard { min-height: 320px; } .detail { width: calc(100% - 32px); } .detailGallery { padding: 12px; } .factGrid { grid-template-columns: 1fr; gap: 22px; } .quizImage { min-height: 64vw; } .quizCopy { padding: 32px 22px 40px; } }
 @media (prefers-reduced-motion: reduce) { .page *, .page *::before, .page *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
