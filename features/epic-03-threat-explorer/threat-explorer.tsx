@@ -16,13 +16,14 @@ export function ThreatExplorer() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [exampleIndex, setExampleIndex] = useState(0);
   const [answer, setAnswer] = useState<ThreatExplorerCode | null>(null);
-  const cardRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const detailRef = useRef<HTMLElement | null>(null);
   const selected = threatExplorerItems[selectedIndex];
   const example = spotTheThreatExamples[exampleIndex];
 
   const selectThreat = (index: number) => {
     setSelectedIndex(index);
-    cardRefs.current[index]?.scrollIntoView?.({ behavior: "smooth", block: "nearest", inline: "center" });
+    const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    detailRef.current?.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth", block: "start" });
   };
 
   const reportHref = (code: ThreatExplorerCode | "unsure") => {
@@ -65,7 +66,6 @@ export function ThreatExplorer() {
             {threatExplorerItems.map((threat, index) => (
               <button
                 className={styles.threatCard}
-                ref={(node) => { cardRefs.current[index] = node; }}
                 key={threat.code}
                 type="button"
                 aria-label={`Explore ${threat.label}`}
@@ -81,7 +81,7 @@ export function ThreatExplorer() {
           </div>
         </section>
 
-        <section className={styles.detail} aria-live="polite" aria-labelledby="selected-threat-heading" key={selected.code}>
+        <section ref={detailRef} className={styles.detail} aria-live="polite" aria-labelledby="selected-threat-heading" key={selected.code}>
           <div className={styles.detailGallery} aria-label={`${selected.label} visual examples`}>
             {[
               { image: selected.image, alt: selected.imageAlt },

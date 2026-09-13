@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AuthProvider } from "@/features/epic-01-access/auth-context";
@@ -14,6 +14,7 @@ function renderExplorer() {
 
 beforeEach(() => {
   window.localStorage.clear();
+  Element.prototype.scrollIntoView = vi.fn();
 });
 
 describe("Epic 3 Reef Threat Explorer", () => {
@@ -39,6 +40,19 @@ describe("Epic 3 Reef Threat Explorer", () => {
 
     await user.click(screen.getByRole("button", { name: "Previous threat" }));
     expect(screen.getByRole("heading", { name: "Coral bleaching" })).toBeInTheDocument();
+  });
+
+  it("scrolls to the selected threat details after choosing a card", async () => {
+    const user = userEvent.setup();
+    renderExplorer();
+
+    const detail = screen.getByRole("region", { name: "Ghost fishing gear" });
+    const scrollIntoView = vi.fn();
+    detail.scrollIntoView = scrollIntoView;
+
+    await user.click(screen.getByRole("button", { name: "Explore Coral bleaching" }));
+
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
   });
 
   it("teaches recognition through tap-only Spot the Threat feedback", async () => {
