@@ -54,7 +54,7 @@ The final section makes uncertainty acceptable. Visitors can choose `I am unsure
 
 Add a public `/reef-threats` route backed by a focused Epic 3 feature folder. Threat copy and image metadata live in a typed data module so the carousel, details, exercise, and reporting links share one source of truth. Interactive UI runs in a client component; route metadata and page composition remain server-side where possible.
 
-The existing `/learn` responsible-reporting page remains available. Navigation gains a `Reef threats` entry rather than replacing current guidance.
+The Reef Threat Explorer replaces the former learning page as the single public destination for threat recognition and responsible-reporting guidance.
 
 ## Accessibility and error handling
 

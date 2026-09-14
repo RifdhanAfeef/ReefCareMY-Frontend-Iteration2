@@ -11,9 +11,12 @@ function Arrow({ direction }: { direction: "left" | "right" }) {
   return <span aria-hidden="true">{direction === "left" ? "←" : "→"}</span>;
 }
 
-export function ThreatExplorer() {
+export function ThreatExplorer({ initialThreat }: { initialThreat?: ThreatExplorerCode }) {
   const { status, user } = useAuth();
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const initialIndex = initialThreat
+    ? threatExplorerItems.findIndex((threat) => threat.code === initialThreat)
+    : 0;
+  const [selectedIndex, setSelectedIndex] = useState(initialIndex >= 0 ? initialIndex : 0);
   const [exampleIndex, setExampleIndex] = useState(0);
   const [answer, setAnswer] = useState<ThreatExplorerCode | null>(null);
   const detailRef = useRef<HTMLElement | null>(null);

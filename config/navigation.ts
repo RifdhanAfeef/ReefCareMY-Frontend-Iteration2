@@ -11,7 +11,6 @@ export const publicNavigation: NavigationItem[] = [
   { label: "Home", href: "/" },
   { label: "Explore", href: "/explore" },
   { label: "Reef threats", href: "/reef-threats" },
-  { label: "Learn", href: "/learn" },
 ];
 
 export const publicActions: HeaderAction[] = [
@@ -23,7 +22,6 @@ export const observerNavigation: NavigationItem[] = [
   { label: "Home", href: "/" },
   { label: "Explore", href: "/explore" },
   { label: "Reef threats", href: "/reef-threats" },
-  { label: "Learn", href: "/learn" },
   { label: "Report a Reef", href: "/report-a-reef" },
   { label: "My Reports", href: "/my-reports" },
 ];

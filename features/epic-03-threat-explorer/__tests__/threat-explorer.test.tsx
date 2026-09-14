@@ -42,6 +42,17 @@ describe("Epic 3 Reef Threat Explorer", () => {
     expect(screen.getByRole("heading", { name: "Coral bleaching" })).toBeInTheDocument();
   });
 
+  it("opens a threat selected by a Reef Threats link", () => {
+    render(
+      <AuthProvider>
+        <ThreatExplorer initialThreat="marine_debris" />
+      </AuthProvider>,
+    );
+
+    expect(screen.getByRole("heading", { name: "Marine debris" })).toBeInTheDocument();
+    expect(screen.getByText("3 of 4")).toBeInTheDocument();
+  });
+
   it("scrolls to the selected threat details after choosing a card", async () => {
     const user = userEvent.setup();
     renderExplorer();
