@@ -22,17 +22,15 @@
 .carouselControls button:disabled { opacity: .34; cursor: default; }
 .cardRail { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, 22vw); gap: 18px; padding: 10px max(5vw, 24px) 24px; overflow-x: auto; overscroll-behavior-inline: contain; scroll-snap-type: inline mandatory; scrollbar-width: none; }
 .cardRail::-webkit-scrollbar { display: none; }
-.threatCard { min-height: 340px; position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; padding: 24px; overflow: hidden; scroll-snap-align: center; color: #fff; text-align: left; border: 0; border-radius: 24px; cursor: pointer; isolation: isolate; box-shadow: 0 14px 36px rgba(6,61,76,.12); transition: transform .18s ease-out, box-shadow .18s ease-out; }
-.threatCard img { z-index: -2; object-fit: cover; transition: transform .65s cubic-bezier(.2,.8,.2,1); }
+.threatCard { min-height: 340px; position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; padding: 24px; overflow: hidden; scroll-snap-align: center; color: #fff; text-align: left; border: 0; border-radius: 24px; cursor: pointer; isolation: isolate; box-shadow: 0 14px 36px rgba(6,61,76,.12); }
+.threatCard img { z-index: -2; object-fit: cover; }
 .cardShade { position: absolute; inset: 0; z-index: -1; background: linear-gradient(to top, rgba(3,27,34,.9) 0%, rgba(3,27,34,.25) 70%, rgba(3,27,34,.08)); }
-.threatCard:hover, .threatCard[aria-pressed="true"] { transform: translateY(-8px); box-shadow: 0 26px 60px rgba(6,61,76,.22); }
-.threatCard:hover img, .threatCard[aria-pressed="true"] img { transform: scale(1.045); }
 .threatCard[aria-pressed="true"] { outline: 3px solid #39bdb7; outline-offset: 4px; }
 .cardNumber { position: absolute; top: 24px; left: 26px; font-size: .78rem; letter-spacing: .12em; }
 .cardEyebrow { margin-bottom: 8px; color: #a6e7df; font-size: .72rem; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }
 .threatCard strong { max-width: 260px; font-size: 1.8rem; line-height: 1.05; letter-spacing: -.025em; }
 .cardAction { display: flex; justify-content: space-between; width: 100%; margin-top: 24px; padding-top: 17px; color: rgba(255,255,255,.8); border-top: 1px solid rgba(255,255,255,.25); font-size: .85rem; }
-.detail { width: min(calc(100% - 48px), 1240px); display: grid; grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr); min-height: 620px; margin: 0 auto clamp(80px, 10vw, 128px); overflow: hidden; border-radius: 28px; background: #fff; box-shadow: 0 18px 54px rgba(6,61,76,.1); animation: reveal .42s ease-out; }
+.detail { width: min(calc(100% - 48px), 1240px); display: grid; grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr); min-height: 620px; margin: 0 auto clamp(80px, 10vw, 128px); overflow: hidden; scroll-margin-top: calc(var(--header-height) + 24px); border-radius: 28px; background: #fff; box-shadow: 0 18px 54px rgba(6,61,76,.1); animation: reveal .42s ease-out; }
 .detailGallery { display: grid; align-content: center; gap: 12px; padding: 16px; background: #073f4b; }
 .detailImage { position: relative; aspect-ratio: 3 / 2; margin: 0; overflow: hidden; border-radius: 14px; background: #052f3b; scroll-snap-align: center; }
 .detailImage img { object-fit: contain; }

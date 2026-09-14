@@ -116,7 +116,7 @@ export function LandingPage() {
           <p className={styles.lead}>ReefCare MY helps divers and reef observers document potential threats, protect sensitive locations and follow what happens after submission without needing scientific expertise.</p>
           <div className={styles.heroControls}>
             <div className={styles.actions}>
-              <Link className={styles.primaryButton} href="/learn">Learn what to report</Link>
+              <Link className={styles.primaryButton} href="/reef-threats">Explore reef threats</Link>
               {signedIn && (
                 <Link className={styles.secondaryButton} href={signedInDestination.href}>{signedInDestination.label}</Link>
               )}
@@ -151,8 +151,8 @@ export function LandingPage() {
 
       <section ref={threatSectionRef} className={`${styles.section} ${styles.threatSection}`} aria-labelledby="threat-heading">
         <WaterCaustics id="threat-caustics" />
-        <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Supported observations</p><h2 id="threat-heading">Four reef threats you can document</h2></div><Link className={styles.textLink} href="/learn">View responsible-reporting guidance <span aria-hidden="true">→</span></Link></div>
-        <div className={styles.threatGrid}>{threats.map((threat) => <Link className={styles.threatCard} href={`/learn?threat=${threat.code}`} key={threat.name} aria-label={`View guidance for ${threat.name}`}><div className={styles.threatTitle}><ThreatIcon src={threat.icon} /><h3>{threat.name}</h3></div><p>{threat.text}</p><span className={styles.cardLink}>View guidance <span className={styles.cardArrow} aria-hidden="true">→</span></span></Link>)}</div>
+        <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Supported observations</p><h2 id="threat-heading">Four reef threats you can document</h2></div><Link className={styles.textLink} href="/reef-threats">Open Reef Threat Explorer <span aria-hidden="true">→</span></Link></div>
+        <div className={styles.threatGrid}>{threats.map((threat) => <Link className={styles.threatCard} href={`/reef-threats?threat=${threat.code}`} key={threat.name} aria-label={`Explore ${threat.name}`}><div className={styles.threatTitle}><ThreatIcon src={threat.icon} /><h3>{threat.name}</h3></div><p>{threat.text}</p><span className={styles.cardLink}>Explore threat <span className={styles.cardArrow} aria-hidden="true">→</span></span></Link>)}</div>
       </section>
 
     </div>

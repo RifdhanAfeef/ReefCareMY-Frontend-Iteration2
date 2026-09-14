@@ -13,6 +13,7 @@ import { getThreatCategories } from "@/lib/api/referenceApi";
 import type { ThreatCategoryReference } from "@/lib/api/types";
 import { userFacingError } from "@/lib/api/user-facing-error";
 import { createPhotoId, loadDraftPhotos, saveDraftPhotos, type StoredDraftPhoto } from "./draft-storage";
+import { readSelectedReefSite, type StoredReefSite } from "@/features/epic-02-reef-explorer/selected-site-storage";
 import type { ReportDraft } from "./types";
 import styles from "./reporting.module.css";
 
@@ -37,7 +38,16 @@ export function ObservationForm() {
   const [uploadMessage, setUploadMessage] = useState("");
   const [categoryOptions, setCategoryOptions] = useState<ThreatCategoryReference[]>([]);
   const [categoryLoadError, setCategoryLoadError] = useState("");
+  const [selectedReefSite, setSelectedReefSite] = useState<StoredReefSite | null>(null);
   const previewUrls = useRef<string[]>([]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setSelectedReefSite(readSelectedReefSite());
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -156,6 +166,15 @@ export function ObservationForm() {
 
   return (
     <form className={styles.formShell} onSubmit={continueToLocation} noValidate>
+      {selectedReefSite && (
+        <aside className={styles.selectedSiteNotice} aria-label="Selected reef site carried from Reef Explorer">
+          <div>
+            <strong>Selected from Reef Explorer</strong>
+            <span>{selectedReefSite.name} · {selectedReefSite.publicAreaLabel}</span>
+          </div>
+          <p>You can confirm or change this named site in the location step.</p>
+        </aside>
+      )}
       <section className={styles.card}>
         <div className={styles.sectionHeader}>
           <div><h2>Observation details</h2><p>Record what you saw. Scientific identification is not required.</p></div>

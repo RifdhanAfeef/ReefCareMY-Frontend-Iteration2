@@ -14,9 +14,11 @@ const mockedLogin = vi.mocked(authApi.login);
 const mockedRegister = vi.mocked(authApi.register);
 
 const push = vi.fn();
+let queryString = "";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(queryString),
 }));
 
 function SignedInUser() {
@@ -31,6 +33,7 @@ beforeEach(() => {
   mockedLogin.mockReset();
   mockedRegister.mockReset();
   window.localStorage.clear();
+  queryString = "";
 });
 
 function renderForm() {
@@ -208,6 +211,29 @@ describe("Register — success registers the account, then signs the observer in
 
     const registerPayload = mockedRegister.mock.calls[0][0];
     expect(registerPayload).not.toHaveProperty("role");
+  });
+
+  it("returns the new observer to their intended reporting flow", async () => {
+    queryString = "next=%2Freport-a-reef%3Fsite%3D13";
+    mockedRegister.mockResolvedValue({
+      id: 1,
+      email: "observer@example.org",
+      displayName: "Sam Observer",
+      role: "observer",
+    });
+    mockedLogin.mockResolvedValue({
+      accessToken: "tok-abc",
+      tokenType: "bearer",
+      expiresIn: 3600,
+      user: { id: 1, displayName: "Sam Observer", role: "observer" },
+    });
+
+    renderForm();
+    const user = userEvent.setup();
+    await fillForm(user);
+    await user.click(screen.getByRole("button", { name: /create account/i }));
+
+    expect(push).toHaveBeenCalledWith("/report-a-reef?site=13");
   });
 });
 
