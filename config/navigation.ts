@@ -29,6 +29,7 @@ export const observerNavigation: NavigationItem[] = [
 export const coordinatorNavigation: NavigationItem[] = [
   { label: "Report intake", href: "/coordinator/report-queue" },
   { label: "My cases", href: "/coordinator/my-cases" },
+  { label: "Hotspot analysis", href: "/coordinator/hotspots" },
 ];
 
 export const administratorNavigation: NavigationItem[] = [

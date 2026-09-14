@@ -12,7 +12,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      router.replace(`/login?next=${encodeURIComponent(pathname + window.location.search)}`);
     }
   }, [status, pathname, router]);
 
@@ -42,7 +42,7 @@ export function RequireRole({
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      router.replace(`/login?next=${encodeURIComponent(pathname + window.location.search)}`);
       return;
     }
 

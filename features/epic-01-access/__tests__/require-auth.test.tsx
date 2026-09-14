@@ -14,9 +14,18 @@ vi.mock("next/navigation", () => ({
 beforeEach(() => {
   replace.mockClear();
   window.localStorage.clear();
+  window.history.replaceState({}, "", "/");
 });
 
 describe("US1.1 — role-based route separation", () => {
+  it("preserves hotspot filters when login is required for a deep link", async () => {
+    mockPathname = "/coordinator/hotspots";
+    const query = "?siteId=3&observedFrom=2026-09-01&observedTo=2026-09-13";
+    window.history.replaceState({}, "", mockPathname + query);
+    render(<AuthProvider><RequireRole role="case_coordinator"><p>Hotspot analysis</p></RequireRole></AuthProvider>);
+    await waitFor(() => expect(replace).toHaveBeenCalledWith(`/login?next=${encodeURIComponent(mockPathname + query)}`));
+    expect(screen.queryByText("Hotspot analysis")).not.toBeInTheDocument();
+  });
   it("redirects an observer away from the coordinator workspace", async () => {
     mockPathname = "/coordinator/report-queue";
     window.localStorage.setItem(

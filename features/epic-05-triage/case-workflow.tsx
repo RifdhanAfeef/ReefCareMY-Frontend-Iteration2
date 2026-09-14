@@ -17,6 +17,7 @@ import type { ClaimedCase, ClosureReasonCode, CoordinatorCase, ResponseType } fr
 import { userFacingError } from "@/lib/api/user-facing-error";
 import { formatDateTime } from "@/lib/format/date";
 import { closureReasons, type ReviewOutcome } from "./triage-data";
+import { HotspotCaseContext } from "./hotspots/hotspot-context";
 import styles from "./triage.module.css";
 
 type Stage = "detail" | "assess" | "request" | "request-sent" | "response" | "response-saved" | "referral" | "close" | "closed";
@@ -454,6 +455,7 @@ function CaseWorkflow({ report, refreshCase, claimConfirmation }: { report: Coor
   if (activeStage === "detail") return <section className={styles.page}>
     <Heading eyebrow={`My Cases / ${report.reportReference}`} title="Review reef observation" description="Review the submitted evidence, observation details and protected location before making a decision." />
     <span className={styles.ownerChip}>Owned by {report.owner.displayName}</span>
+    <HotspotCaseContext reportReference={report.reportReference} />
     {claimConfirmation && <div className={styles.successBox} role="status"><strong>{claimConfirmation.statusLabel}: report assigned successfully</strong><p>Claimed at {displayDateTime(claimConfirmation.claimedAt)}. You can now begin reviewing its evidence.</p></div>}
     <div className={styles.reviewGrid}><section className={styles.card}>
       <h2>Submitted evidence</h2><p className={styles.muted}>Evidence provided by the observer with this report.</p><EvidenceRecords reportReference={report.reportReference} evidence={report.evidence} />
