@@ -9,6 +9,16 @@ import { useAuth } from "./auth-context";
 import { returnPathForRole } from "./auth-return";
 import styles from "./auth-form.module.css";
 
+/** Keep analysis deep links across login without accepting external redirects. */
+export function hotspotLoginReturn(next: string | null, origin: string): string | null {
+  if (!next?.startsWith("/coordinator/hotspots")) return null;
+  try {
+    const url = new URL(next, origin);
+    if (url.origin !== origin || !(url.pathname === "/coordinator/hotspots" || /^\/coordinator\/hotspots\/reports\/[^/]+$/.test(url.pathname))) return null;
+    return url.pathname + url.search;
+  } catch { return null; }
+}
+
 export function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
@@ -32,8 +42,11 @@ export function LoginForm() {
         : signedInUser.role === "system_administrator"
           ? "/admin/users"
           : "/";
+      const returnTo = signedInUser.role === "case_coordinator"
+        ? hotspotLoginReturn(new URLSearchParams(window.location.search).get("next"), window.location.origin)
+        : null;
       const destination = returnPathForRole(requestedPath, signedInUser.role) ?? roleDefault;
-      router.push(destination);
+      router.push(returnTo ?? destination);
     } catch (err) {
       setError(
         err instanceof ApiError && err.status === 401

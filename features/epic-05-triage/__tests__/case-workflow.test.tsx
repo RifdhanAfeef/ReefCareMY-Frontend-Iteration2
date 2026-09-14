@@ -6,6 +6,8 @@ import * as coordinatorApi from "@/lib/api/coordinatorApi";
 import type { CoordinatorCase } from "@/lib/api/types";
 
 vi.mock("@/lib/api/coordinatorApi");
+// Area context has independent requests and its own failure/permission tests.
+vi.mock("../hotspots/hotspot-context", () => ({ HotspotCaseContext: () => null }));
 
 const mockedClaimReport = vi.mocked(coordinatorApi.claimReport);
 const mockedCloseCase = vi.mocked(coordinatorApi.closeCase);

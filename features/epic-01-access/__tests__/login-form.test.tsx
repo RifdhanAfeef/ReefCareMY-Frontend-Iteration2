@@ -40,7 +40,7 @@ beforeEach(() => {
   push.mockClear();
   mockedLogin.mockReset();
   window.localStorage.clear();
-  queryString = "";
+  window.history.replaceState({}, "", "/login");
 });
 
 async function fillAndSubmit(email: string, password: string) {
@@ -101,6 +101,14 @@ describe("Login — button is disabled and shows a loading state while submittin
 });
 
 describe("Login — success stores the session and navigates onward", () => {
+  it.each(["case_coordinator", "observer"] as const)("restores a hotspot link only for an authorised role: %s", async (role) => {
+    const destination = "/coordinator/hotspots?siteId=1&observedFrom=2026-09-01&observedTo=2026-09-13";
+    window.history.replaceState({}, "", `/login?next=${encodeURIComponent(destination)}`);
+    mockedLogin.mockResolvedValue({ accessToken: "test-token", tokenType: "bearer", expiresIn: 3600, user: { id: 8, displayName: "Test User", role } });
+    render(<AuthProvider><LoginForm /></AuthProvider>);
+    await fillAndSubmit("test@example.org", "secure-password");
+    expect(push).toHaveBeenCalledWith(role === "case_coordinator" ? destination : "/");
+  });
   it("persists the access token to localStorage and exposes it via context", async () => {
     mockedLogin.mockResolvedValue({
       accessToken: "tok-abc",
