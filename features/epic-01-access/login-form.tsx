@@ -2,15 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ApiError } from "@/lib/api/client";
 import { userFacingError } from "@/lib/api/user-facing-error";
 import { useAuth } from "./auth-context";
+import { returnPathForRole } from "./auth-return";
 import styles from "./auth-form.module.css";
 
 export function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedPath = searchParams.get("next");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,11 +27,12 @@ export function LoginForm() {
 
     try {
       const signedInUser = await login(email, password);
-      const destination = signedInUser.role === "case_coordinator"
+      const roleDefault = signedInUser.role === "case_coordinator"
         ? "/coordinator/report-queue"
         : signedInUser.role === "system_administrator"
           ? "/admin/users"
           : "/";
+      const destination = returnPathForRole(requestedPath, signedInUser.role) ?? roleDefault;
       router.push(destination);
     } catch (err) {
       setError(
@@ -80,7 +84,10 @@ export function LoginForm() {
       </button>
 
       <p className={styles.accountPrompt}>
-        Don&apos;t have an account? <Link href="/register">Click here to register</Link>.
+        Don&apos;t have an account?{" "}
+        <Link href={requestedPath ? `/register?next=${encodeURIComponent(requestedPath)}` : "/register"}>
+          Click here to register
+        </Link>.
       </p>
     </form>
   );

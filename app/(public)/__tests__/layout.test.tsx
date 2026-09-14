@@ -21,6 +21,7 @@ describe("public home layout", () => {
       </PublicLayout>,
     );
 
+    expect(screen.getByRole("link", { name: "Explore" })).toHaveAttribute("href", "/explore");
     expect(screen.getByRole("link", { name: "Create account" })).toHaveAttribute("href", "/register");
   });
 });

@@ -14,6 +14,7 @@ vi.mock("next/navigation", () => ({
 beforeEach(() => {
   replace.mockClear();
   window.localStorage.clear();
+  window.history.replaceState({}, "", "/");
 });
 
 describe("US1.1 — role-based route separation", () => {
@@ -78,6 +79,25 @@ describe("US1.5 AC1 — authentication required to submit a report", () => {
       expect(replace).toHaveBeenCalledWith("/login?next=%2Freport-a-reef");
     });
     expect(screen.queryByText("Report form")).not.toBeInTheDocument();
+  });
+
+  it("preserves selected reporting context in the return path", async () => {
+    mockPathname = "/report-a-reef";
+    window.history.replaceState({}, "", "/report-a-reef?site=13&threat=ghost_gear");
+
+    render(
+      <AuthProvider>
+        <RequireAuth>
+          <p>Report form</p>
+        </RequireAuth>
+      </AuthProvider>,
+    );
+
+    await waitFor(() => {
+      expect(replace).toHaveBeenCalledWith(
+        "/login?next=%2Freport-a-reef%3Fsite%3D13%26threat%3Dghost_gear",
+      );
+    });
   });
 });
 

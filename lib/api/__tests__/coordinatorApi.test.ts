@@ -3,6 +3,9 @@ import * as client from "../client";
 import {
   claimReport,
   closeCase,
+  createConservationAction,
+  getConservationActions,
+  getConservationActionTypes,
   getCoordinatorCase,
   getCoordinatorEvidence,
   getCoordinatorQueue,
@@ -82,6 +85,34 @@ describe("coordinator API contract", () => {
         publicClosureNote: "Shared for consideration.",
         referredTo: "Marine Park Department",
       },
+    ]);
+  });
+
+  it("uses the documented Epic 7 action contracts", async () => {
+    await getConservationActionTypes();
+    await getConservationActions("RC-0710");
+    await createConservationAction("RC-0710", {
+      actionTypeCode: "reef_cleanup",
+      actionState: "action_planned",
+      actionDate: "2026-09-20",
+      responsibleTeam: "Tioman response team",
+      notes: "Cleanup planned after the next site assessment.",
+    });
+
+    expect(mockedApiRequest.mock.calls).toEqual([
+      [{ path: "/api/v1/coordinator/action-types" }],
+      [{ path: "/api/v1/coordinator/reports/RC-0710/actions" }],
+      [{
+        path: "/api/v1/coordinator/reports/RC-0710/actions",
+        method: "POST",
+        body: {
+          actionTypeCode: "reef_cleanup",
+          actionState: "action_planned",
+          actionDate: "2026-09-20",
+          responsibleTeam: "Tioman response team",
+          notes: "Cleanup planned after the next site assessment.",
+        },
+      }],
     ]);
   });
 });

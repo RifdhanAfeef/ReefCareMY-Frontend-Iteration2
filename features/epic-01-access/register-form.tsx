@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PasswordInput } from "@/components/forms/password-requirements";
 import {
   MAX_DISPLAY_NAME_LENGTH,
@@ -12,6 +12,7 @@ import {
 import { ApiError } from "@/lib/api/client";
 import { userFacingError } from "@/lib/api/user-facing-error";
 import { useAuth } from "./auth-context";
+import { returnPathForRole } from "./auth-return";
 import styles from "./auth-form.module.css";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -19,6 +20,8 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function RegisterForm() {
   const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedPath = searchParams.get("next");
 
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -42,8 +45,8 @@ export function RegisterForm() {
 
     try {
       await register({ displayName, email, password });
-      await login(email, password);
-      router.push("/my-reports");
+      const signedInUser = await login(email, password);
+      router.push(returnPathForRole(requestedPath, signedInUser.role) ?? "/my-reports");
     } catch (err) {
       setError(
         err instanceof ApiError && err.status === 409
@@ -107,7 +110,10 @@ export function RegisterForm() {
       </button>
 
       <p className={styles.accountPrompt}>
-        Already have an account? <Link href="/login">Click here to log in</Link>.
+        Already have an account?{" "}
+        <Link href={requestedPath ? `/login?next=${encodeURIComponent(requestedPath)}` : "/login"}>
+          Click here to log in
+        </Link>.
       </p>
     </form>
   );

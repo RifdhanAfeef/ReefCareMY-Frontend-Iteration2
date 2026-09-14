@@ -11,6 +11,7 @@ import { createDiveSession, getDiveSessions } from "@/lib/api/diveSessionsApi";
 import { getDiveSites } from "@/lib/api/referenceApi";
 import type { DiveSiteReference } from "@/lib/api/types";
 import { userFacingError } from "@/lib/api/user-facing-error";
+import { readSelectedReefSite } from "@/features/epic-02-reef-explorer/selected-site-storage";
 import { displayDateAndTimeToIso, displayDateToIsoDate, inputDateToDisplayValue, isFutureDisplayDate, isValidDisplayDate } from "@/lib/format/date";
 import styles from "./location-flow.module.css";
 
@@ -100,6 +101,7 @@ export function LocationFlow() {
   const [manualLongitude, setManualLongitude] = useState(pin?.longitude?.toFixed(6) ?? "");
   const [coordinateError, setCoordinateError] = useState("");
   const initiallySelectedSessionId = useRef(selectedSessionId);
+  const initialForm = useRef(form);
   const lastStepNavigationUsedKeyboard = useRef(false);
   const session = useMemo(() => sessions.find((item) => item.id === selectedSessionId) ?? sessions[0], [selectedSessionId, sessions]);
   const sessionTitle = session ? `${session.site}${session.label ? ` - ${session.label}` : ""}` : "No Dive Session selected";
@@ -119,6 +121,19 @@ export function LocationFlow() {
         if (cancelled) return;
         if (siteResult.status === "fulfilled") {
           setDiveSites(siteResult.value);
+          const storedSite = readSelectedReefSite();
+          const matchedSite = storedSite
+            ? siteResult.value.find((site) =>
+                site.name.toLowerCase() === storedSite.name.toLowerCase()
+                || (
+                  site.publicAreaLabel.toLowerCase() === storedSite.publicAreaLabel.toLowerCase()
+                  && site.name.toLowerCase().includes(storedSite.name.toLowerCase())
+                ),
+              )
+            : undefined;
+          if (matchedSite && !initialForm.current.site) {
+            updateLocationDraft({ form: { ...initialForm.current, site: String(matchedSite.diveSiteId) } });
+          }
         } else {
           setSiteLoadError(userFacingError(siteResult.reason, "Dive sites are temporarily unavailable. Please try again."));
         }

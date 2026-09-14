@@ -5,6 +5,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "./auth-context";
 import type { UserRole } from "@/lib/api/types";
 
+function currentReturnPath(pathname: string) {
+  const search = typeof window === "undefined" ? "" : window.location.search;
+  return `${pathname}${search}`;
+}
+
 export function RequireAuth({ children }: { children: React.ReactNode }) {
   const { status } = useAuth();
   const router = useRouter();
@@ -12,7 +17,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      router.replace(`/login?next=${encodeURIComponent(currentReturnPath(pathname))}`);
     }
   }, [status, pathname, router]);
 
@@ -42,7 +47,7 @@ export function RequireRole({
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      router.replace(`/login?next=${encodeURIComponent(currentReturnPath(pathname))}`);
       return;
     }
 

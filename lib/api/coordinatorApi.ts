@@ -5,6 +5,10 @@ import type {
   CaseDecisionCreate,
   CaseDecisionResult,
   ClaimedCase,
+  ConservationAction,
+  ConservationActionCreate,
+  ConservationActionList,
+  ConservationActionTypeOption,
   CoordinatorCase,
   CoordinatorQueueResult,
   EvidenceAssessmentCreate,
@@ -92,6 +96,31 @@ export async function closeCase(
 ): Promise<CaseClosureResult> {
   return apiRequest<CaseClosureResult>({
     path: `/api/v1/coordinator/reports/${encodeURIComponent(reportReference)}/close`,
+    method: "POST",
+    body: payload,
+  });
+}
+
+export async function getConservationActionTypes(): Promise<ConservationActionTypeOption[]> {
+  return apiRequest<ConservationActionTypeOption[]>({
+    path: "/api/v1/coordinator/action-types",
+  });
+}
+
+export async function getConservationActions(
+  reportReference: string,
+): Promise<ConservationActionList> {
+  return apiRequest<ConservationActionList>({
+    path: `/api/v1/coordinator/reports/${encodeURIComponent(reportReference)}/actions`,
+  });
+}
+
+export async function createConservationAction(
+  reportReference: string,
+  payload: ConservationActionCreate,
+): Promise<ConservationAction> {
+  return apiRequest<ConservationAction>({
+    path: `/api/v1/coordinator/reports/${encodeURIComponent(reportReference)}/actions`,
     method: "POST",
     body: payload,
   });

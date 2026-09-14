@@ -1,79 +1,110 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { ApiError } from "@/lib/api/client";
+import * as adminApi from "@/lib/api/adminApi";
 import { NewUserForm } from "../new-user-form";
 import { UserDirectory } from "../user-directory";
 
+vi.mock("@/lib/api/adminApi");
+const mockedGetAdminUsers = vi.mocked(adminApi.getAdminUsers);
+const mockedCreateAdminUser = vi.mocked(adminApi.createAdminUser);
+const mockedUpdateAdminUser = vi.mocked(adminApi.updateAdminUser);
+const mockedApproveCoordinator = vi.mocked(adminApi.approveCoordinator);
 const push = vi.fn();
 
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push }),
-}));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+
+const observer = {
+  id: 12,
+  email: "observer@example.org",
+  displayName: "Existing Observer",
+  role: "observer" as const,
+  isActive: true,
+  createdAt: "2026-09-13T10:00:00Z",
+};
 
 beforeEach(() => {
   push.mockClear();
-  window.localStorage.clear();
+  mockedGetAdminUsers.mockReset();
+  mockedCreateAdminUser.mockReset();
+  mockedUpdateAdminUser.mockReset();
+  mockedApproveCoordinator.mockReset();
 });
 
+async function completeCreateForm() {
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText("Display name"), "Farah Aziz");
+  await user.type(screen.getByLabelText("Email"), "farah@example.org");
+  await user.type(screen.getByLabelText("Temporary password"), "temporary-pass-2026");
+  await user.type(screen.getByLabelText("Confirm temporary password"), "temporary-pass-2026");
+  return user;
+}
+
 describe("Administrator account creation", () => {
-  it("offers every account role", () => {
-    render(<NewUserForm existingUsers={[]} />);
+  it("creates only a Registered Observer through the backend", async () => {
+    mockedCreateAdminUser.mockResolvedValue({ ...observer, displayName: "Farah Aziz", email: "farah@example.org" });
+    render(<NewUserForm />);
+    const user = await completeCreateForm();
 
-    expect(screen.getByRole("option", { name: "Registered Observer" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Case Coordinator" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "System Administrator" })).toBeInTheDocument();
-  });
-
-  it("creates an active account without storing its password", async () => {
-    render(<NewUserForm existingUsers={[]} />);
-    const user = userEvent.setup();
-
-    await user.type(screen.getByLabelText("Display name"), "Farah Aziz");
-    await user.type(screen.getByLabelText("Email"), "farah@example.org");
-    await user.selectOptions(screen.getByLabelText("Account role"), "case_coordinator");
-    await user.type(screen.getByLabelText("Temporary password"), "temporary-pass-2026");
-    await user.type(screen.getByLabelText("Confirm temporary password"), "temporary-pass-2026");
+    expect(screen.getByText("Registered Observer")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Account role")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Create user account" }));
 
-    const stored = window.localStorage.getItem("reefcare.admin-created-users") ?? "";
-    expect(stored).toContain("farah@example.org");
-    expect(stored).toContain("case_coordinator");
-    expect(stored).not.toContain("temporary-pass-2026");
+    expect(mockedCreateAdminUser).toHaveBeenCalledWith({
+      displayName: "Farah Aziz",
+      email: "farah@example.org",
+      password: "temporary-pass-2026",
+      role: "observer",
+    });
     expect(push).toHaveBeenCalledWith("/admin/users");
   });
 
-  it("accepts the current 12-character temporary-password minimum", async () => {
-    render(<NewUserForm existingUsers={[]} />);
-    const user = userEvent.setup();
+  it("shows a user-facing duplicate-email message", async () => {
+    mockedCreateAdminUser.mockRejectedValue(new ApiError("duplicate key", 409));
+    render(<NewUserForm />);
+    const user = await completeCreateForm();
+    await user.click(screen.getByRole("button", { name: "Create user account" }));
 
-    await user.type(screen.getByLabelText("Display name"), "Farah Aziz");
-    await user.type(screen.getByLabelText("Email"), "farah@example.org");
-    await user.type(screen.getByLabelText("Temporary password"), "reefcare1234");
-    await user.type(screen.getByLabelText("Confirm temporary password"), "reefcare1234");
-
-    expect(screen.getByText("Met: At least 12 characters")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Create user account" })).toBeEnabled();
+    expect(await screen.findByRole("alert")).toHaveTextContent("An account with this email already exists.");
+    expect(screen.getByRole("alert")).not.toHaveTextContent(/duplicate|backend|API|409/i);
   });
+});
 
-  it("shows locally created accounts in the directory", async () => {
-    window.localStorage.setItem(
-      "reefcare.admin-created-users",
-      JSON.stringify([
-        {
-          id: "USR-900001",
-          name: "New Administrator",
-          email: "new-admin@example.org",
-          role: "system_administrator",
-          status: "Active",
-        },
-      ]),
-    );
+describe("Administrator user directory", () => {
+  it("loads real accounts and saves safe account changes", async () => {
+    mockedGetAdminUsers.mockResolvedValue({ items: [observer], page: 1, pageSize: 100, total: 1 });
+    mockedUpdateAdminUser.mockResolvedValue({ ...observer, displayName: "Updated Observer", isActive: false });
+    render(<UserDirectory />);
 
-    render(<UserDirectory initialUsers={[]} />);
-
-    const userName = await screen.findByText("New Administrator");
+    const userName = await screen.findByText("Existing Observer");
     const row = userName.closest("tr");
     expect(row).not.toBeNull();
-    expect(within(row as HTMLTableRowElement).getByText("System Administrator")).toBeInTheDocument();
+    expect(within(row as HTMLTableRowElement).getByText("Registered Observer")).toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(within(row as HTMLTableRowElement).getByRole("button", { name: "Manage account" }));
+    await user.clear(screen.getByLabelText("Display name"));
+    await user.type(screen.getByLabelText("Display name"), "Updated Observer");
+    await user.selectOptions(screen.getByLabelText("Account status"), "suspended");
+    await user.click(screen.getByRole("button", { name: "Save account settings" }));
+
+    expect(mockedUpdateAdminUser).toHaveBeenCalledWith(12, { displayName: "Updated Observer", isActive: false });
+    expect(await screen.findByText("Account settings for Updated Observer were saved.")).toBeInTheDocument();
+  });
+
+  it("requires a second confirmation before approving Coordinator access", async () => {
+    mockedGetAdminUsers.mockResolvedValue({ items: [observer], page: 1, pageSize: 100, total: 1 });
+    mockedApproveCoordinator.mockResolvedValue({ ...observer, role: "case_coordinator" });
+    render(<UserDirectory />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Manage account" }));
+    await user.click(screen.getByRole("button", { name: "Approve as Case Coordinator" }));
+    expect(mockedApproveCoordinator).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Confirm Coordinator access" }));
+
+    expect(mockedApproveCoordinator).toHaveBeenCalledWith(12);
+    expect(await screen.findByText("Existing Observer now has Case Coordinator access.")).toBeInTheDocument();
   });
 });

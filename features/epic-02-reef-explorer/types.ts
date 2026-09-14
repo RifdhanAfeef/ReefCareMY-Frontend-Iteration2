@@ -1,0 +1,38 @@
+export type ReefActivity = {
+  title: string;
+  dateLabel: string;
+  summary: string;
+};
+
+export type ReefImage = {
+  src: string;
+  alt: string;
+};
+
+export type ReefFeature = {
+  title: string;
+  description: string;
+};
+
+export type ReefSite = {
+  id: string;
+  name: string;
+  island: "Perhentian" | "Redang" | "Tioman";
+  publicAreaLabel: string;
+  position: [number, number];
+  introduction: string;
+  images: ReefImage[];
+  reefFeatures: ReefFeature[];
+  marineLife: string[];
+  popularReasons: string[];
+  experience: {
+    level: "Beginner" | "Intermediate" | "Experienced";
+    explanation: string;
+  };
+  preparation: string[];
+  source: {
+    label: string;
+    url: string;
+  };
+  publicActivity: ReefActivity[];
+};

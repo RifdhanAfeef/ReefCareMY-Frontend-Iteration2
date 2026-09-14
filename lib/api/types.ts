@@ -26,6 +26,41 @@ export type RegisteredUser = {
   role: UserRole;
 };
 
+export type AdminUserRole = UserRole | "conservation_responder" | "dive_operator";
+
+export type AdminUser = {
+  id: number;
+  email: string;
+  displayName: string;
+  role: AdminUserRole;
+  isActive: boolean;
+  createdAt: string;
+};
+
+export type AdminUserListResult = {
+  items: AdminUser[];
+  page: number;
+  pageSize: number;
+  total: number;
+};
+
+export type AdminUserCreate = {
+  email: string;
+  displayName: string;
+  password: string;
+  role?: "observer";
+};
+
+export type AdminUserUpdate = {
+  displayName?: string;
+  isActive?: boolean;
+};
+
+export type CoordinatorApprovalResult = Pick<
+  AdminUser,
+  "id" | "email" | "displayName" | "role" | "isActive"
+>;
+
 export type ReportStatusCode =
   | "draft"
   | "submitted"
@@ -314,4 +349,41 @@ export type CaseClosureResult = {
   status: ReportStatusCode;
   closureReasonCode: ClosureReasonCode;
   closedAt: string;
+};
+
+export type ConservationActionState = "action_planned" | "action_taken";
+
+export type ConservationActionTypeOption = {
+  code: string;
+  label: string;
+  description: string | null;
+};
+
+export type ConservationActionCreate = {
+  actionTypeCode: string;
+  actionState: ConservationActionState;
+  actionDate?: string | null;
+  responsibleTeam?: string | null;
+  notes?: string | null;
+};
+
+export type ConservationAction = {
+  caseActionId: number;
+  reportReference: string;
+  actionTypeCode: string;
+  actionTypeLabel: string;
+  actionState: ConservationActionState;
+  actionDate: string | null;
+  responsibleTeam: string | null;
+  notes: string | null;
+  statusCode: ReportStatusCode;
+  createdBy: number;
+  createdByName: string | null;
+  createdAt: string;
+};
+
+export type ConservationActionList = {
+  reportReference: string;
+  items: ConservationAction[];
+  total: number;
 };
