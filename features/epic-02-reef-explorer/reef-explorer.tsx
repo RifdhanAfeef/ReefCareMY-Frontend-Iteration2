@@ -324,7 +324,7 @@ export function ReefExplorer() {
                 <h3>Useful evidence</h3>
                 <ul>{category.usefulEvidence.map((item) => <li key={item}>{item}</li>)}</ul>
                 <p><strong>Safety reminder:</strong> {category.safetyReminder}</p>
-                <Link href={`/learn?threat=${category.code}`}>Open deeper threat guidance</Link>
+                <Link href={`/reef-threats?threat=${category.code}`}>Open Reef Threat Explorer</Link>
               </div>
             </details>
           ))}
