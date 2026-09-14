@@ -91,3 +91,11 @@
 .centerActions { justify-content: center; }
 @media (max-width: 900px) { .categoryGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .detailCard, .reviewLayout { grid-template-columns: 1fr; } .guidancePhoto { min-height: 320px; } }
 @media (max-width: 650px) { .categoryGrid, .formGrid, .photoGrid, .reviewPhotos, .summaryList, .confirmationDetails { grid-template-columns: 1fr; } .categoryButton { min-height: 80px; } .fullWidth, .uploadArea { grid-column: auto; } .card, .detailCard, .confirmationCard { padding: 22px; } .guidancePhoto { min-height: 250px; } .sectionHeader, .formFooter, .ctaRow { align-items: stretch; flex-direction: column; } .actions > *, .formFooter .actions, .ctaRow .actions { width: 100%; } .formFooter .actions > *, .ctaRow .actions > * { flex: 1; } }
+.selectedSiteNotice { display: flex; justify-content: space-between; gap: 24px; align-items: center; margin-bottom: 24px; padding: 18px 22px; background: var(--color-info); border: 1px solid var(--color-primary); border-radius: 14px; }
+.selectedSiteNotice div { display: grid; gap: 3px; }
+.selectedSiteNotice span, .selectedSiteNotice p { color: var(--color-muted); }
+.selectedSiteNotice p { margin: 0; font-size: 14px; }
+
+@media (max-width: 650px) {
+  .selectedSiteNotice { align-items: flex-start; flex-direction: column; gap: 10px; }
+}

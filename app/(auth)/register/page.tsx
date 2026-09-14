@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { PageTemplate } from "@/components/templates/page-template";
 import { RegisterForm } from "@/features/epic-01-access/register-form";
@@ -11,7 +12,9 @@ export default function RegisterPage() {
       description="Create an observer account so reports can be submitted and tracked securely."
       centered
     >
-      <RegisterForm />
+      <Suspense>
+        <RegisterForm />
+      </Suspense>
     </PageTemplate>
   );
 }

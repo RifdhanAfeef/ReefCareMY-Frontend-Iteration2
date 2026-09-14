@@ -10,10 +10,11 @@ vi.mock("@/lib/api/authApi");
 const mockedLogin = vi.mocked(authApi.login);
 
 const push = vi.fn();
+let queryString = "";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, replace: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(""),
+  useSearchParams: () => new URLSearchParams(queryString),
 }));
 
 function deferred<T>() {
@@ -39,6 +40,7 @@ beforeEach(() => {
   push.mockClear();
   mockedLogin.mockReset();
   window.localStorage.clear();
+  queryString = "";
 });
 
 async function fillAndSubmit(email: string, password: string) {
@@ -144,5 +146,43 @@ describe("Login — success stores the session and navigates onward", () => {
     await fillAndSubmit("coordinator@example.org", "secure-password");
 
     expect(push).toHaveBeenCalledWith("/coordinator/report-queue");
+  });
+
+  it("returns an observer to the reporting flow they intended to open", async () => {
+    queryString = "next=%2Freport-a-reef%3Fsite%3D13";
+    mockedLogin.mockResolvedValue({
+      accessToken: "observer-token",
+      tokenType: "bearer",
+      expiresIn: 3600,
+      user: { id: 1, displayName: "Observer", role: "observer" },
+    });
+
+    render(
+      <AuthProvider>
+        <LoginForm />
+      </AuthProvider>,
+    );
+    await fillAndSubmit("observer@example.org", "correct-horse-battery");
+
+    expect(push).toHaveBeenCalledWith("/report-a-reef?site=13");
+  });
+
+  it("does not send an observer into an administrator route", async () => {
+    queryString = "next=%2Fadmin%2Fusers";
+    mockedLogin.mockResolvedValue({
+      accessToken: "observer-token",
+      tokenType: "bearer",
+      expiresIn: 3600,
+      user: { id: 1, displayName: "Observer", role: "observer" },
+    });
+
+    render(
+      <AuthProvider>
+        <LoginForm />
+      </AuthProvider>,
+    );
+    await fillAndSubmit("observer@example.org", "correct-horse-battery");
+
+    expect(push).toHaveBeenCalledWith("/");
   });
 });

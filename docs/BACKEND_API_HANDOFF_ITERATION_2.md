@@ -21,6 +21,7 @@ This handoff separates frontend fixes from API changes that are still required. 
 | API-07 | Medium | Extend location-source support | Epic 4 location flow / TC407 | Device/photo metadata cannot be represented as a distinct source |
 | API-08 | Medium | Add private evidence retrieval | Submitted evidence | Evidence metadata is available, but secure media retrieval is incomplete |
 | API-09 | Medium | Add administrator APIs | User directory and access requests | Admin screens remain frontend previews |
+| API-10 | Medium | Add action evidence attachment | Epic 7 conservation action | Action details persist, but supporting files cannot yet be attached |
 
 ## API-01 — All-report coordinator queue
 
@@ -250,6 +251,17 @@ The current backend documentation contains no administrator endpoints for:
 
 The matching frontend screens are explicitly previews and must not be treated as persisted administration. Define role-protected CRUD and access-request contracts before enabling those controls in production.
 
+## API-10 — Epic 7 action evidence attachment
+
+The deployed Epic 7 action routes support action type, state, date, responsible team and notes, but the `ActionCreate` contract does not currently accept a file or evidence identifier. The frontend therefore records the supported action fields and clearly explains that supporting files cannot yet be attached to the action.
+
+To complete US7.1 evidence upload, extend the action workflow with one owner-authorised approach:
+
+- accept multipart action creation containing the action payload and one evidence file; or
+- provide an action-evidence upload route that returns an evidence ID which is linked atomically to `case_action`.
+
+The route should validate media type and size, keep storage identifiers private, record the actor and server time, and return safe evidence metadata with the action response. A failed upload must not create an `action_taken` record that appears fully evidenced.
+
 ## Lower-priority documented gaps
 
 - `POST /api/v1/auth/logout` is planned/deferred. The frontend clears its local token even if this call is unavailable, but server-side token revocation requires the endpoint.
@@ -265,6 +277,7 @@ The matching frontend screens are explicitly previews and must not be treated as
 6. API-05 history and API-08 private evidence.
 7. Confirm TC407 scope, then implement API-07 if required.
 8. Implement administrator APIs when those stories enter active scope.
+9. Add the Epic 7 action-evidence attachment contract.
 
 ## End-to-end release test
 
