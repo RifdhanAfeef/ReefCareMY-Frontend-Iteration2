@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { DisplayDateInput } from "@/components/forms/display-date-input";
 import {
   createConservationAction,
   getConservationActions,
@@ -12,7 +13,12 @@ import type {
   ConservationActionTypeOption,
 } from "@/lib/api/types";
 import { userFacingError } from "@/lib/api/user-facing-error";
-import { formatDateTime, todayInputDateValue } from "@/lib/format/date";
+import {
+  displayDateToIsoDate,
+  formatDateTime,
+  isFutureDisplayDate,
+  isValidDisplayDate,
+} from "@/lib/format/date";
 import styles from "./conservation-action.module.css";
 
 const actionStateLabels: Record<ConservationActionState, string> = {
@@ -145,7 +151,11 @@ export function ConservationActionPanel({ reportReference }: { reportReference: 
       setFormError("Enter the date the action was taken.");
       return;
     }
-    if (actionState === "action_taken" && actionDate > todayInputDateValue()) {
+    if (actionDate && !isValidDisplayDate(actionDate)) {
+      setFormError("Enter a valid date in dd/mm/yyyy format.");
+      return;
+    }
+    if (actionState === "action_taken" && isFutureDisplayDate(actionDate)) {
       setFormError("The date of a completed action cannot be in the future.");
       return;
     }
@@ -155,7 +165,7 @@ export function ConservationActionPanel({ reportReference }: { reportReference: 
       const saved = await createConservationAction(reportReference, {
         actionTypeCode,
         actionState,
-        actionDate: actionDate || null,
+        actionDate: actionDate ? displayDateToIsoDate(actionDate) : null,
         responsibleTeam: responsibleTeam.trim(),
         notes: notes.trim() || null,
       });
@@ -178,7 +188,7 @@ export function ConservationActionPanel({ reportReference }: { reportReference: 
     <section className={styles.panel} aria-labelledby="conservation-action-heading">
       <header className={styles.panelHeading}>
         <div>
-          <p className={styles.eyebrow}>Epic 7 · Conservation action</p>
+          <p className={styles.eyebrow}>Conservation action</p>
           <h2 id="conservation-action-heading">Action record</h2>
         </div>
         <p>Record what is planned separately from what has actually happened.</p>
@@ -225,10 +235,17 @@ export function ConservationActionPanel({ reportReference }: { reportReference: 
               {selectedActionType?.description && <small>{selectedActionType.description}</small>}
             </label>
 
-            <label className={styles.field}>
+            <div className={styles.field}>
               <span>{actionState === "action_taken" ? "Date action was taken *" : "Planned action date"}</span>
-              <input type="date" value={actionDate} onChange={(event) => setActionDate(event.target.value)} max={actionState === "action_taken" ? todayInputDateValue() : undefined} disabled={submitting} required={actionState === "action_taken"} />
-            </label>
+              <DisplayDateInput
+                label={actionState === "action_taken" ? "Date action was taken" : "Planned action date"}
+                value={actionDate}
+                onChange={setActionDate}
+                required={actionState === "action_taken"}
+                allowFuture={actionState === "action_planned"}
+                disabled={submitting}
+              />
+            </div>
 
             <label className={styles.field}>
               <span>Responsible team *</span>

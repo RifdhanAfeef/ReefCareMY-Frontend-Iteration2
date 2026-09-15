@@ -15,6 +15,8 @@ type DisplayDateInputProps = {
   invalid?: boolean;
   describedBy?: string;
   label: string;
+  allowFuture?: boolean;
+  disabled?: boolean;
 };
 
 export function DisplayDateInput({
@@ -24,6 +26,8 @@ export function DisplayDateInput({
   invalid = false,
   describedBy,
   label,
+  allowFuture = false,
+  disabled = false,
 }: DisplayDateInputProps) {
   const pickerRef = useRef<HTMLInputElement>(null);
 
@@ -51,6 +55,7 @@ export function DisplayDateInput({
         value={value}
         onChange={(event) => onChange(formatDisplayDateInput(event.target.value))}
         required={required}
+        disabled={disabled}
         aria-label={`${label}, format dd/mm/yyyy`}
         aria-invalid={invalid}
         aria-describedby={describedBy}
@@ -60,6 +65,7 @@ export function DisplayDateInput({
           className="display-date-input__picker-button"
           type="button"
           onClick={openCalendar}
+          disabled={disabled}
           aria-label={`Choose ${label.toLowerCase()} from calendar`}
         >
           <svg
@@ -77,7 +83,8 @@ export function DisplayDateInput({
           className="display-date-input__picker"
           type="date"
           value={displayDateToInputValue(value)}
-          max={todayInputDateValue()}
+          max={allowFuture ? undefined : todayInputDateValue()}
+          disabled={disabled}
           onChange={(event) => onChange(inputDateToDisplayValue(event.target.value))}
           aria-hidden="true"
           tabIndex={-1}

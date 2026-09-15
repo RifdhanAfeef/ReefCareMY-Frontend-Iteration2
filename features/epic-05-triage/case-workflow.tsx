@@ -23,7 +23,6 @@ import styles from "./triage.module.css";
 
 type Stage = "detail" | "assess" | "request" | "request-sent" | "response" | "response-saved" | "referral" | "close" | "closed";
 type EvidenceAnswer = "yes" | "no" | "";
-type DuplicateAnswer = "yes" | "no" | "unsure" | "";
 type RouteState = "claim" | "loading" | "ready" | "error";
 
 const requestChoices = [
@@ -252,7 +251,6 @@ function CaseWorkflow({ report, refreshCase, claimConfirmation }: { report: Coor
   const [stage, setStage] = useState<Stage>("detail");
   const [usable, setUsable] = useState<EvidenceAnswer>("");
   const [credible, setCredible] = useState<EvidenceAnswer>("");
-  const [duplicate, setDuplicate] = useState<DuplicateAnswer>("");
   const [decisionNote, setDecisionNote] = useState("");
   const [assessmentError, setAssessmentError] = useState("");
   const [requestItems, setRequestItems] = useState<string[]>(["clearer-photo", "details"]);
@@ -289,7 +287,7 @@ function CaseWorkflow({ report, refreshCase, claimConfirmation }: { report: Coor
     : stage;
 
   const toggleRequestItem = (value: string) => setRequestItems((items) => items.includes(value) ? items.filter((item) => item !== value) : [...items, value]);
-  const beginInfoRequest = () => { setUsable("no"); setCredible(""); setDuplicate(""); setRequestFromAssessment(false); setStage("request"); };
+  const beginInfoRequest = () => { setUsable("no"); setCredible(""); setRequestFromAssessment(false); setStage("request"); };
 
   async function beginAssessment() {
     if (currentStatus !== "claimed") {
@@ -313,7 +311,7 @@ function CaseWorkflow({ report, refreshCase, claimConfirmation }: { report: Coor
 
   async function saveAssessment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!usable || (usable === "yes" && (!credible || !duplicate))) { setAssessmentError("Answer all required evidence questions before continuing."); return; }
+    if (!usable || (usable === "yes" && !credible)) { setAssessmentError("Answer all required evidence questions before continuing."); return; }
     setAssessmentError("");
     if (usable === "no") { setReviewOutcome(null); setRequestFromAssessment(true); setStage("request"); return; }
     setPendingAction("assessment");
@@ -321,8 +319,7 @@ function CaseWorkflow({ report, refreshCase, claimConfirmation }: { report: Coor
       const result = await recordEvidenceAssessment(report.reportReference, {
         evidenceUsable: true,
         observationCredible: credible === "yes",
-        notes: [`Related report check: ${duplicate}.`, decisionNote.trim()].filter(Boolean).join(" "),
-        relatedReportState: duplicate,
+        notes: decisionNote.trim() || undefined,
       });
       setCurrentStatus(result.status);
       if (result.status === "evidence_accepted") {
@@ -368,7 +365,7 @@ function CaseWorkflow({ report, refreshCase, claimConfirmation }: { report: Coor
   }
 
   function combinedDecisionNotes() {
-    return [responseNote.trim(), `Desk review: evidence usable; reported threat plausible; related report check: ${duplicate}.`, decisionNote.trim()].filter(Boolean).join(" ");
+    return [responseNote.trim(), "Desk review: evidence usable; reported threat plausible.", decisionNote.trim()].filter(Boolean).join(" ");
   }
 
   async function saveResponse(event: FormEvent<HTMLFormElement>) {
@@ -453,27 +450,32 @@ function CaseWorkflow({ report, refreshCase, claimConfirmation }: { report: Coor
   const displayedResponse = savedResponse || (restoredDecision ? responseLabels[restoredDecision.responseType] : "");
   const displayedResponseNote = savedResponse ? responseNote : restoredDecision?.notes?.trim() || responseNote;
   const interventionDecisionRecorded = (restoredDecision?.responseType ?? responseType) === "intervention_required";
+  const triage = report.triageContext;
+  const priorityReasons = triage?.priorityReasons ?? [];
+  const informationExchange = report.informationExchange;
 
   if (activeStage === "detail") return <section className={styles.page}>
     <Heading eyebrow={`My Cases / ${report.reportReference}`} title="Review reef observation" description="Review the submitted evidence, observation details and protected location before making a decision." />
     <span className={styles.ownerChip}>Owned by {report.owner.displayName}</span>
     <HotspotCaseContext reportReference={report.reportReference} />
     {claimConfirmation && <div className={styles.successBox} role="status"><strong>{claimConfirmation.statusLabel}: report assigned successfully</strong><p>Claimed at {displayDateTime(claimConfirmation.claimedAt)}. You can now begin reviewing its evidence.</p></div>}
+    {triage && <section className={styles.triageContext} aria-labelledby="triage-context-heading"><div><p className={styles.eyebrow}>Transparent triage cues</p><h2 id="triage-context-heading">Priority: {formatFieldName(triage.priority ?? "not set")}</h2><p>{formatFieldName(triage.evidenceCompleteness ?? "not assessed")} evidence · {triage.evidenceCount ?? report.evidence.length} file{(triage.evidenceCount ?? report.evidence.length) === 1 ? "" : "s"} · {triage.hoursInQueue == null ? "Queue age unavailable" : `${Math.round(triage.hoursInQueue)} hours in queue`}</p></div>{priorityReasons.length > 0 && <div><strong>Rules that contributed</strong><ul>{priorityReasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div>}<p className={styles.triageDisclaimer}>Priority helps order review. It does not verify the report or make a conservation decision.</p></section>}
+    {report.aiAssisted && <section className={styles.aiContext} aria-labelledby="ai-context-heading"><span>AI-assisted information</span><h2 id="ai-context-heading">{report.aiAssisted.summary ?? "AI-assisted report context is available"}</h2><p>This information supports triage only. It is separate from the Observer&apos;s confirmed submission and is not verification.</p>{report.aiAssisted.generatedAt && <small>Generated {displayDateTime(report.aiAssisted.generatedAt)}</small>}</section>}
+    {informationExchange && (informationExchange.requestReason || informationExchange.responseText) && <section className={styles.informationExchange} aria-labelledby="information-exchange-heading"><h2 id="information-exchange-heading">Information request and response</h2>{informationExchange.requestReason && <div><strong>Coordinator request</strong><p>{informationExchange.requestReason}</p>{informationExchange.requestedAt && <small>{displayDateTime(informationExchange.requestedAt)}</small>}</div>}{informationExchange.responseText && <div><strong>Observer response</strong><p>{informationExchange.responseText}</p>{informationExchange.respondedAt && <small>{displayDateTime(informationExchange.respondedAt)}</small>}</div>}</section>}
     <div className={styles.reviewGrid}><section className={styles.card}>
       <h2>Submitted evidence</h2><p className={styles.muted}>Evidence provided by the observer with this report.</p><EvidenceRecords reportReference={report.reportReference} evidence={report.evidence} />
       <dl className={styles.detailList}><div><dt>Threat type</dt><dd>{report.threat}</dd></div><div><dt>Observed</dt><dd>{observationDateMissing ? "Unavailable" : displayDateTime(report.observedAt)}</dd></div><div><dt>Estimated depth</dt><dd>{report.estimatedDepthMetres == null ? "Not provided" : `${report.estimatedDepthMetres} m`}</dd></div><div><dt>Description</dt><dd>{report.description}</dd></div><div><dt>General area</dt><dd>{report.area ?? "Not provided"}</dd></div><div><dt>Submitted</dt><dd>{displayDateTime(report.submittedAt)}</dd></div></dl>
       {observationDateMissing && <div className={styles.warningBox} role="status"><strong>Observation date could not be loaded</strong><p>The observation date is temporarily unavailable. Refresh the case and try again. If it remains unavailable, report the problem to your system administrator.</p></div>}
-      <div className={styles.protectedBox}><strong>Authorised exact location</strong><p>{exactLocation}</p>{uncertainty && <small>{uncertainty}</small>}</div>
+      <div className={styles.protectedBox}><strong>Authorised exact location</strong><p>{exactLocation}</p>{report.preciseLocation?.confidenceLabel && <small>Confidence: {report.preciseLocation.confidenceLabel}</small>}{report.preciseLocation?.sourceLabel && <small>Source: {report.preciseLocation.sourceLabel}</small>}{uncertainty && <small>{uncertainty}</small>}</div>
     </section><aside className={styles.sidePanel}><h2>Case control</h2><dl className={styles.detailList}><div><dt>Active owner</dt><dd>{report.owner.displayName}</dd></div><div><dt>Status</dt><dd>{report.statusLabel}</dd></div></dl><div className={styles.infoBox}><strong>Review type</strong><p>Your assessment is a desk review, not an on-site confirmation.</p></div>{assessmentError && <p className={styles.errorText} role="alert">{assessmentError}</p>}<button className={styles.primaryButton} type="button" onClick={beginAssessment} disabled={pendingAction !== null || !["claimed", "under_review", "evidence_accepted"].includes(currentStatus)}>{pendingAction === "start-review" ? "Starting review…" : currentStatus === "evidence_accepted" ? "Continue to response" : "Start evidence assessment"}</button><button className={styles.secondaryButton} type="button" onClick={beginInfoRequest} disabled={pendingAction !== null || currentStatus !== "under_review"}>Request more information</button>{currentStatus === "claimed" && <p className={styles.muted}>Start the evidence assessment before requesting more information.</p>}</aside></div>
     {interventionDecisionRecorded && <ConservationActionPanel reportReference={report.reportReference} />}
   </section>;
 
   if (activeStage === "assess") return <section className={styles.page}>
-    <Heading eyebrow="My Cases / Evidence review" title="Assess the submitted evidence" description="Complete the evidence and related-report checks before choosing a response." />
+    <Heading eyebrow="My Cases / Evidence review" title="Assess the submitted evidence" description="Review whether the evidence is usable and plausibly supports the reported threat." />
     <form className={styles.reviewGrid} onSubmit={saveAssessment}><section className={styles.card}><h2>Report {report.reportReference}</h2>
-      <fieldset className={styles.radioGroup}><legend>1. Is the evidence usable?</legend><label><input type="radio" name="usable" checked={usable === "yes"} onChange={() => setUsable("yes")} />Yes — the evidence can be assessed</label><label><input type="radio" name="usable" checked={usable === "no"} onChange={() => { setUsable("no"); setCredible(""); setDuplicate(""); }} />No — more information is required</label></fieldset>
+      <fieldset className={styles.radioGroup}><legend>1. Is the evidence usable?</legend><label><input type="radio" name="usable" checked={usable === "yes"} onChange={() => setUsable("yes")} />Yes — the evidence can be assessed</label><label><input type="radio" name="usable" checked={usable === "no"} onChange={() => { setUsable("no"); setCredible(""); }} />No — more information is required</label></fieldset>
       <fieldset className={styles.radioGroup} disabled={usable !== "yes"}><legend>2. Does the evidence plausibly support the reported threat?</legend><label><input type="radio" name="credible" checked={credible === "yes"} onChange={() => setCredible("yes")} />Yes — continue to a response decision</label><label><input type="radio" name="credible" checked={credible === "no"} onChange={() => setCredible("no")} />No — prepare a Not Substantiated closure</label></fieldset>
-      <fieldset className={styles.radioGroup} disabled={usable !== "yes"}><legend>3. Does this appear related to an existing report?</legend><label><input type="radio" name="duplicate" checked={duplicate === "no"} onChange={() => setDuplicate("no")} />No matching report found</label><label><input type="radio" name="duplicate" checked={duplicate === "yes"} onChange={() => setDuplicate("yes")} />Yes — include the relationship in the decision note</label><label><input type="radio" name="duplicate" checked={duplicate === "unsure"} onChange={() => setDuplicate("unsure")} />Unsure — note the uncertainty</label></fieldset>
       <label className={styles.field}>Assessment note <span>Optional — saved with the evidence assessment</span><textarea value={decisionNote} onChange={(event) => setDecisionNote(event.target.value)} placeholder="Add any relevant assessment notes" /></label>{assessmentError && <p className={styles.errorText} role="alert">{assessmentError}</p>}<div className={styles.actions}><button className={styles.secondaryButton} type="button" onClick={() => setStage("detail")} disabled={pendingAction !== null}>Back to case</button><button className={styles.primaryButton} type="submit" disabled={pendingAction !== null}>{pendingAction === "assessment" ? "Saving assessment…" : "Continue"}</button></div>
     </section><aside className={styles.sidePanel}><h2>Assessment guidance</h2><div className={styles.infoBox}><strong>Review only what was submitted</strong><p>Use the photographs and observation details available in this case. Request more information whenever the evidence is unclear.</p></div></aside></form>
   </section>;

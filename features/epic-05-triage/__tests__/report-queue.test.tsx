@@ -166,4 +166,37 @@ describe("Coordinator report queue", () => {
     expect(await screen.findByRole("link", { name: "Review and claim RC-1001" })).toBeInTheDocument();
     expect(screen.queryByText(/backend|endpoint/i)).not.toBeInTheDocument();
   });
+
+  it("shows evidence completeness, priority and the transparent priority reasons", async () => {
+    const user = userEvent.setup();
+    mockedGetCoordinatorQueue.mockResolvedValue(resultOf([{
+      ...report,
+      evidenceCompleteness: "complete",
+      evidenceCount: 2,
+      priority: "high",
+      priorityReasons: ["Reviewable evidence is available", "Report has waited more than 72 hours"],
+    }]));
+
+    render(<ReportQueue />);
+
+    expect(await screen.findByText("Complete")).toBeInTheDocument();
+    expect(screen.getByText("2 files")).toBeInTheDocument();
+    expect(screen.getByText("High")).toBeInTheDocument();
+    await user.click(screen.getByText("Why?"));
+    expect(screen.getByText("Reviewable evidence is available")).toBeInTheDocument();
+    expect(screen.getByText(/guidance, not a verdict/i)).toBeInTheDocument();
+  });
+
+  it("shows a readable age and exposes the submission date on hover", async () => {
+    mockedGetCoordinatorQueue.mockResolvedValue(resultOf([{
+      ...report,
+      hoursInQueue: 240,
+    }]));
+
+    render(<ReportQueue />);
+
+    const age = await screen.findByText("1 week");
+    expect(age).toHaveAttribute("dateTime", report.submittedAt);
+    expect(age).toHaveAttribute("title", expect.stringContaining("Submitted"));
+  });
 });

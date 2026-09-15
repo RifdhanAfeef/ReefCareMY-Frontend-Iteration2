@@ -180,7 +180,6 @@ describe("Coordinator case workflow", () => {
     await user.click(await screen.findByRole("button", { name: "Start evidence assessment" }));
     await user.click(screen.getByLabelText("Yes — the evidence can be assessed"));
     await user.click(screen.getByLabelText("No — prepare a Not Substantiated closure"));
-    await user.click(screen.getByLabelText("No matching report found"));
     await user.click(screen.getByRole("button", { name: "Continue" }));
 
     expect(await screen.findByRole("heading", { name: "Case outcome recorded" })).toBeInTheDocument();
@@ -236,7 +235,6 @@ describe("Coordinator case workflow", () => {
     await user.click(await screen.findByRole("button", { name: "Start evidence assessment" }));
     await user.click(screen.getByLabelText("Yes — the evidence can be assessed"));
     await user.click(screen.getByLabelText("Yes — continue to a response decision"));
-    await user.click(screen.getByLabelText("No matching report found"));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     expect(mockedRecordEvidenceAssessment).toHaveBeenCalledWith(
       report.reportReference,
@@ -276,7 +274,6 @@ describe("Coordinator case workflow", () => {
     await user.click(await screen.findByRole("button", { name: "Start evidence assessment" }));
     await user.click(screen.getByLabelText("Yes — the evidence can be assessed"));
     await user.click(screen.getByLabelText("Yes — continue to a response decision"));
-    await user.click(screen.getByLabelText("No matching report found"));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByLabelText(/Monitoring Only/));
     await user.click(screen.getByRole("button", { name: "Record response" }));
@@ -302,7 +299,6 @@ describe("Coordinator case workflow", () => {
     await user.click(await screen.findByRole("button", { name: "Start evidence assessment" }));
     await user.click(screen.getByLabelText("Yes — the evidence can be assessed"));
     await user.click(screen.getByLabelText("Yes — continue to a response decision"));
-    await user.click(screen.getByLabelText("No matching report found"));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByLabelText(/Refer \/ Share for Possible Response/));
     await user.click(screen.getByRole("button", { name: "Record response" }));

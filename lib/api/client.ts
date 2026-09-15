@@ -1,4 +1,4 @@
-import { readStoredAuth } from "./token-store";
+import { invalidateStoredAuth, readStoredAuth } from "./token-store";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://reefcare-backend.vercel.app";
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -100,6 +100,9 @@ async function executeRequest({
   }
 
   if (!response.ok) {
+    if (auth && response.status === 401) {
+      invalidateStoredAuth();
+    }
     const payload = await response.json().catch(() => null);
     throw new ApiError(
       extractErrorMessage(payload, "ReefCare MY could not complete the request. Please try again."),

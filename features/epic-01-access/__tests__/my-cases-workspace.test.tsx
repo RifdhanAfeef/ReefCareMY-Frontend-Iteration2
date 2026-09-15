@@ -16,6 +16,8 @@ const report: CoordinatorQueueResult["items"][number] = {
   statusLabel: "Claimed",
   submittedAt: "2026-09-03T05:00:00Z",
   hoursInQueue: 1,
+  priority: "high",
+  priorityReasons: ["Reviewable evidence is available"],
   claimedAt: "2026-09-04T01:00:00Z",
   owner,
 };
@@ -53,6 +55,9 @@ describe("Coordinator My Cases workspace", () => {
 
     expect(await screen.findByRole("cell", { name: "RC-3001" })).toBeInTheDocument();
     expect(screen.getByText("Marine debris")).toBeInTheDocument();
+    expect(screen.getByText("High")).toBeInTheDocument();
+    expect(screen.getByText("Reviewable evidence is available")).toBeInTheDocument();
+    expect(screen.getByText("Why?")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open case RC-3001" })).toHaveAttribute(
       "href",
       "/coordinator/reports/RC-3001",

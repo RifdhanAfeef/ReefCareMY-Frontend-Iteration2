@@ -7,12 +7,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ReviewLocationSummary } from "@/features/epic-04-location/location-flow";
 import { useMockAppState } from "@/features/shared/mock-app-state";
 import { isFutureDisplayDateTime, isValidDisplayDate } from "@/lib/format/date";
-import { submitReport as submitReportApi } from "@/lib/api/reportsApi";
+import { reviewReport, submitReport as submitReportApi } from "@/lib/api/reportsApi";
+import type { ReportReviewResponse } from "@/lib/api/types";
 import { userFacingError } from "@/lib/api/user-facing-error";
 import { clearDraftPhotos, loadDraftPhotos, type StoredDraftPhoto } from "./draft-storage";
 import { getThreatCategory } from "./threat-data";
-import { buildReportSubmissionPayload } from "./report-payload";
+import { buildReportReviewPayload, buildReportSubmissionPayload } from "./report-payload";
 import styles from "./reporting.module.css";
+import { formatCompletenessItem } from "./completeness-display";
 
 type ReviewPhoto = StoredDraftPhoto & { previewUrl: string };
 
@@ -25,6 +27,10 @@ export function ReportReview() {
   const [confirmationUrl, setConfirmationUrl] = useState("");
   const submissionInProgress = useRef(false);
   const [submissionError, setSubmissionError] = useState("");
+  const [photosLoaded, setPhotosLoaded] = useState(false);
+  const [backendReview, setBackendReview] = useState<ReportReviewResponse | null>(null);
+  const [reviewError, setReviewError] = useState("");
+  const [reviewing, setReviewing] = useState(true);
   const threat = getThreatCategory(reportDraft.threatCategoryCode);
   const session = locationDraft.sessions.find((item) => item.id === locationDraft.selectedSessionId);
 
@@ -40,13 +46,29 @@ export function ReportReview() {
           return { ...photo, previewUrl };
         });
         setPhotos(restored);
+        setPhotosLoaded(true);
       })
-      .catch(() => setPhotoLoadFailed(true));
+      .catch(() => { setPhotoLoadFailed(true); setPhotosLoaded(true); });
     return () => {
       cancelled = true;
       createdPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
     };
   }, []);
+
+  useEffect(() => {
+    if (!photosLoaded) return;
+    let cancelled = false;
+    reviewReport(buildReportReviewPayload(reportDraft, locationDraft, photos.length))
+      .then((result) => { if (!cancelled) setBackendReview(result); })
+      .catch((error) => {
+        if (!cancelled) {
+          setBackendReview(null);
+          setReviewError(userFacingError(error, "Server review is temporarily unavailable. Check the visible details before submitting."));
+        }
+      })
+      .finally(() => { if (!cancelled) setReviewing(false); });
+    return () => { cancelled = true; };
+  }, [locationDraft, photos.length, photosLoaded, reportDraft]);
 
   const missingItems = useMemo(() => {
     const items: string[] = [];
@@ -59,9 +81,12 @@ export function ReportReview() {
     if (!session?.backendId || !locationDraft.confidence) items.push("Dive Session, location and confidence");
     return items;
   }, [locationDraft.confidence, photos.length, reportDraft, session, threat]);
+  const unresolvedSuggestions = backendReview?.unresolvedSuggestions ?? (reportDraft.aiSuggestions ?? []).filter((suggestion) => suggestion.status === "unresolved");
+  const backendBlocking = backendReview ? !backendReview.isSubmittable : false;
+  const canSubmit = missingItems.length === 0 && unresolvedSuggestions.length === 0 && !backendBlocking && !reviewing;
 
   async function submit() {
-    if (missingItems.length > 0 || submissionInProgress.current) return;
+    if (!canSubmit || submissionInProgress.current) return;
     submissionInProgress.current = true;
     setSubmitting(true);
     setSubmissionError("");
@@ -100,6 +125,10 @@ export function ReportReview() {
       {missingItems.length > 0 && <section className={styles.errorBox} role="alert"><strong>Complete the report before submitting</strong><p>Missing: {missingItems.join(", ")}.</p><Link className={styles.textButton} href="/report-a-reef">Return to observation details</Link></section>}
       {photoLoadFailed && <section className={styles.errorBox}><strong>Photographs could not be restored</strong><p>Return to the observation form and select the evidence again.</p></section>}
       {submissionError && <section className={styles.errorBox} role="alert"><strong>Report not submitted</strong><p>{submissionError}</p></section>}
+      {reviewing && <section className={styles.infoBox} role="status"><strong>Checking report completeness…</strong><p>Required fields, suggestions and location guidance are being checked.</p></section>}
+      {reviewError && <section className={styles.errorBox} role="alert"><strong>Server review unavailable</strong><p>{reviewError}</p></section>}
+      {unresolvedSuggestions.length > 0 && <section className={styles.errorBox} role="alert"><strong>Resolve AI suggestions before submitting</strong><p>Return to observation details and confirm, correct or remove: {unresolvedSuggestions.map((item) => item.field.replaceAll("_", " ")).join(", ")}.</p><Link className={styles.textButton} href="/report-a-reef">Review suggestions</Link></section>}
+      {backendReview?.locationWarning?.hasWarning && <section className={styles.warningBox} role="status"><strong>Location guidance</strong><p>{backendReview.locationWarning.message}</p><small>This warning does not block submission.</small></section>}
 
       <div className={styles.reviewLayout}>
         <div className={styles.reviewMain}>
@@ -113,15 +142,17 @@ export function ReportReview() {
               <div><dt>Photographs</dt><dd>{photos.length || "Not provided"}</dd></div>
               <div className={styles.fullWidth}><dt>Description</dt><dd className={styles.description}>{reportDraft.description.trim() || "Not provided"}</dd></div>
             </dl>
+            {(reportDraft.aiSuggestions ?? []).length > 0 && <div className={styles.reviewSuggestions}><h3>AI suggestions reviewed by you</h3>{reportDraft.aiSuggestions.map((suggestion, index) => <div key={`${suggestion.field}-${index}`}><span>{suggestion.label}</span><strong>{suggestion.status === "removed" ? "Removed" : suggestion.suggestedValue || "Not specified"}</strong><em>{suggestion.status}</em></div>)}</div>}
           </section>
           <ReviewLocationSummary />
         </div>
 
         <aside className={styles.sideCard}>
           <h2>Before submitting</h2>
+          {backendReview && <div className={backendReview.completeness.isSubmittable ? styles.successBox : styles.errorBox}><strong>{backendReview.completeness.summary}</strong>{backendReview.completeness.blockingMissing.length > 0 && <p>Required: {backendReview.completeness.blockingMissing.map(formatCompletenessItem).join(", ")}.</p>}{backendReview.completeness.blockingIssues.length > 0 && <p>Fix: {backendReview.completeness.blockingIssues.map(formatCompletenessItem).join(", ")}.</p>}{backendReview.completeness.recommendedMissing.length > 0 && <p>Recommended: {backendReview.completeness.recommendedMissing.map(formatCompletenessItem).join(", ")}.</p>}</div>}
           <ul className={styles.checkList}><li>The details describe what you observed</li><li>No scientific diagnosis is required</li><li>Exact coordinates remain protected</li><li>Submission creates a traceable report</li></ul>
           <div className={styles.infoBox}><strong>Initial status: Received</strong><p>Submission places the report in the Case Coordinator queue. Claiming and evidence decisions occur later.</p></div>
-          <button className={styles.primaryButton} type="button" disabled={missingItems.length > 0 || submitting} onClick={submit}>{submitting ? "Submitting…" : "Submit report"}</button>
+          <button className={styles.primaryButton} type="button" disabled={!canSubmit || submitting} onClick={submit}>{submitting ? "Submitting…" : reviewing ? "Checking…" : "Submit report"}</button>
         </aside>
       </div>
     </div>

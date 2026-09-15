@@ -29,12 +29,18 @@
 .backToSites { display: inline-flex; gap: 8px; align-items: center; margin: 0 0 22px; padding: 0; color: var(--color-primary-hover); background: transparent; border: 0; font-weight: 800; cursor: pointer; }
 .siteArea { margin: 0 0 4px; color: var(--color-primary); font-size: 12px; font-weight: 800; text-transform: uppercase; }
 .siteDetail h2 { margin: 0; font-size: 32px; line-height: 1.12; }
-.siteGallery { display: grid; grid-template-columns: 1.25fr .75fr; gap: 10px; margin: 22px 0 18px; }
-.siteImage { position: relative; min-height: 190px; margin: 0; overflow: hidden; background: #dceeed; border-radius: 15px; }
+.siteGallery { margin: 22px 0 18px; }
+.siteImage { position: relative; width: 100%; aspect-ratio: 16 / 10; margin: 0; overflow: hidden; background: #dceeed; border-radius: 15px; }
 .siteImage button { position: absolute; inset: 0; width: 100%; padding: 0; overflow: hidden; color: #fff; background: #102f36; border: 0; cursor: zoom-in; }
-.siteImage img { object-fit: contain; }
+.siteImage img { object-fit: cover; object-position: center; transition: transform 220ms ease; }
+.siteImage button:hover img { transform: scale(1.025); }
+@media (prefers-reduced-motion: reduce) { .siteImage img { transition: none; } .siteImage button:hover img { transform: none; } }
 .siteImage span { position: absolute; right: 8px; bottom: 8px; padding: 5px 8px; background: rgba(11,52,64,.78); border-radius: 999px; font-size: 10px; font-weight: 800; opacity: 0; transition: opacity 160ms ease; }
 .siteImage button:hover span, .siteImage button:focus-visible span { opacity: 1; }
+.galleryControls { display: flex; justify-content: center; align-items: center; gap: 14px; margin-top: 10px; color: var(--color-muted); font-size: 12px; font-weight: 750; }
+.galleryControls button { width: 34px; height: 34px; display: inline-grid; place-items: center; padding: 0; color: var(--color-primary-hover); background: #fff; border: 1px solid var(--color-border); border-radius: 50%; cursor: pointer; }
+.galleryControls button:hover:not(:disabled) { background: var(--color-info); border-color: var(--color-primary); }
+.galleryControls button:disabled { color: #9cafb2; background: #f4f7f7; cursor: not-allowed; opacity: .7; }
 .siteIntroduction { margin: 0; color: var(--color-muted); }
 .siteFacts { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 24px; }
 .siteFacts h3 { margin: 0 0 7px; font-size: 15px; }
@@ -47,6 +53,8 @@
 .experienceCard > span { padding: 5px 9px; color: var(--color-primary-hover); background: #fff; border-radius: 999px; font-size: 11px; font-weight: 850; }
 .sourceNote { margin: 12px 0 0; color: var(--color-muted); font-size: 12px; }
 .sourceNote a { color: var(--color-primary-hover); font-weight: 750; text-decoration: underline; text-underline-offset: 3px; }
+.conditionsNotice { margin-top: 12px; padding: 16px 18px; color: #6f4a13; background: #fff4df; border: 1px solid #f0d7aa; border-radius: 12px; }
+.conditionsNotice p { margin: 0; font-size: 13px; line-height: 1.55; }
 .imageDialogBackdrop { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 24px; background: rgba(6,31,38,.78); }
 .imageDialog { position: relative; width: min(94vw, 980px); padding: 44px 18px 16px; background: #fff; border-radius: 20px; box-shadow: 0 28px 70px rgba(0,0,0,.35); }
 .imageDialogClose { position: absolute; top: 8px; right: 12px; width: 38px; height: 38px; color: var(--color-ink); background: transparent; border: 0; font-size: 30px; cursor: pointer; }
@@ -103,4 +111,4 @@
 .dialog .primaryButton, .dialog .secondaryButton { width: 100%; margin-top: 11px; }
 .roleNotice { margin: 24px 0 0; color: #7b5215; font-weight: 700; }
 @media (max-width: 1040px) { .explorer { grid-template-columns: 1fr; } .mapFrame, .mapLoading { position: relative; top: auto; height: 560px; min-height: 520px; } .mapCanvas { min-height: 520px; } }
-@media (max-width: 760px) { .page { width: min(calc(100% - 32px), var(--content-width)); padding: 38px 0 56px; } .hero h1 { font-size: clamp(40px, 12vw, 56px); } .hero > p:last-child { font-size: 16px; } .explorer { margin-top: 30px; } .sidePanel { padding: 22px; } .mapFrame, .mapLoading { height: 440px; min-height: 420px; } .mapCanvas { min-height: 420px; } .siteGallery { grid-template-columns: 1fr 1fr; } .siteImage { min-height: 150px; } .mapPrivacy { left: 12px; right: 12px; bottom: 12px; font-size: 11px; } .guidance { margin-top: 54px; } .guidanceHeading { align-items: flex-start; flex-direction: column; } .threatGrid { grid-template-columns: 1fr; } .dialog { padding: 30px 22px 24px; } }
+@media (max-width: 760px) { .page { width: min(calc(100% - 32px), var(--content-width)); padding: 38px 0 56px; } .hero h1 { font-size: clamp(40px, 12vw, 56px); } .hero > p:last-child { font-size: 16px; } .explorer { margin-top: 30px; } .sidePanel { padding: 22px; } .mapFrame, .mapLoading { height: 440px; min-height: 420px; } .mapCanvas { min-height: 420px; } .siteImage { aspect-ratio: 4 / 3; } .mapPrivacy { left: 12px; right: 12px; bottom: 12px; font-size: 11px; } .guidance { margin-top: 54px; } .guidanceHeading { align-items: flex-start; flex-direction: column; } .threatGrid { grid-template-columns: 1fr; } .dialog { padding: 30px 22px 24px; } }

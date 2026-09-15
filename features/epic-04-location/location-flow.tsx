@@ -9,9 +9,11 @@ import type { LocationConfidenceCode } from "@/features/epic-01-access/types";
 import { useMockAppState, type DiveSession, type MapPin } from "@/features/shared/mock-app-state";
 import { createDiveSession, getDiveSessions } from "@/lib/api/diveSessionsApi";
 import { getDiveSites } from "@/lib/api/referenceApi";
-import type { DiveSiteReference } from "@/lib/api/types";
+import { checkReportLocation } from "@/lib/api/reportsApi";
+import type { DiveSiteReference, LocationCheckResponse } from "@/lib/api/types";
 import { userFacingError } from "@/lib/api/user-facing-error";
 import { readSelectedReefSite } from "@/features/epic-02-reef-explorer/selected-site-storage";
+import { buildLocationCheckPayload } from "@/features/epic-02-reporting/report-payload";
 import { displayDateAndTimeToIso, displayDateToIsoDate, inputDateToDisplayValue, isFutureDisplayDate, isValidDisplayDate } from "@/lib/format/date";
 import styles from "./location-flow.module.css";
 
@@ -86,7 +88,7 @@ function MapPreview({ pin, interactive = false, onSetPin }: { pin: MapPin | null
 }
 
 export function LocationFlow() {
-  const { locationDraft, updateLocationDraft } = useMockAppState();
+  const { reportDraft, locationDraft, updateLocationDraft } = useMockAppState();
   const { step, sessions, selectedSessionId, form, pin, locationSource, confidence } = locationDraft;
   const [sessionError, setSessionError] = useState("");
   const [dateError, setDateError] = useState("");
@@ -100,13 +102,18 @@ export function LocationFlow() {
   const [manualLatitude, setManualLatitude] = useState(pin?.latitude?.toFixed(6) ?? "");
   const [manualLongitude, setManualLongitude] = useState(pin?.longitude?.toFixed(6) ?? "");
   const [coordinateError, setCoordinateError] = useState("");
+  const [locationCheck, setLocationCheck] = useState<LocationCheckResponse | null>(null);
+  const [locationCheckError, setLocationCheckError] = useState("");
+  const [checkingLocation, setCheckingLocation] = useState(false);
   const initiallySelectedSessionId = useRef(selectedSessionId);
   const initialForm = useRef(form);
-  const lastStepNavigationUsedKeyboard = useRef(false);
   const session = useMemo(() => sessions.find((item) => item.id === selectedSessionId) ?? sessions[0], [selectedSessionId, sessions]);
   const sessionTitle = session ? `${session.site}${session.label ? ` - ${session.label}` : ""}` : "No Dive Session selected";
   const confidenceLabel = confidenceOptions.find((item) => item.value === confidence)?.label ?? "Not provided";
   const coordinates = mapCoordinates(pin);
+  const confirmedEvidenceDates = useMemo(() => new Set((reportDraft?.photos ?? [])
+    .filter((photo) => photo.capturedAtConfirmed && photo.capturedAt)
+    .map((photo) => inputDateToDisplayValue((photo.capturedAt as string).slice(0, 10)))), [reportDraft?.photos]);
   const hasExactCoordinates = locationSource === "map_pin" || locationSource === "manual_coordinates";
   const availableConfidenceOptions = hasExactCoordinates
     ? confidenceOptions.filter((item) => item.value !== "dive_site_only")
@@ -167,27 +174,11 @@ export function LocationFlow() {
   }, [referenceReloadKey, updateLocationDraft]);
 
   useEffect(() => {
-    const rememberKeyboardNavigation = (event: KeyboardEvent) => {
-      if (event.altKey || event.ctrlKey || event.metaKey) return;
-      lastStepNavigationUsedKeyboard.current = true;
-    };
-    const rememberPointerNavigation = () => {
-      lastStepNavigationUsedKeyboard.current = false;
-    };
-
-    document.addEventListener("keydown", rememberKeyboardNavigation, true);
-    document.addEventListener("pointerdown", rememberPointerNavigation, true);
-    return () => {
-      document.removeEventListener("keydown", rememberKeyboardNavigation, true);
-      document.removeEventListener("pointerdown", rememberPointerNavigation, true);
-    };
-  }, []);
-
-  useEffect(() => {
     const heading = document.querySelector<HTMLElement>("[data-location-flow-heading]");
     if (heading) {
-      heading.style.outline = lastStepNavigationUsedKeyboard.current ? "" : "none";
-      heading.style.outlineOffset = lastStepNavigationUsedKeyboard.current ? "" : "0";
+      heading.style.outline = "none";
+      heading.style.outlineOffset = "0";
+      heading.style.boxShadow = "none";
       heading.focus({ preventScroll: true });
     }
     const reducedMotion = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -250,10 +241,24 @@ export function LocationFlow() {
     setCoordinateError("");
     updateLocationDraft({ locationSource: "dive_site", pin: null, confidence: "unsure", step: "confirm" });
   };
-  const confirmLocation = (event: FormEvent<HTMLFormElement>) => {
+  const confirmLocation = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!confidence) { setConfidenceError("Select a location-confidence option before continuing."); return; }
-    setConfidenceError(""); setStep("privacy");
+    setConfidenceError("");
+    setLocationCheck(null);
+    setLocationCheckError("");
+    const payload = buildLocationCheckPayload(locationDraft);
+    if (payload) {
+      setCheckingLocation(true);
+      try {
+        setLocationCheck(await checkReportLocation(payload));
+      } catch (error) {
+        setLocationCheckError(userFacingError(error, "The site-to-pin check is unavailable. This does not block your report."));
+      } finally {
+        setCheckingLocation(false);
+      }
+    }
+    setStep("privacy");
   };
   const retryReferences = () => {
     setLoadingReferences(true);
@@ -308,11 +313,12 @@ export function LocationFlow() {
 
   if (step === "confirm") return <section className={styles.page}>
     <PageHeading eyebrow="Report a Reef / Location" title="Confirm the map location" description="Check the location and choose the option that best describes its accuracy." currentStep="confirm" />
-    <form className={styles.confirmGrid} onSubmit={confirmLocation}><section className={styles.card}><h2>{session.site}</h2><MapPreview pin={pin} /><p className={styles.mapCaption}>{hasExactCoordinates ? `${locationSource === "manual_coordinates" ? "Entered coordinates" : "Selected map pin"}${coordinates ? ` — ${coordinates}` : ""}` : confidence === "unsure" ? "Exact location unknown" : "Named dive-site location only"}</p></section><aside className={styles.card}><fieldset className={styles.confidenceList}><legend>Location confidence</legend>{availableConfidenceOptions.map((item) => <label key={item.value}><input type="radio" name="confidence" value={item.value} checked={confidence === item.value} onChange={() => updateLocationDraft({ confidence: item.value })} />{item.label}</label>)}</fieldset><p className={styles.supporting}>{hasExactCoordinates ? "Choose how closely the coordinates represent the observed location." : "Choose Dive-site only or Unsure."}</p>{confidenceError && <p className={styles.errorText} role="alert">{confidenceError}</p>}<div className={styles.actions}><button className={styles.secondaryButton} type="button" onClick={() => setStep("location")}>Back</button><button className={styles.primaryButton} type="submit">Confirm location</button></div></aside></form>
+    <form className={styles.confirmGrid} onSubmit={confirmLocation}><section className={styles.card}><h2>{session.site}</h2><MapPreview pin={pin} /><p className={styles.mapCaption}>{hasExactCoordinates ? `${locationSource === "manual_coordinates" ? "Entered coordinates" : "Selected map pin"}${coordinates ? ` — ${coordinates}` : ""}` : confidence === "unsure" ? "Exact location unknown" : "Named dive-site location only"}</p></section><aside className={styles.card}><fieldset className={styles.confidenceList}><legend>Location confidence</legend>{availableConfidenceOptions.map((item) => <label key={item.value}><input type="radio" name="confidence" value={item.value} checked={confidence === item.value} onChange={() => updateLocationDraft({ confidence: item.value })} />{item.label}</label>)}</fieldset><p className={styles.supporting}>{hasExactCoordinates ? "Choose how closely the coordinates represent the observed location." : "Choose Dive-site only or Unsure."}</p>{confidenceError && <p className={styles.errorText} role="alert">{confidenceError}</p>}<div className={styles.actions}><button className={styles.secondaryButton} type="button" onClick={() => setStep("location")}>Back</button><button className={styles.primaryButton} type="submit" disabled={checkingLocation}>{checkingLocation ? "Checking…" : "Confirm location"}</button></div></aside></form>
   </section>;
 
   if (step === "privacy") return <section className={styles.page}>
     <PageHeading eyebrow="Report a Reef / Location privacy" title="Review your location privacy" description="See how ReefCare protects the precise location you submitted." currentStep="privacy" />
+    {(locationCheck?.hasWarning || locationCheckError) && <aside className={styles.locationWarning} role="status"><strong>Location check</strong><p>{locationCheck?.message ?? locationCheckError}</p><small>This is guidance only. You can still continue and the selected source is preserved.</small></aside>}
     <div className={styles.privacyGrid}><section className={styles.card}><h2>Your submitted location</h2><MapPreview pin={pin} /><p><strong>{hasExactCoordinates ? `Coordinates within ${session.site}` : session.site}</strong></p><p>Confidence: <strong>{confidenceLabel}</strong></p><p className={styles.supporting}>You will see this location in your own report.</p></section><section className={`${styles.card} ${styles.sidePanel}`}><h2>Who can see what?</h2><dl className={styles.accessList}><div><dt>You</dt><dd>Your submitted location</dd></div><div><dt>Claiming Case Coordinator</dt><dd>Your location and accuracy</dd></div><div><dt>Other coordinators</dt><dd>General site until they claim the case</dd></div><div><dt>System Administrator</dt><dd>General site only</dd></div><div><dt>Unauthenticated visitors</dt><dd>Report location is not displayed</dd></div></dl></section></div>
     <div className={styles.splitActions}><button className={styles.secondaryButton} type="button" onClick={() => setStep("confirm")}>Back</button><button className={styles.primaryButton} type="button" onClick={() => setStep("saved")}>Confirm privacy and continue</button></div>
   </section>;
@@ -326,7 +332,7 @@ export function LocationFlow() {
   return <section className={styles.page}>
     <BackButton fallbackHref="/report-a-reef" label="Back to report form" />
     <PageHeading eyebrow="Report a Reef / Dive details" title="Which dive was this observation from?" description="Select a recent dive or add a new Dive Session with a named site and dive date." currentStep="session" />
-    <div className={styles.choiceGrid}><section className={`${styles.card} ${styles.selectedCard}`}><h2>Use an existing Dive Session</h2><p className={styles.supporting}>Choose a recent session connected to this report.</p><fieldset className={styles.sessionList}><legend className="sr-only">Recent Dive Sessions</legend>{sessions.map((item) => <label className={styles.sessionOption} key={item.id}><input type="radio" name="dive-session" value={item.id} checked={selectedSessionId === item.id} onChange={() => updateLocationDraft({ selectedSessionId: item.id })} /><span><strong>{item.site}{item.label ? ` - ${item.label}` : ""}</strong><small>{[item.date, item.start && item.end ? `${item.start} to ${item.end}` : item.start].filter(Boolean).join(" - ") || "Optional details not provided"}</small></span></label>)}</fieldset><button className={styles.primaryButton} type="button" disabled={!session} onClick={() => setStep("location")}>Use selected session</button></section>
+    <div className={styles.choiceGrid}><section className={`${styles.card} ${styles.selectedCard}`}><h2>Use an existing Dive Session</h2><p className={styles.supporting}>Choose a recent session connected to this report.</p>{confirmedEvidenceDates.size > 0 && <p className={styles.metadataNotice}>Sessions matching a confirmed photo date are marked as suggestions. You still choose the session.</p>}<fieldset className={styles.sessionList}><legend className="sr-only">Recent Dive Sessions</legend>{sessions.map((item) => <label className={styles.sessionOption} key={item.id}><input type="radio" name="dive-session" value={item.id} checked={selectedSessionId === item.id} onChange={() => updateLocationDraft({ selectedSessionId: item.id })} /><span><strong>{item.site}{item.label ? ` - ${item.label}` : ""}</strong><small>{[item.date, item.start && item.end ? `${item.start} to ${item.end}` : item.start].filter(Boolean).join(" - ") || "Optional details not provided"}</small>{item.date && confirmedEvidenceDates.has(item.date) && <em className={styles.suggestedSession}>Suggested from confirmed photo date</em>}</span></label>)}</fieldset><button className={styles.primaryButton} type="button" disabled={!session} onClick={() => setStep("location")}>Use selected session</button></section>
       <section className={styles.card}><h2>Create a new Dive Session</h2><p className={styles.supporting}>Use this when the observation is not linked to an existing session.</p>{siteLoadError && <div className={styles.inlineError} role="alert"><p>{siteLoadError}</p><button className={styles.textRetry} type="button" onClick={retryReferences}>Try again</button></div>}<div className={styles.requirementGroup}><h3>Required details</h3><p><span aria-hidden="true">✓</span> Named dive site</p><p><span aria-hidden="true">✓</span> Dive date</p></div><div className={styles.requirementGroup}><h3>Optional details</h3><p><span aria-hidden="true">□</span> Session label or dive number</p><p><span aria-hidden="true">□</span> Approximate start and end times</p></div><button className={styles.secondaryButton} type="button" disabled={Boolean(siteLoadError) || loadingReferences} onClick={() => setStep("create")}>Create Dive Session</button></section></div>
     <aside className={styles.infoPanel}><strong>Why add a Dive Session?</strong><p>It keeps observations, photographs and location details from the same dive together.</p></aside>
   </section>;

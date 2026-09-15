@@ -12,13 +12,28 @@ import styles from "./access-ui.module.css";
 
 type MyCaseRow = Pick<
   CoordinatorQueueItem,
-  "reportReference" | "threat" | "area" | "claimedAt" | "statusLabel"
+  | "reportReference"
+  | "threat"
+  | "area"
+  | "priority"
+  | "priorityReasons"
+  | "claimedAt"
+  | "statusLabel"
 >;
 
 function displayDateTime(value?: string | null) {
   if (!value) return "Not provided";
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? value : formatDateTime(parsed);
+}
+
+function humanise(value?: string | null, fallback = "Not set") {
+  if (!value) return fallback;
+  return value.replace(/[_-]+/g, " ").replace(/^./, (letter) => letter.toUpperCase());
+}
+
+function priorityKey(value?: string | null) {
+  return (value ?? "not_set").toLowerCase().replace(/[^a-z0-9]+/g, "-");
 }
 
 export function MyCasesWorkspace() {
@@ -79,6 +94,6 @@ export function MyCasesWorkspace() {
   }
 
   return <div className={styles.stack}>
-    <section className={styles.tableCard} aria-label="Cases owned by this coordinator"><div className={styles.tableWrap}><table className={styles.table}><thead><tr><th scope="col">Report</th><th scope="col">Threat</th><th scope="col">General area</th><th scope="col">Claimed</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead><tbody>{cases.map((record) => <tr key={record.reportReference}><td className={styles.identifier}>{record.reportReference}</td><td>{record.threat}</td><td>{record.area ?? "Not provided"}</td><td>{displayDateTime(record.claimedAt)}</td><td><StatusPill status={record.statusLabel} /></td><td><Link className={styles.textButton} href={`/coordinator/reports/${record.reportReference}`}>Open case<span className="sr-only"> {record.reportReference}</span></Link></td></tr>)}</tbody></table></div></section>
+    <section className={styles.tableCard} aria-label="Cases owned by this coordinator"><div className={styles.tableWrap}><table className={styles.table}><thead><tr><th scope="col">Report</th><th scope="col">Threat</th><th scope="col">General area</th><th scope="col">Priority</th><th scope="col">Claimed</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead><tbody>{cases.map((record) => <tr key={record.reportReference}><td className={styles.identifier}>{record.reportReference}</td><td>{record.threat}</td><td>{record.area ?? "Not provided"}</td><td><span className={styles.priorityChip} data-priority={priorityKey(record.priority)}>{humanise(record.priority)}</span>{(record.priorityReasons ?? []).length > 0 && <details className={styles.priorityDetails}><summary>Why?<span className="sr-only"> Priority reasons for {record.reportReference}</span></summary><ul>{record.priorityReasons?.map((reason) => <li key={reason}>{reason}</li>)}</ul></details>}</td><td>{displayDateTime(record.claimedAt)}</td><td><StatusPill status={record.statusLabel} /></td><td><Link className={styles.textButton} href={`/coordinator/reports/${record.reportReference}`}>Open case<span className="sr-only"> {record.reportReference}</span></Link></td></tr>)}</tbody></table></div></section>
   </div>;
 }

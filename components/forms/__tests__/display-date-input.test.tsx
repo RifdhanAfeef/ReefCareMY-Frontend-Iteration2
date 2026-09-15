@@ -10,6 +10,11 @@ function TestInput() {
   return <DisplayDateInput label="Observation date" value={value} onChange={setValue} />;
 }
 
+function FutureDateInput() {
+  const [value, setValue] = useState("");
+  return <DisplayDateInput label="Planned action date" value={value} onChange={setValue} allowFuture />;
+}
+
 describe("DisplayDateInput", () => {
   it("formats numeric typing as dd/mm/yyyy", async () => {
     const user = userEvent.setup();
@@ -26,5 +31,12 @@ describe("DisplayDateInput", () => {
     const picker = container.querySelector('input[type="date"]');
 
     expect(picker).toHaveAttribute("max", todayInputDateValue());
+  });
+
+  it("allows the native calendar to select a future planned date when requested", () => {
+    const { container } = render(<FutureDateInput />);
+    const picker = container.querySelector('input[type="date"]');
+
+    expect(picker).not.toHaveAttribute("max");
   });
 });

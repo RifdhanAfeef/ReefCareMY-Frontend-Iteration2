@@ -1,6 +1,7 @@
 import type { AuthUser } from "./types";
 
 const STORAGE_KEY = "reefcare.auth";
+export const AUTH_INVALIDATED_EVENT = "reefcare:auth-invalidated";
 
 export type StoredAuth = {
   user: AuthUser;
@@ -33,5 +34,12 @@ export function writeStoredAuth(value: StoredAuth | null): void {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
   } else {
     window.localStorage.removeItem(STORAGE_KEY);
+  }
+}
+
+export function invalidateStoredAuth(): void {
+  writeStoredAuth(null);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(AUTH_INVALIDATED_EVENT));
   }
 }

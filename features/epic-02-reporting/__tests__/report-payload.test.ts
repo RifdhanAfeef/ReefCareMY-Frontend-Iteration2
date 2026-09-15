@@ -26,6 +26,7 @@ describe("report submission boundary", () => {
         },
       ],
       pin: { x: 50, y: 50, latitude: 5.123456, longitude: 103.123456 },
+      locationSource: "map_pin" as const,
     };
 
     const result = buildReportSubmissionPayload(report, location);
@@ -37,10 +38,13 @@ describe("report submission boundary", () => {
       location: {
         namedDiveSiteId: 13,
         locationConfidence: "within_100m",
+        locationSource: "manual_map_pin",
         mapPin: { latitude: 5.123456, longitude: 103.123456 },
       },
+      evidenceMetadata: [],
+      aiSuggestions: [],
     });
-    expect(result.observedAt).toBe(new Date("2026-08-27T09:10:00").toISOString());
+    expect(result.observedAt).toBe(new Date("2026-08-27T09:10:00+08:00").toISOString());
   });
 
   it.each([

@@ -9,7 +9,8 @@ import {
   useState,
 } from "react";
 import * as authApi from "@/lib/api/authApi";
-import { readStoredAuth, writeStoredAuth } from "@/lib/api/token-store";
+import { AUTH_INVALIDATED_EVENT, readStoredAuth, writeStoredAuth } from "@/lib/api/token-store";
+import { ApiError } from "@/lib/api/client";
 import type { AuthUser } from "@/lib/api/types";
 
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";
@@ -30,15 +31,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    const clearSession = () => {
+      if (cancelled) return;
+      setUser(null);
+      setAccessToken(null);
+      setStatus("unauthenticated");
+      writeStoredAuth(null);
+    };
+    window.addEventListener(AUTH_INVALIDATED_EVENT, clearSession);
+
     const stored = readStoredAuth();
     if (stored) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setUser(stored.user);
-      setAccessToken(stored.accessToken);
-      setStatus("authenticated");
+      authApi.getCurrentUser()
+        .then((currentUser) => {
+          if (cancelled) return;
+          setUser(currentUser);
+          setAccessToken(stored.accessToken);
+          setStatus("authenticated");
+          writeStoredAuth({ user: currentUser, accessToken: stored.accessToken });
+        })
+        .catch((error) => {
+          if (cancelled) return;
+          if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+            clearSession();
+            return;
+          }
+          // A temporary connection failure should not erase a valid local session.
+          setUser(stored.user);
+          setAccessToken(stored.accessToken);
+          setStatus("authenticated");
+        });
     } else {
-      setStatus("unauthenticated");
+      queueMicrotask(() => {
+        if (!cancelled) setStatus("unauthenticated");
+      });
     }
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener(AUTH_INVALIDATED_EVENT, clearSession);
+    };
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {

@@ -1,13 +1,29 @@
+export const REEFCARE_TIME_ZONE = "Asia/Kuala_Lumpur";
+
+function malaysiaDateParts(date: Date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: REEFCARE_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return { year: value("year"), month: value("month"), day: value("day") };
+}
+
 export function formatDateTime(date = new Date()) {
   const datePart = new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    timeZone: REEFCARE_TIME_ZONE,
   }).format(date);
   const timePart = new Intl.DateTimeFormat("en-GB", {
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
+    timeZone: REEFCARE_TIME_ZONE,
   }).format(date);
   return `${datePart}, ${timePart.toUpperCase()}`;
 }
@@ -28,7 +44,12 @@ export function isFutureDisplayDate(value: string, now = new Date()) {
   if (!isValidDisplayDate(value)) return false;
   const [day, month, year] = value.split("/").map(Number);
   const supplied = Date.UTC(year, month - 1, day);
-  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const malaysiaToday = malaysiaDateParts(now);
+  const today = Date.UTC(
+    Number(malaysiaToday.year),
+    Number(malaysiaToday.month) - 1,
+    Number(malaysiaToday.day),
+  );
   return supplied > today;
 }
 
@@ -43,7 +64,10 @@ export function isFutureDisplayDateTime(
 
   const [day, month, year] = dateValue.split("/").map(Number);
   const [hour, minute] = timeValue.split(":").map(Number);
-  return new Date(year, month - 1, day, hour, minute).getTime() > now.getTime();
+  const supplied = Date.parse(
+    `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00+08:00`,
+  );
+  return supplied > now.getTime();
 }
 
 export function displayDateToInputValue(value: string) {
@@ -67,9 +91,7 @@ export function formatDisplayDateInput(value: string) {
 }
 
 export function todayInputDateValue(now = new Date()) {
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
+  const { year, month, day } = malaysiaDateParts(now);
   return `${year}-${month}-${day}`;
 }
 
@@ -86,5 +108,5 @@ export function displayDateAndTimeToIso(dateValue: string, timeValue: string) {
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(timeValue)) {
     throw new Error("Enter a valid time.");
   }
-  return new Date(`${isoDate}T${timeValue}:00`).toISOString();
+  return new Date(`${isoDate}T${timeValue}:00+08:00`).toISOString();
 }

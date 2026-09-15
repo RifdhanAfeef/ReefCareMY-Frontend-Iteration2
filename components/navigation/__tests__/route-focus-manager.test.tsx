@@ -22,7 +22,11 @@ describe("RouteFocusManager", () => {
       </main>,
     );
 
-    expect(screen.getByRole("heading", { name: "Report details" })).toHaveFocus();
+    const firstHeading = screen.getByRole("heading", { name: "Report details" });
+    expect(firstHeading).toHaveFocus();
+    expect(firstHeading).toHaveAttribute("tabindex", "-1");
+    expect(firstHeading.style.outline).toBe("none");
+    expect(firstHeading.style.boxShadow).toBe("none");
 
     pathname = "/report-a-reef/location";
     rerender(
@@ -32,7 +36,11 @@ describe("RouteFocusManager", () => {
       </main>,
     );
 
-    expect(screen.getByRole("heading", { name: "Observation location" })).toHaveFocus();
+    const nextHeading = screen.getByRole("heading", { name: "Observation location" });
+    expect(nextHeading).toHaveFocus();
+    expect(nextHeading).toHaveAttribute("tabindex", "-1");
+    expect(nextHeading.style.outline).toBe("none");
+    expect(nextHeading.style.boxShadow).toBe("none");
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, left: 0, behavior: "auto" });
   });
 });

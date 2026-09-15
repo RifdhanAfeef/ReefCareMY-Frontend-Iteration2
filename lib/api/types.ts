@@ -133,6 +133,24 @@ export type ReportDetail = {
   submittedAt: string;
 };
 
+export type ObserverInformationRequest = {
+  reportReference?: string;
+  reason?: string | null;
+  requestReason?: string | null;
+  requestedAt?: string | null;
+};
+
+export type ObserverInformationResponseCreate = {
+  text: string;
+  evidenceIds: number[];
+};
+
+export type ObserverInformationResponseResult = {
+  reportReference: string;
+  status: "under_review";
+  respondedAt: string;
+};
+
 export type ReportTimelineEvent = {
   statusLabel: string;
   occurredAt: string;
@@ -203,6 +221,84 @@ export type MapPinInput = {
   longitude: number;
 };
 
+export type LocationSource =
+  | "named_dive_site"
+  | "manual_map_pin"
+  | "entered_coordinates"
+  | "device_metadata"
+  | "unknown";
+
+export type EvidenceMetadataInput = {
+  capturedAt: string | null;
+};
+
+export type AISuggestionStatus = "unresolved" | "confirmed" | "corrected" | "removed";
+
+export type AISuggestionState = {
+  field: string;
+  suggestedValue: string | null;
+  status: AISuggestionStatus;
+};
+
+export type ReportCompletenessLocationInput = {
+  namedDiveSiteId?: number | null;
+  locationConfidence?: LocationConfidence | null;
+  locationSource?: LocationSource | null;
+  mapPin?: MapPinInput | null;
+  coordinates?: MapPinInput | null;
+  relocationNotes?: string | null;
+};
+
+export type ReportCompletenessRequest = {
+  threatCategoryId?: number | null;
+  observedAt?: string | null;
+  estimatedDepthMetres?: number | null;
+  description?: string | null;
+  diveSessionId?: number | null;
+  location?: ReportCompletenessLocationInput | null;
+  evidenceCount: number;
+};
+
+export type ReportCompletenessResponse = {
+  isSubmittable: boolean;
+  blockingMissing: string[];
+  blockingIssues: string[];
+  recommendedMissing: string[];
+  summary: string;
+};
+
+export type LocationCheckRequest = {
+  namedDiveSiteId: number;
+  locationSource: LocationSource;
+  mapPin?: MapPinInput | null;
+  coordinates?: MapPinInput | null;
+};
+
+export type LocationCheckResponse = {
+  checkAvailable: boolean;
+  hasWarning: boolean;
+  warningCode: string | null;
+  message: string | null;
+  distanceMetres: number | null;
+  thresholdMetres: number | null;
+  selectedSiteId: number;
+  selectedSiteName: string | null;
+};
+
+export type ReportReviewRequest = ReportCompletenessRequest & {
+  evidenceMetadata: EvidenceMetadataInput[];
+  aiSuggestions: AISuggestionState[];
+};
+
+export type ReportReviewResponse = {
+  isSubmittable: boolean;
+  completeness: ReportCompletenessResponse;
+  unresolvedSuggestions: AISuggestionState[];
+  report: Record<string, unknown>;
+  evidence: Array<Record<string, unknown>>;
+  locationWarning: LocationCheckResponse | null;
+};
+
 export type ReportSubmissionPayload = {
   threatCategoryId: number;
   observedAt: string;
@@ -212,9 +308,13 @@ export type ReportSubmissionPayload = {
   location: {
     namedDiveSiteId: number;
     locationConfidence: LocationConfidence;
-    mapPin: MapPinInput | null;
+    locationSource: LocationSource;
+    mapPin?: MapPinInput | null;
+    coordinates?: MapPinInput | null;
     relocationNotes?: string;
   };
+  evidenceMetadata: EvidenceMetadataInput[];
+  aiSuggestions: AISuggestionState[];
 };
 
 export type CoordinatorQueueItem = {
@@ -225,6 +325,10 @@ export type CoordinatorQueueItem = {
   statusLabel: string;
   submittedAt: string;
   hoursInQueue: number;
+  evidenceCompleteness?: string | null;
+  evidenceCount?: number;
+  priority?: string | null;
+  priorityReasons?: string[];
   owner?: CaseOwner | null;
   claimedAt?: string | null;
 };
@@ -256,6 +360,30 @@ export type CoordinatorDecisionSummary = {
   decidedAt?: string | null;
 };
 
+export type CoordinatorTriageContext = {
+  evidenceCompleteness?: string | null;
+  evidenceCount?: number;
+  priority?: string | null;
+  priorityReasons?: string[];
+  hoursInQueue?: number;
+};
+
+export type CoordinatorAiAssisted = {
+  available?: boolean;
+  generatedAt?: string | null;
+  source?: string | null;
+  summary?: string | null;
+  suggestions?: Record<string, unknown> | Array<Record<string, unknown>> | null;
+  warnings?: string[];
+};
+
+export type CoordinatorInformationExchange = {
+  requestReason?: string | null;
+  requestedAt?: string | null;
+  responseText?: string | null;
+  respondedAt?: string | null;
+};
+
 export type CoordinatorCase = {
   reportReference: string;
   observerId: number;
@@ -268,12 +396,18 @@ export type CoordinatorCase = {
     latitude: number | null;
     longitude: number | null;
     uncertaintyMetres: number | null;
+    confidenceLabel?: string | null;
+    sourceLabel?: string | null;
+    relocationNotes?: string | null;
   } | null;
   statusCode: ReportStatusCode;
   statusLabel: string;
   submittedAt: string;
   owner: CaseOwner;
   evidence: CoordinatorEvidence[];
+  triageContext?: CoordinatorTriageContext | null;
+  aiAssisted?: CoordinatorAiAssisted | null;
+  informationExchange?: CoordinatorInformationExchange | null;
   latestDecision?: CoordinatorDecisionSummary | null;
 };
 

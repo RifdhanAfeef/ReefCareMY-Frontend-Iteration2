@@ -31,7 +31,16 @@ describe("Epic 2 Reef Explorer", () => {
     expect(screen.getByText(/General area only/i)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Experience suitability" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Tourism Malaysia/i })).toBeInTheDocument();
+    expect(screen.getByLabelText("Dive conditions reminder")).toHaveTextContent(
+      "Conditions and requirements can change. Confirm them with a licensed operator and the relevant authority.",
+    );
     expect(screen.queryByText(/does not provide individual dive clearance/i)).not.toBeInTheDocument();
+
+    expect(screen.getByText("Image 1 of 2")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Show next site image" }));
+    expect(screen.getByText("Image 2 of 2")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Enlarge image 2 of D'Lagoon" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Show previous site image" }));
 
     await user.click(screen.getByRole("button", { name: "Enlarge image 1 of D'Lagoon" }));
     expect(screen.getByRole("dialog", { name: "D'Lagoon enlarged image" })).toBeInTheDocument();

@@ -10,6 +10,15 @@ export type ReportPhotoMetadata = {
   name: string;
   type: string;
   size: number;
+  capturedAt?: string | null;
+  capturedAtConfirmed?: boolean;
+};
+
+export type ReportAISuggestion = {
+  field: string;
+  label: string;
+  suggestedValue: string | null;
+  status: "unresolved" | "confirmed" | "corrected" | "removed";
 };
 
 export type ReportDraft = {
@@ -20,5 +29,6 @@ export type ReportDraft = {
   estimatedDepthMetres: string;
   description: string;
   photos: ReportPhotoMetadata[];
+  aiSuggestions: ReportAISuggestion[];
   lastSavedAt: string | null;
 };

@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
-import { submitReport } from "@/lib/api/reportsApi";
+import { reviewReport, submitReport } from "@/lib/api/reportsApi";
 import { clearDraftPhotos, loadDraftPhotos } from "../draft-storage";
 import { ReportReview } from "../report-review";
 
 const push = vi.hoisted(() => vi.fn());
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
-vi.mock("@/lib/api/reportsApi", () => ({ submitReport: vi.fn() }));
+vi.mock("@/lib/api/reportsApi", () => ({ reviewReport: vi.fn(), submitReport: vi.fn() }));
 vi.mock("../draft-storage", () => ({ loadDraftPhotos: vi.fn(), clearDraftPhotos: vi.fn() }));
 vi.mock("@/features/epic-04-location/location-flow", () => ({ ReviewLocationSummary: () => null }));
 vi.mock("@/features/shared/mock-app-state", async (importOriginal) => {
@@ -34,6 +34,14 @@ beforeEach(() => {
   URL.revokeObjectURL = vi.fn();
   vi.mocked(loadDraftPhotos).mockResolvedValue([{ id: "one", file: new File(["photo"], "reef.jpg") }]);
   vi.mocked(clearDraftPhotos).mockResolvedValue(undefined);
+  vi.mocked(reviewReport).mockResolvedValue({
+    isSubmittable: true,
+    completeness: { isSubmittable: true, blockingMissing: [], blockingIssues: [], recommendedMissing: [], summary: "Ready to submit." },
+    unresolvedSuggestions: [],
+    report: {},
+    evidence: [],
+    locationWarning: null,
+  });
   vi.mocked(submitReport).mockResolvedValue({ reportReference: "RC-1", status: "received", submittedAt: "2026-09-11T10:00:00Z", generalLocation: "Reef" });
 });
 

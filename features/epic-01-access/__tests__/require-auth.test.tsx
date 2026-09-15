@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { AuthProvider } from "../auth-context";
 import { RequireAuth, RequireRole } from "../require-auth";
+import * as authApi from "@/lib/api/authApi";
 
 let mockPathname = "/my-reports";
 const replace = vi.fn();
@@ -10,11 +11,17 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace, push: vi.fn() }),
   usePathname: () => mockPathname,
 }));
+vi.mock("@/lib/api/authApi");
 
 beforeEach(() => {
   replace.mockClear();
   window.localStorage.clear();
   window.history.replaceState({}, "", "/");
+  vi.mocked(authApi.getCurrentUser).mockImplementation(async () => {
+    const stored = JSON.parse(window.localStorage.getItem("reefcare.auth") ?? "null") as { user?: unknown } | null;
+    if (!stored?.user) throw new Error("No stored user");
+    return stored.user as Awaited<ReturnType<typeof authApi.getCurrentUser>>;
+  });
 });
 
 describe("US1.1 — role-based route separation", () => {

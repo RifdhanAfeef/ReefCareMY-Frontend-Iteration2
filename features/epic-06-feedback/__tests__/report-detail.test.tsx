@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ReportDetail } from "../report-detail";
 import * as reportsApi from "@/lib/api/reportsApi";
 import type { ReportDetail as ReportDetailData } from "@/lib/api/types";
@@ -7,9 +7,22 @@ import { ApiError } from "@/lib/api/client";
 
 vi.mock("@/lib/api/reportsApi");
 const mockedGetReportDetail = vi.mocked(reportsApi.getReportDetail);
+const mockedGetOpenInformationRequest = vi.mocked(reportsApi.getOpenInformationRequest);
+const mockedSubmitInformationResponse = vi.mocked(reportsApi.submitInformationResponse);
 
 beforeEach(() => {
   mockedGetReportDetail.mockReset();
+  mockedGetOpenInformationRequest.mockReset();
+  mockedGetOpenInformationRequest.mockResolvedValue(null);
+  mockedSubmitInformationResponse.mockReset();
+  Object.defineProperty(URL, "createObjectURL", {
+    configurable: true,
+    value: vi.fn(() => "blob:additional-evidence"),
+  });
+  Object.defineProperty(URL, "revokeObjectURL", {
+    configurable: true,
+    value: vi.fn(),
+  });
 });
 
 function baseReport(overrides: Partial<ReportDetailData> = {}): ReportDetailData {
@@ -70,6 +83,84 @@ describe("US6.3 — information request reason is visible", () => {
     expect(
       await screen.findByText(/Please confirm the approximate size of the net\./),
     ).toBeInTheDocument();
+  });
+
+  it("submits an observer response on the same report", async () => {
+    mockedGetReportDetail.mockResolvedValue(
+      baseReport({
+        status: "needs_more_info",
+        statusLabel: "More information needed",
+        informationRequestReason: "Please confirm the approximate size of the net.",
+      }),
+    );
+    mockedGetOpenInformationRequest.mockResolvedValue({
+      reportReference: "RC-0241",
+      reason: "Please confirm the approximate size of the net.",
+      requestedAt: "2026-09-10T04:00:00Z",
+    });
+    mockedSubmitInformationResponse.mockResolvedValue({
+      reportReference: "RC-0241",
+      status: "under_review",
+      respondedAt: "2026-09-11T04:00:00Z",
+    });
+
+    render(<ReportDetail reportReference="RC-0241" />);
+    const response = await screen.findByLabelText(/Additional details/);
+    fireEvent.change(response, { target: { value: "The net was approximately 3 metres wide." } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit additional information" }));
+
+    await waitFor(() => expect(mockedSubmitInformationResponse).toHaveBeenCalledWith(
+      "RC-0241",
+      { text: "The net was approximately 3 metres wide.", evidenceIds: [] },
+    ));
+    expect(await screen.findByText(/attached to this report/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Additional details/)).not.toBeInTheDocument();
+  });
+
+  it("previews and submits new photographs with the response", async () => {
+    mockedGetReportDetail.mockResolvedValue(
+      baseReport({
+        status: "needs_more_info",
+        statusLabel: "More information needed",
+        informationRequestReason: "Please add a clearer photograph.",
+      }),
+    );
+    mockedSubmitInformationResponse.mockResolvedValue({
+      reportReference: "RC-0241",
+      status: "under_review",
+      respondedAt: "2026-09-11T04:00:00Z",
+    });
+    const photo = new File(["reef-photo"], "clearer-reef.jpg", { type: "image/jpeg" });
+
+    render(<ReportDetail reportReference="RC-0241" />);
+    const photoInput = await screen.findByLabelText("Choose photographs");
+    fireEvent.change(photoInput, { target: { files: [photo] } });
+
+    expect(screen.getByAltText("Selected additional evidence: clearer-reef.jpg")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Submit additional information" }));
+
+    await waitFor(() => expect(mockedSubmitInformationResponse).toHaveBeenCalledWith(
+      "RC-0241",
+      { text: "", evidenceIds: [] },
+      [photo],
+    ));
+    expect(await screen.findByText(/information and photographs were submitted/i)).toBeInTheDocument();
+  });
+
+  it("requires either written details or a photograph", async () => {
+    mockedGetReportDetail.mockResolvedValue(
+      baseReport({
+        status: "needs_more_info",
+        statusLabel: "More information needed",
+        informationRequestReason: "Please clarify the observation.",
+      }),
+    );
+
+    render(<ReportDetail reportReference="RC-0241" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Submit additional information" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/written response or at least one photograph/i);
+    expect(mockedSubmitInformationResponse).not.toHaveBeenCalled();
   });
 
   it("shows nothing extra when there is no information request", async () => {

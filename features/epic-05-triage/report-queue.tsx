@@ -6,6 +6,7 @@ import { getCoordinatorQueue } from "@/lib/api/coordinatorApi";
 import type { CoordinatorQueueItem } from "@/lib/api/types";
 import { readStoredAuth } from "@/lib/api/token-store";
 import { userFacingError } from "@/lib/api/user-facing-error";
+import { formatDateTime } from "@/lib/format/date";
 import styles from "./triage.module.css";
 
 const pageSize = 20;
@@ -16,12 +17,36 @@ type LoadState = "loading" | "loaded" | "error";
 function waitingTime(hours?: number) {
   if (hours == null) return "—";
   if (hours < 1) return "Less than 1 hour";
-  const roundedHours = Math.round(hours);
-  return `${roundedHours} ${roundedHours === 1 ? "hour" : "hours"}`;
+  if (hours < 24) {
+    const wholeHours = Math.max(1, Math.floor(hours));
+    return `${wholeHours} ${wholeHours === 1 ? "hour" : "hours"}`;
+  }
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} ${days === 1 ? "day" : "days"}`;
+  if (days < 30) {
+    const weeks = Math.floor(days / 7);
+    return `${weeks} ${weeks === 1 ? "week" : "weeks"}`;
+  }
+  const months = Math.floor(days / 30);
+  return `${months} ${months === 1 ? "month" : "months"}`;
+}
+
+function submittedAtLabel(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Submission date unavailable" : `Submitted ${formatDateTime(date)}`;
 }
 
 function areaLabel(area: string | null) {
   return area ?? "Not provided";
+}
+
+function humanise(value?: string | null, fallback = "Not provided") {
+  if (!value) return fallback;
+  return value.replace(/[_-]+/g, " ").replace(/^./, (letter) => letter.toUpperCase());
+}
+
+function priorityKey(value?: string | null) {
+  return (value ?? "not_set").toLowerCase().replace(/[^a-z0-9]+/g, "-");
 }
 
 async function loadAllQueueItems() {
@@ -174,15 +199,17 @@ export function ReportQueue() {
             {reports.length > 0 && (
               <div className={styles.tableWrap}>
                 <table>
-                  <thead><tr><th>Report reference</th><th>Threat type</th><th>General site</th><th>Status</th><th>Waiting</th><th>Owner</th><th>Action</th></tr></thead>
+                  <thead><tr><th>Report reference</th><th>Threat type</th><th>General site</th><th>Evidence</th><th>Priority</th><th>Status</th><th>Age</th><th>Owner</th><th>Action</th></tr></thead>
                   <tbody>
                     {reports.map((report) => (
                       <tr key={report.reportReference}>
                         <td><strong>{report.reportReference}</strong></td>
                         <td>{report.threat}</td>
                         <td>{areaLabel(report.area)}</td>
+                        <td><span className={styles.evidenceChip}>{humanise(report.evidenceCompleteness, "Not assessed")}</span><small className={styles.cellNote}>{report.evidenceCount ?? 0} file{report.evidenceCount === 1 ? "" : "s"}</small></td>
+                        <td><span className={styles.priorityChip} data-priority={priorityKey(report.priority)}>{humanise(report.priority, "Not set")}</span>{(report.priorityReasons ?? []).length > 0 && <details className={styles.priorityDetails}><summary>Why?</summary><ul>{report.priorityReasons?.map((reason) => <li key={reason}>{reason}</li>)}</ul></details>}</td>
                         <td><span className={styles.receivedChip}>{report.statusLabel}</span></td>
-                        <td>{report.owner ? "—" : waitingTime(report.hoursInQueue)}</td>
+                        <td><time className={styles.ageValue} dateTime={report.submittedAt} title={submittedAtLabel(report.submittedAt)}>{waitingTime(report.hoursInQueue)}</time></td>
                         <td>{report.owner?.displayName ?? "Unclaimed"}</td>
                         <td>
                           {!report.owner && !report.claimedAt ? (
@@ -221,6 +248,7 @@ export function ReportQueue() {
                 </div>
               </nav>
             )}
+            <aside className={styles.priorityNotice}><strong>Priority is guidance, not a verdict</strong><p>These cues come from stated rules such as evidence availability and queue age. The Case Coordinator still reviews the evidence and makes every decision.</p></aside>
           </>
         )}
       </section>

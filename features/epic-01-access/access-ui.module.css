@@ -226,6 +226,54 @@
   white-space: nowrap;
 }
 
+.priorityChip {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 5px 9px;
+  color: #4f5960;
+  background: #eef2f3;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.priorityChip[data-priority="high"],
+.priorityChip[data-priority="urgent"] {
+  color: #8a2d25;
+  background: #fff0ef;
+}
+
+.priorityChip[data-priority="medium"] {
+  color: #765015;
+  background: #fff3dc;
+}
+
+.priorityChip[data-priority="low"] {
+  color: #176246;
+  background: #e9f7ef;
+}
+
+.priorityDetails {
+  margin-top: 6px;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+}
+
+.priorityDetails summary {
+  width: fit-content;
+  color: var(--color-primary-hover);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.priorityDetails ul {
+  margin: 7px 0 0;
+  padding-left: 18px;
+  color: var(--color-ink);
+}
+
 .pill {
   display: inline-flex;
   align-items: center;

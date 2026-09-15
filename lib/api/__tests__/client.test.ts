@@ -123,6 +123,18 @@ describe("apiRequest — error message extraction", () => {
       "ReefCare MY could not complete the request. Please try again.",
     );
   });
+
+  it("clears an expired stored session after an authenticated 401 response", async () => {
+    writeStoredAuth({
+      user: { id: 1, displayName: "Sam", role: "observer" },
+      accessToken: "expired-token",
+    });
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ detail: "Token expired" }, 401));
+
+    await expect(apiRequest({ path: "/api/v1/reports/mine" })).rejects.toThrow("Token expired");
+
+    expect(window.localStorage.getItem("reefcare.auth")).toBeNull();
+  });
 });
 
 describe("apiRequest — slow connections", () => {

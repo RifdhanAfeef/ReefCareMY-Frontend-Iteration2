@@ -102,6 +102,53 @@ function ActivityPanel({ site }: { site: ReefSite }) {
   );
 }
 
+function SiteGallery({
+  site,
+  onEnlargeImage,
+}: {
+  site: ReefSite;
+  onEnlargeImage: (imageIndex: number) => void;
+}) {
+  const [imageIndex, setImageIndex] = useState(0);
+  const image = site.images[imageIndex];
+
+  return (
+    <section className={styles.siteGallery} aria-label={`${site.name} representative images`}>
+      <figure className={styles.siteImage}>
+        <button
+          type="button"
+          onClick={() => onEnlargeImage(imageIndex)}
+          aria-label={`Enlarge image ${imageIndex + 1} of ${site.name}`}
+        >
+          <Image src={image.src} alt={image.alt} fill sizes="(max-width: 960px) 90vw, 30vw" />
+          <span>View larger</span>
+        </button>
+      </figure>
+      {site.images.length > 1 && (
+        <div className={styles.galleryControls}>
+          <button
+            type="button"
+            onClick={() => setImageIndex((current) => current - 1)}
+            disabled={imageIndex === 0}
+            aria-label="Show previous site image"
+          >
+            <span aria-hidden="true">←</span>
+          </button>
+          <span aria-live="polite">Image {imageIndex + 1} of {site.images.length}</span>
+          <button
+            type="button"
+            onClick={() => setImageIndex((current) => current + 1)}
+            disabled={imageIndex === site.images.length - 1}
+            aria-label="Show next site image"
+          >
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function SiteDetail({
   site,
   onBack,
@@ -120,16 +167,7 @@ function SiteDetail({
       </button>
       <p className={styles.siteArea}>{site.publicAreaLabel}</p>
       <h2 id="selected-site-heading">{site.name}</h2>
-      <div className={styles.siteGallery} aria-label={`${site.name} representative images`}>
-        {site.images.map((image, index) => (
-          <figure className={styles.siteImage} key={image.src}>
-            <button type="button" onClick={() => onEnlargeImage(index)} aria-label={`Enlarge image ${index + 1} of ${site.name}`}>
-              <Image src={image.src} alt={image.alt} fill sizes="(max-width: 960px) 50vw, 18vw" />
-              <span>View larger</span>
-            </button>
-          </figure>
-        ))}
-      </div>
+      <SiteGallery key={site.id} site={site} onEnlargeImage={onEnlargeImage} />
       <p className={styles.siteIntroduction}>{site.introduction}</p>
 
       <section className={styles.siteFacts} aria-label="Dive-site information">
@@ -159,9 +197,13 @@ function SiteDetail({
       </section>
 
       <p className={styles.sourceNote}>
-        Source: <a href={site.source.url} target="_blank" rel="noreferrer">{site.source.label}</a><br />
-        Conditions and requirements can change. Confirm them with a licensed operator and the relevant authority.
+        Source: <a href={site.source.url} target="_blank" rel="noreferrer">{site.source.label}</a>
       </p>
+      <aside className={styles.conditionsNotice} aria-label="Dive conditions reminder">
+        <p>
+          Conditions and requirements can change. Confirm them with a licensed operator and the relevant authority.
+        </p>
+      </aside>
 
       <ActivityPanel site={site} />
 

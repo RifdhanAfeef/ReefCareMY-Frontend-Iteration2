@@ -46,6 +46,8 @@ describe("Epic 7 conservation action record", () => {
   it("loads action history and distinguishes a plan from completed work", async () => {
     render(<ConservationActionPanel reportReference="RC-0710" />);
 
+    expect(screen.queryByText(/Epic 7/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Conservation action")).toBeInTheDocument();
     expect(await screen.findByText("Action planned — not completed")).toBeInTheDocument();
     expect(screen.getByText("This is a plan only. It does not confirm that conservation work has happened.")).toBeInTheDocument();
     expect(screen.getByText("Tioman response team")).toBeInTheDocument();
@@ -84,7 +86,7 @@ describe("Epic 7 conservation action record", () => {
     render(<ConservationActionPanel reportReference="RC-0710" />);
     await screen.findByRole("heading", { name: "Record an action update" });
 
-    await user.type(screen.getByLabelText("Planned action date"), "2026-09-20");
+    await user.type(screen.getByLabelText("Planned action date, format dd/mm/yyyy"), "20092026");
     await user.type(screen.getByLabelText("Responsible team *"), "Marine Park response team");
     await user.type(screen.getByLabelText(/^Action notes/), "Equipment and weather check required.");
     await user.click(screen.getByRole("button", { name: "Record action update" }));

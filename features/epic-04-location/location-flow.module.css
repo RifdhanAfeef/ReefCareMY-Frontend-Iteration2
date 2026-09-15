@@ -27,6 +27,8 @@
 .sessionOption span { display: grid; }
 .sessionOption strong { font-size: 17px; }
 .sessionOption small { margin-top: 2px; color: var(--color-muted); font-size: 14px; }
+.suggestedSession { width: fit-content; margin-top: 7px; padding: 4px 8px; color: #176246; background: #e6f5ed; border-radius: 999px; font-size: 12px; font-style: normal; font-weight: 800; }
+.metadataNotice { margin: 16px 0 0; padding: 12px 14px; color: #155a58; background: var(--color-info); border-radius: 10px; font-size: 13px; }
 .requirementGroup { margin-top: 24px; }
 .requirementGroup h3 { margin: 0 0 12px; color: var(--color-muted); font-size: 15px; }
 .requirementGroup p { display: flex; gap: 12px; margin: 12px 0; }
@@ -78,6 +80,9 @@
 .infoBox { margin: 30px 0; padding: 18px; background: var(--color-info); border-radius: 14px; }
 .privacyStrip { color: #6e55a3; background: #f1ecfa; }
 .privacyStrip p { color: #6e55a3; }
+.locationWarning { margin-top: 28px; padding: 18px 22px; color: #765015; background: #fff3dc; border: 1px solid #efd6a4; border-radius: var(--radius-card); }
+.locationWarning p { margin: 5px 0; }
+.locationWarning small { color: #765015; }
 .backOutside { margin-top: 22px; }
 .accessList { margin: 24px 0 0; }
 .accessList div { display: grid; grid-template-columns: minmax(140px, .9fr) 1.1fr; gap: 20px; padding: 18px 0; border-bottom: 1px solid var(--color-border); }
