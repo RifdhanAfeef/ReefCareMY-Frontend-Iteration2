@@ -18,22 +18,33 @@ function waitingTime(hours?: number) {
   if (hours == null) return "—";
   if (hours < 1) return "Less than 1 hour";
   if (hours < 24) {
-    const wholeHours = Math.max(1, Math.floor(hours));
-    return `${wholeHours} ${wholeHours === 1 ? "hour" : "hours"}`;
+    const roundedHours = Math.max(1, Math.floor(hours));
+    return `${roundedHours} ${roundedHours === 1 ? "hour" : "hours"}`;
   }
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days} ${days === 1 ? "day" : "days"}`;
-  if (days < 30) {
-    const weeks = Math.floor(days / 7);
+  if (hours < 24 * 7) {
+    const days = Math.floor(hours / 24);
+    return `${days} ${days === 1 ? "day" : "days"}`;
+  }
+  if (hours < 24 * 30) {
+    const weeks = Math.floor(hours / (24 * 7));
     return `${weeks} ${weeks === 1 ? "week" : "weeks"}`;
   }
-  const months = Math.floor(days / 30);
+  const months = Math.floor(hours / (24 * 30));
   return `${months} ${months === 1 ? "month" : "months"}`;
 }
 
-function submittedAtLabel(value: string) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "Submission date unavailable" : `Submitted ${formatDateTime(date)}`;
+function submittedDate(value: string) {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : formatDateTime(parsed);
+}
+
+function newestFirst(left: CoordinatorQueueItem, right: CoordinatorQueueItem) {
+  const leftTime = Date.parse(left.submittedAt);
+  const rightTime = Date.parse(right.submittedAt);
+  if (Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime !== rightTime) {
+    return rightTime - leftTime;
+  }
+  return (left.hoursInQueue ?? Number.POSITIVE_INFINITY) - (right.hoursInQueue ?? Number.POSITIVE_INFINITY);
 }
 
 function areaLabel(area: string | null) {
@@ -71,7 +82,7 @@ export function ReportQueue() {
   const [reloadKey, setReloadKey] = useState(0);
   const [search, setSearch] = useState("");
   const [site, setSite] = useState("all");
-  const [ownership, setOwnership] = useState("all");
+  const [ownership, setOwnership] = useState("unclaimed");
   const currentUserId = readStoredAuth()?.user.id;
 
   useEffect(() => {
@@ -111,7 +122,7 @@ export function ReportQueue() {
         (ownership === "mine" && report.owner?.id === currentUserId) ||
         (ownership === "claimed" && isClaimed);
       return matchesSearch && matchesSite && matchesOwnership;
-    }),
+    }).sort(newestFirst),
     [currentUserId, items, ownership, search, site],
   );
 
@@ -152,7 +163,7 @@ export function ReportQueue() {
 
       <section className={styles.card}>
         <div className={styles.queueCardHeading}>
-          <h2>All submitted reports</h2>
+          <h2>{ownership === "unclaimed" ? "Unclaimed reports" : ownership === "mine" ? "My claimed reports" : ownership === "claimed" ? "Claimed reports" : "All submitted reports"}</h2>
           {state === "loaded" && <span className={styles.pendingChip}>{total} reports</span>}
         </div>
 
@@ -207,9 +218,9 @@ export function ReportQueue() {
                         <td>{report.threat}</td>
                         <td>{areaLabel(report.area)}</td>
                         <td><span className={styles.evidenceChip}>{humanise(report.evidenceCompleteness, "Not assessed")}</span><small className={styles.cellNote}>{report.evidenceCount ?? 0} file{report.evidenceCount === 1 ? "" : "s"}</small></td>
-                        <td><span className={styles.priorityChip} data-priority={priorityKey(report.priority)}>{humanise(report.priority, "Not set")}</span>{(report.priorityReasons ?? []).length > 0 && <details className={styles.priorityDetails}><summary>Why?</summary><ul>{report.priorityReasons?.map((reason) => <li key={reason}>{reason}</li>)}</ul></details>}</td>
+                        <td><div className={styles.priorityCell}><span className={styles.priorityChip} data-priority={priorityKey(report.priority)}>{humanise(report.priority, "Not set")}</span>{(report.priorityReasons ?? []).length > 0 && <span className={styles.priorityInfo}><button className={styles.priorityInfoButton} type="button" aria-label={`Priority information for ${report.reportReference}`} aria-describedby={`priority-info-${report.reportReference}`}>i</button><span className={styles.priorityTooltip} id={`priority-info-${report.reportReference}`} role="tooltip"><strong>Why this priority?</strong><ul>{report.priorityReasons?.map((reason) => <li key={reason}>{reason}</li>)}</ul></span></span>}</div></td>
                         <td><span className={styles.receivedChip}>{report.statusLabel}</span></td>
-                        <td><time className={styles.ageValue} dateTime={report.submittedAt} title={submittedAtLabel(report.submittedAt)}>{waitingTime(report.hoursInQueue)}</time></td>
+                        <td><time className={styles.ageValue} dateTime={report.submittedAt} title={`Submitted ${submittedDate(report.submittedAt)}`}>{waitingTime(report.hoursInQueue)}</time></td>
                         <td>{report.owner?.displayName ?? "Unclaimed"}</td>
                         <td>
                           {!report.owner && !report.claimedAt ? (

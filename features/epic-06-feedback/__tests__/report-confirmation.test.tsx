@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ReportConfirmation } from "../report-confirmation";
+import { formatDateTime } from "@/lib/format/date";
 
 let mockSearchParams = new URLSearchParams();
 
@@ -25,8 +26,13 @@ describe("US6.1 — report confirmation", () => {
     expect(screen.getByText("Tiger Reef, Tioman Island")).toBeInTheDocument();
     expect(screen.getByText("Received")).toBeInTheDocument();
     expect(
-      screen.getByText(new Date("2026-08-28T16:37:19.091Z").toLocaleString()),
+      screen.getByText(formatDateTime(new Date("2026-08-28T16:37:19.091Z"))),
     ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "What happens next?" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View this report" })).toHaveAttribute(
+      "href",
+      "/my-reports/RC-0241",
+    );
   });
 
   it("shows a fallback instead of guessing when opened without submission data", () => {
@@ -41,3 +47,4 @@ describe("US6.1 — report confirmation", () => {
     );
   });
 });
+

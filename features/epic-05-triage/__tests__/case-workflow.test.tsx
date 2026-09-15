@@ -89,11 +89,38 @@ describe("Coordinator case workflow", () => {
   it("loads and displays protected evidence automatically with the case", async () => {
     render(<CoordinatorCaseRoute reportReference={report.reportReference} />);
 
+    expect(await screen.findByRole("link", { name: "← Back to My Cases" })).toHaveAttribute("href", "/coordinator/my-cases");
     expect(await screen.findByRole("img", { name: "Submitted evidence 13" })).toHaveAttribute("src", "blob:reef-evidence");
     expect(mockedGetCoordinatorEvidence).toHaveBeenCalledWith(report.reportReference, 13);
     expect(screen.queryByRole("button", { name: /open evidence/i })).not.toBeInTheDocument();
     expect(screen.getByText(/03\/09\/2026, \d{1,2}:20 [AP]M/)).toBeInTheDocument();
     expect(screen.queryByText("2026-09-03T04:20:00Z")).not.toBeInTheDocument();
+    expect(screen.getByText("Submitted location")).toBeInTheDocument();
+    expect(screen.queryByText("Authorised exact location")).not.toBeInTheDocument();
+  });
+
+  it("shows structured AI information separately from submitted and Coordinator-confirmed information", async () => {
+    mockedGetCoordinatorCase.mockResolvedValueOnce({
+      ...report,
+      aiAssisted: {
+        available: true,
+        summary: "Possible ghost gear entanglement affecting coral.",
+        generatedAt: "2026-09-03T04:25:00Z",
+        suggestions: [
+          { field: "estimated_depth", label: "Estimated depth", suggestedValue: "12 metres", status: "confirmed" },
+          { field: "interaction", label: "Observed interaction", suggestedValue: "Net caught across coral", status: "unresolved" },
+        ],
+      },
+    });
+
+    render(<CoordinatorCaseRoute reportReference={report.reportReference} />);
+
+    expect(await screen.findByRole("heading", { name: "Structured report information" })).toBeInTheDocument();
+    expect(screen.getByText("Possible ghost gear entanglement affecting coral.")).toBeInTheDocument();
+    expect(screen.getByText("12 metres")).toBeInTheDocument();
+    expect(screen.getByText("Observer confirmed")).toBeInTheDocument();
+    expect(screen.getByText("AI suggested")).toBeInTheDocument();
+    expect(screen.getByText(/not verification or a Coordinator finding/i)).toBeInTheDocument();
   });
 
   it("claims a queue report through the backend before loading protected details", async () => {
