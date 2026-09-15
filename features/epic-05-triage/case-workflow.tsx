@@ -13,7 +13,7 @@ import {
   requestMoreInformation,
   startReview,
 } from "@/lib/api/coordinatorApi";
-import type { ClaimedCase, ClosureReasonCode, CoordinatorCase, ResponseType } from "@/lib/api/types";
+import type { ClaimedCase, ClosureReasonCode, CoordinatorAiAssisted, CoordinatorCase, ResponseType } from "@/lib/api/types";
 import { userFacingError } from "@/lib/api/user-facing-error";
 import { formatDateTime } from "@/lib/format/date";
 import { ConservationActionPanel } from "@/features/epic-07-actions/conservation-action-panel";
@@ -100,6 +100,53 @@ function displayDateTime(value?: string | null) {
 
 function formatFieldName(value: string) {
   return value.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/[_-]+/g, " ").replace(/^./, (letter) => letter.toUpperCase());
+}
+
+type AiStructuredItem = {
+  key: string;
+  label: string;
+  value: string;
+  sourceLabel: string;
+};
+
+function displayAiValue(value: unknown): string {
+  if (value == null || value === "") return "Not specified";
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) return value.map(displayAiValue).join(", ");
+  if (typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([key, nestedValue]) => `${formatFieldName(key)}: ${displayAiValue(nestedValue)}`)
+      .join("; ");
+  }
+  return "Not specified";
+}
+
+function aiStructuredItems(suggestions: CoordinatorAiAssisted["suggestions"]): AiStructuredItem[] {
+  if (!suggestions) return [];
+
+  if (!Array.isArray(suggestions)) {
+    return Object.entries(suggestions).map(([field, value]) => ({
+      key: field,
+      label: formatFieldName(field),
+      value: displayAiValue(value),
+      sourceLabel: "AI suggested",
+    }));
+  }
+
+  return suggestions.flatMap((item, index) => {
+    if (!item || typeof item !== "object") return [];
+    const field = typeof item.field === "string" ? item.field : `structured-item-${index + 1}`;
+    const label = typeof item.label === "string" ? item.label : formatFieldName(field);
+    const value = item.suggestedValue ?? item.value ?? item.suggestion;
+    const status = typeof item.status === "string" ? item.status.toLowerCase() : "";
+    if (status === "removed") return [];
+    const sourceLabel = status === "confirmed"
+      ? "Observer confirmed"
+      : status === "corrected"
+        ? "Observer corrected"
+        : "AI suggested";
+    return [{ key: `${field}-${index}`, label, value: displayAiValue(value), sourceLabel }];
+  });
 }
 
 function formatEvidenceField(key: string, value: string | number | boolean) {
@@ -453,20 +500,22 @@ function CaseWorkflow({ report, refreshCase, claimConfirmation }: { report: Coor
   const triage = report.triageContext;
   const priorityReasons = triage?.priorityReasons ?? [];
   const informationExchange = report.informationExchange;
+  const structuredAiItems = aiStructuredItems(report.aiAssisted?.suggestions);
 
   if (activeStage === "detail") return <section className={styles.page}>
+    <Link className={styles.backLink} href="/coordinator/my-cases">← Back to My Cases</Link>
     <Heading eyebrow={`My Cases / ${report.reportReference}`} title="Review reef observation" description="Review the submitted evidence, observation details and protected location before making a decision." />
     <span className={styles.ownerChip}>Owned by {report.owner.displayName}</span>
     <HotspotCaseContext reportReference={report.reportReference} />
     {claimConfirmation && <div className={styles.successBox} role="status"><strong>{claimConfirmation.statusLabel}: report assigned successfully</strong><p>Claimed at {displayDateTime(claimConfirmation.claimedAt)}. You can now begin reviewing its evidence.</p></div>}
     {triage && <section className={styles.triageContext} aria-labelledby="triage-context-heading"><div><p className={styles.eyebrow}>Transparent triage cues</p><h2 id="triage-context-heading">Priority: {formatFieldName(triage.priority ?? "not set")}</h2><p>{formatFieldName(triage.evidenceCompleteness ?? "not assessed")} evidence · {triage.evidenceCount ?? report.evidence.length} file{(triage.evidenceCount ?? report.evidence.length) === 1 ? "" : "s"} · {triage.hoursInQueue == null ? "Queue age unavailable" : `${Math.round(triage.hoursInQueue)} hours in queue`}</p></div>{priorityReasons.length > 0 && <div><strong>Rules that contributed</strong><ul>{priorityReasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div>}<p className={styles.triageDisclaimer}>Priority helps order review. It does not verify the report or make a conservation decision.</p></section>}
-    {report.aiAssisted && <section className={styles.aiContext} aria-labelledby="ai-context-heading"><span>AI-assisted information</span><h2 id="ai-context-heading">{report.aiAssisted.summary ?? "AI-assisted report context is available"}</h2><p>This information supports triage only. It is separate from the Observer&apos;s confirmed submission and is not verification.</p>{report.aiAssisted.generatedAt && <small>Generated {displayDateTime(report.aiAssisted.generatedAt)}</small>}</section>}
+    {report.aiAssisted && report.aiAssisted.available !== false && <section className={styles.aiContext} aria-labelledby="ai-context-heading"><span>AI-assisted information</span><h2 id="ai-context-heading">Structured report information</h2>{report.aiAssisted.summary && <div className={styles.aiSummary}><strong>AI-generated summary</strong><p>{report.aiAssisted.summary}</p></div>}{structuredAiItems.length > 0 && <dl className={styles.aiStructuredGrid}>{structuredAiItems.map((item) => <div key={item.key}><dt>{item.label}<small>{item.sourceLabel}</small></dt><dd>{item.value}</dd></div>)}</dl>}<p className={styles.aiDisclaimer}>This information supports triage only. It is separate from the Observer&apos;s original submission and is not verification or a Coordinator finding.</p>{report.aiAssisted.generatedAt && <small>Generated {displayDateTime(report.aiAssisted.generatedAt)}</small>}</section>}
     {informationExchange && (informationExchange.requestReason || informationExchange.responseText) && <section className={styles.informationExchange} aria-labelledby="information-exchange-heading"><h2 id="information-exchange-heading">Information request and response</h2>{informationExchange.requestReason && <div><strong>Coordinator request</strong><p>{informationExchange.requestReason}</p>{informationExchange.requestedAt && <small>{displayDateTime(informationExchange.requestedAt)}</small>}</div>}{informationExchange.responseText && <div><strong>Observer response</strong><p>{informationExchange.responseText}</p>{informationExchange.respondedAt && <small>{displayDateTime(informationExchange.respondedAt)}</small>}</div>}</section>}
     <div className={styles.reviewGrid}><section className={styles.card}>
       <h2>Submitted evidence</h2><p className={styles.muted}>Evidence provided by the observer with this report.</p><EvidenceRecords reportReference={report.reportReference} evidence={report.evidence} />
       <dl className={styles.detailList}><div><dt>Threat type</dt><dd>{report.threat}</dd></div><div><dt>Observed</dt><dd>{observationDateMissing ? "Unavailable" : displayDateTime(report.observedAt)}</dd></div><div><dt>Estimated depth</dt><dd>{report.estimatedDepthMetres == null ? "Not provided" : `${report.estimatedDepthMetres} m`}</dd></div><div><dt>Description</dt><dd>{report.description}</dd></div><div><dt>General area</dt><dd>{report.area ?? "Not provided"}</dd></div><div><dt>Submitted</dt><dd>{displayDateTime(report.submittedAt)}</dd></div></dl>
       {observationDateMissing && <div className={styles.warningBox} role="status"><strong>Observation date could not be loaded</strong><p>The observation date is temporarily unavailable. Refresh the case and try again. If it remains unavailable, report the problem to your system administrator.</p></div>}
-      <div className={styles.protectedBox}><strong>Authorised exact location</strong><p>{exactLocation}</p>{report.preciseLocation?.confidenceLabel && <small>Confidence: {report.preciseLocation.confidenceLabel}</small>}{report.preciseLocation?.sourceLabel && <small>Source: {report.preciseLocation.sourceLabel}</small>}{uncertainty && <small>{uncertainty}</small>}</div>
+      <div className={styles.protectedBox}><strong>Submitted location</strong><p>{exactLocation}</p>{report.preciseLocation?.confidenceLabel && <small>Confidence: {report.preciseLocation.confidenceLabel}</small>}{report.preciseLocation?.sourceLabel && <small>Source: {report.preciseLocation.sourceLabel}</small>}{uncertainty && <small>{uncertainty}</small>}</div>
     </section><aside className={styles.sidePanel}><h2>Case control</h2><dl className={styles.detailList}><div><dt>Active owner</dt><dd>{report.owner.displayName}</dd></div><div><dt>Status</dt><dd>{report.statusLabel}</dd></div></dl><div className={styles.infoBox}><strong>Review type</strong><p>Your assessment is a desk review, not an on-site confirmation.</p></div>{assessmentError && <p className={styles.errorText} role="alert">{assessmentError}</p>}<button className={styles.primaryButton} type="button" onClick={beginAssessment} disabled={pendingAction !== null || !["claimed", "under_review", "evidence_accepted"].includes(currentStatus)}>{pendingAction === "start-review" ? "Starting review…" : currentStatus === "evidence_accepted" ? "Continue to response" : "Start evidence assessment"}</button><button className={styles.secondaryButton} type="button" onClick={beginInfoRequest} disabled={pendingAction !== null || currentStatus !== "under_review"}>Request more information</button>{currentStatus === "claimed" && <p className={styles.muted}>Start the evidence assessment before requesting more information.</p>}</aside></div>
     {interventionDecisionRecorded && <ConservationActionPanel reportReference={report.reportReference} />}
   </section>;

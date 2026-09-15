@@ -57,7 +57,8 @@ describe("Coordinator My Cases workspace", () => {
     expect(screen.getByText("Marine debris")).toBeInTheDocument();
     expect(screen.getByText("High")).toBeInTheDocument();
     expect(screen.getByText("Reviewable evidence is available")).toBeInTheDocument();
-    expect(screen.getByText("Why?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Priority information for RC-3001" })).toBeInTheDocument();
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Why this priority?");
     expect(screen.getByRole("link", { name: "Open case RC-3001" })).toHaveAttribute(
       "href",
       "/coordinator/reports/RC-3001",

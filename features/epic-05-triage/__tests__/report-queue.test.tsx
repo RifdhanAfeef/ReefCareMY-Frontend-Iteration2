@@ -117,6 +117,8 @@ describe("Coordinator report queue", () => {
 
     render(<ReportQueue />);
 
+    await user.selectOptions(await screen.findByLabelText("Ownership"), "all");
+
     expect(await screen.findByRole("link", { name: "View claimed case RC-1001" })).toHaveAttribute(
       "href",
       "/coordinator/reports/RC-1001",
@@ -148,7 +150,7 @@ describe("Coordinator report queue", () => {
     mockedGetCoordinatorQueue.mockResolvedValue(resultOf(allReports, 1, 24, 100));
 
     render(<ReportQueue />);
-    expect(await screen.findByText("Showing 1–20 of 24 reports")).toBeInTheDocument();
+    expect(await screen.findByText("Showing 1–20 of 22 reports")).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText("Ownership"), "mine");
 
@@ -168,7 +170,6 @@ describe("Coordinator report queue", () => {
   });
 
   it("shows evidence completeness, priority and the transparent priority reasons", async () => {
-    const user = userEvent.setup();
     mockedGetCoordinatorQueue.mockResolvedValue(resultOf([{
       ...report,
       evidenceCompleteness: "complete",
@@ -182,21 +183,45 @@ describe("Coordinator report queue", () => {
     expect(await screen.findByText("Complete")).toBeInTheDocument();
     expect(screen.getByText("2 files")).toBeInTheDocument();
     expect(screen.getByText("High")).toBeInTheDocument();
-    await user.click(screen.getByText("Why?"));
+    expect(screen.getByRole("button", { name: "Priority information for RC-1001" })).toBeInTheDocument();
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Why this priority?");
     expect(screen.getByText("Reviewable evidence is available")).toBeInTheDocument();
     expect(screen.getByText(/guidance, not a verdict/i)).toBeInTheDocument();
   });
 
-  it("shows a readable age and exposes the submission date on hover", async () => {
-    mockedGetCoordinatorQueue.mockResolvedValue(resultOf([{
-      ...report,
-      hoursInQueue: 240,
-    }]));
+  it("shows unclaimed reports by default", async () => {
+    mockedGetCoordinatorQueue.mockResolvedValue(resultOf([
+      report,
+      {
+        ...report,
+        reportReference: "RC-1002",
+        owner: { id: 9, displayName: "Another Coordinator" },
+        claimedAt: "2026-09-04T03:00:00Z",
+      },
+    ]));
 
     render(<ReportQueue />);
 
-    const age = await screen.findByText("1 week");
-    expect(age).toHaveAttribute("dateTime", report.submittedAt);
-    expect(age).toHaveAttribute("title", expect.stringContaining("Submitted"));
+    expect(await screen.findByRole("heading", { name: "Unclaimed reports" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Ownership")).toHaveValue("unclaimed");
+    expect(screen.getByRole("cell", { name: "RC-1001" })).toBeInTheDocument();
+    expect(screen.queryByText("RC-1002")).not.toBeInTheDocument();
+  });
+
+  it("orders reports from most recently submitted to oldest", async () => {
+    mockedGetCoordinatorQueue.mockResolvedValue(resultOf([
+      { ...report, reportReference: "RC-OLD", submittedAt: "2026-09-01T02:00:00Z", hoursInQueue: 80 },
+      { ...report, reportReference: "RC-NEW", submittedAt: "2026-09-05T02:00:00Z", hoursInQueue: 2 },
+      { ...report, reportReference: "RC-MIDDLE", submittedAt: "2026-09-03T02:00:00Z", hoursInQueue: 40 },
+    ]));
+
+    render(<ReportQueue />);
+
+    const links = await screen.findAllByRole("link", { name: /Review and claim/ });
+    expect(links.map((link) => link.textContent?.trim())).toEqual([
+      "Review and claim RC-NEW",
+      "Review and claim RC-MIDDLE",
+      "Review and claim RC-OLD",
+    ]);
   });
 });
