@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { reefSites } from "../reef-sites";
 import {
   clearSelectedReefSite,
   readSelectedReefSite,
+  selectedReefSiteClearedEvent,
   selectedReefSiteStorageKey,
   storeSelectedReefSite,
 } from "../selected-site-storage";
@@ -29,9 +30,12 @@ describe("selected reef-site handoff", () => {
   });
 
   it("can remove the handoff after it is no longer needed", () => {
+    const cleared = vi.fn();
+    window.addEventListener(selectedReefSiteClearedEvent, cleared, { once: true });
     storeSelectedReefSite(reefSites[0]);
     clearSelectedReefSite();
     expect(readSelectedReefSite()).toBeNull();
+    expect(cleared).toHaveBeenCalledOnce();
   });
 });
 

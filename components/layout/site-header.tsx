@@ -2,8 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import type { MouseEvent } from "react";
 import type { HeaderAction, NavigationItem } from "@/config/navigation";
 import { useAuth } from "@/features/epic-01-access/auth-context";
+import { clearSelectedReefSite } from "@/features/epic-02-reef-explorer/selected-site-storage";
+import { clearDraftPhotos } from "@/features/epic-02-reporting/draft-storage";
+import { useMockAppState } from "@/features/shared/mock-app-state";
 import type { UserRole } from "@/lib/api/types";
 import { Brand } from "./brand";
 import styles from "./site-header.module.css";
@@ -20,6 +24,31 @@ type SiteHeaderProps = {
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function FreshReportLink({ item, active }: { item: NavigationItem; active: boolean }) {
+  const router = useRouter();
+  const { resetReportDraft } = useMockAppState();
+
+  async function startNewReport(event: MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault();
+    resetReportDraft();
+    clearSelectedReefSite();
+    await clearDraftPhotos().catch(() => undefined);
+    router.push("/report-a-reef");
+    router.refresh();
+  }
+
+  return (
+    <Link
+      className={`${styles.navLink} ${active ? styles.active : ""}`}
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      onClick={startNewReport}
+    >
+      {item.label}
+    </Link>
+  );
 }
 
 export function SiteHeader({
@@ -53,6 +82,9 @@ export function SiteHeader({
         <nav className={styles.navigation} aria-label="Primary navigation">
           {navigation.map((item) => {
             const active = isActive(pathname, item.href);
+            if (item.href === "/report-a-reef") {
+              return <FreshReportLink key={item.href} item={item} active={active} />;
+            }
             return (
               <Link
                 key={item.href}

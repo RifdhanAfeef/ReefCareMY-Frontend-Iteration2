@@ -1,6 +1,7 @@
 import type { ReefSiteReference } from "./types";
 
 export const selectedReefSiteStorageKey = "reefcare-my-i2-selected-reef-site";
+export const selectedReefSiteClearedEvent = "reefcare:selected-reef-site-cleared";
 
 export type StoredReefSite = Pick<ReefSiteReference, "id" | "backendDiveSiteId" | "name" | "publicAreaLabel">;
 
@@ -40,5 +41,6 @@ export function readSelectedReefSite(): StoredReefSite | null {
 export function clearSelectedReefSite() {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(selectedReefSiteStorageKey);
+  window.dispatchEvent(new Event(selectedReefSiteClearedEvent));
 }
 

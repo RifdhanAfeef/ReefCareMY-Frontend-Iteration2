@@ -18,7 +18,11 @@ import { userFacingError } from "@/lib/api/user-facing-error";
 import { buildReportCompletenessPayload } from "./report-payload";
 import { observationCompletenessDisplay } from "./completeness-display";
 import { createPhotoId, loadDraftPhotos, saveDraftPhotos, type StoredDraftPhoto } from "./draft-storage";
-import { readSelectedReefSite, type StoredReefSite } from "@/features/epic-02-reef-explorer/selected-site-storage";
+import {
+  readSelectedReefSite,
+  selectedReefSiteClearedEvent,
+  type StoredReefSite,
+} from "@/features/epic-02-reef-explorer/selected-site-storage";
 import type { ReportDraft } from "./types";
 import styles from "./reporting.module.css";
 
@@ -69,7 +73,23 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
       setSelectedReefSite(readSelectedReefSite());
     }, 0);
 
-    return () => window.clearTimeout(timeoutId);
+    const clearFreshReportState = () => {
+      previewUrls.current.forEach((url) => URL.revokeObjectURL(url));
+      previewUrls.current = [];
+      setPhotos([]);
+      setSelectedReefSite(null);
+      setErrors({});
+      setUploadMessage("");
+      setAssistantMessage("");
+      setCompleteness(null);
+      setCompletenessError("");
+    };
+    window.addEventListener(selectedReefSiteClearedEvent, clearFreshReportState);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.removeEventListener(selectedReefSiteClearedEvent, clearFreshReportState);
+    };
   }, []);
 
   useEffect(() => {
