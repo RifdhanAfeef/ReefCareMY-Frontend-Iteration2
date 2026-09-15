@@ -76,7 +76,7 @@ export function ReefExplorerMap({
           );
         })}
       </MapContainer>
-      <p className={styles.mapPrivacy}>Dive sites only. Exact report coordinates are never shown.</p>
+      <p className={styles.mapPrivacy}>Markers show general named-site areas. Exact report coordinates are never shown.</p>
       {tilesUnavailable && (
         <p className={styles.mapFallback} role="status">
           The map background is temporarily unavailable. The dive-site list is still available.

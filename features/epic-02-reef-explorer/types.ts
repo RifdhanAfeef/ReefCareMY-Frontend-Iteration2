@@ -7,6 +7,10 @@ export type ReefActivity = {
 export type ReefImage = {
   src: string;
   alt: string;
+  caption: string;
+  credit: string;
+  license: string;
+  sourceUrl: string;
 };
 
 export type ReefFeature = {

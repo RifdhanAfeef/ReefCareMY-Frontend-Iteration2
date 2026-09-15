@@ -1,3 +1,4 @@
+import { imagesFor } from "./reef-images";
 import type { ReefSite } from "./types";
 
 const commonPreparation = [
@@ -11,103 +12,60 @@ const sources = {
   Tioman: { label: "Tourism Malaysia — Pulau Tioman", url: "https://ebrochures.malaysia.travel/en/dive-in-paradise/pulau-tioman/" },
 } as const;
 
-export const reefSites: ReefSite[] = [
-  {
-    id: "perhentian-d-lagoon", backendDiveSiteId: 19, name: "D'Lagoon", island: "Perhentian", publicAreaLabel: "Perhentian Islands", position: [5.905, 102.735],
-    introduction: "A Perhentian dive site known for a mix of soft and hard coral habitat and colourful reef fish.",
-    images: [
-      { src: "/images/reef-sites/perhentian-reef-1.webp", alt: "Clownfish among anemones in the Perhentian Islands" },
-      { src: "/images/reef-sites/perhentian-reef-2.webp", alt: "A diver and reef life in the Perhentian Islands" },
-    ],
-    reefFeatures: [
-      { title: "Mixed coral habitat", description: "Tourism Malaysia describes both soft and hard corals at this site." },
-      { title: "Reef-fish viewing", description: "Angelfish, parrotfish and black-spotted snappers are representative sightings." },
-    ],
-    marineLife: ["Reef fish may include angelfish, parrotfish and snappers.", "Turtles or manta rays may occasionally be seen, but sightings are never guaranteed."],
-    popularReasons: ["Colourful coral and reef-fish scenery", "Relaxed island diving and underwater photography"],
-    experience: { level: "Beginner", explanation: "Often presented as an approachable reef dive, but suitability depends on conditions and operator assessment." },
-    preparation: commonPreparation, source: sources.Perhentian, publicActivity: [],
-  },
-  {
-    id: "perhentian-sail-rock", backendDiveSiteId: 0, name: "Sail Rock", island: "Perhentian", publicAreaLabel: "Perhentian Islands", position: [5.915, 102.755],
-    introduction: "A named Perhentian reef site with varied coral forms and opportunities to observe reef fish.",
-    images: [
-      { src: "/images/reef-sites/perhentian-reef-2.webp", alt: "A diver exploring reef habitat in the Perhentian Islands" },
-      { src: "/images/reef-sites/perhentian-reef-1.webp", alt: "Clownfish and anemones in the Perhentian Islands" },
-    ],
-    reefFeatures: [
-      { title: "Varied coral forms", description: "Staghorn, lettuce and table corals are described for this area." },
-      { title: "Small reef life", description: "The site may support stingrays, boxfish, angelfish and parrotfish." },
-    ],
-    marineLife: ["Representative sightings include boxfish, angelfish and parrotfish.", "Wildlife presence changes with season and conditions."],
-    popularReasons: ["Varied coral structure", "Underwater scenery and reef photography"],
-    experience: { level: "Intermediate", explanation: "Divers should confirm current depth, current and entry conditions with their operator." },
-    preparation: commonPreparation, source: sources.Perhentian, publicActivity: [],
-  },
-  {
-    id: "redang-tanjung-tokong", backendDiveSiteId: 0, name: "Tanjung Tokong", island: "Redang", publicAreaLabel: "Redang Island", position: [5.785, 103.015],
-    introduction: "A Redang dive site shaped by submerged boulders, swim-throughs and coral-covered overhangs.",
-    images: [
-      { src: "/images/reef-sites/redang-reef-1.webp", alt: "Table coral in the waters around Redang Island" },
-      { src: "/images/reef-sites/redang-reef-2.webp", alt: "A hawksbill turtle near Redang Island reef habitat" },
-    ],
-    reefFeatures: [
-      { title: "Boulders and swim-throughs", description: "The underwater landscape includes submerged boulders and coral overhangs." },
-      { title: "Staghorn coral", description: "Staghorn coral can be seen in the shallower part of the dive." },
-    ],
-    marineLife: ["Nudibranchs and groupers are representative sightings.", "Larger fish may pass through, but sightings cannot be guaranteed."],
-    popularReasons: ["Distinct underwater structure", "Macro life and reef photography"],
-    experience: { level: "Intermediate", explanation: "Mild current is common according to the source; an operator must confirm suitability on the day." },
-    preparation: commonPreparation, source: sources.Redang, publicActivity: [],
-  },
-  {
-    id: "redang-big-mount", backendDiveSiteId: 0, name: "Big Mount", island: "Redang", publicAreaLabel: "Redang Island", position: [5.77, 103.005],
-    introduction: "A Redang site featuring underwater boulders, coral habitat, sponges and anemones.",
-    images: [
-      { src: "/images/reef-sites/redang-reef-2.webp", alt: "A hawksbill turtle near a Redang Island reef" },
-      { src: "/images/reef-sites/redang-reef-1.webp", alt: "Table coral representing Redang Island reef habitat" },
-    ],
-    reefFeatures: [
-      { title: "Boulder reef", description: "Large boulders support hard and soft corals, sponges and anemones." },
-      { title: "Open-water activity", description: "Schooling fish may be seen around the reef structure." },
-    ],
-    marineLife: ["Groupers, pufferfish and schooling fish are representative possibilities.", "Marine-life sightings vary and are not promised."],
-    popularReasons: ["Boulder and coral scenery", "Varied fish life"],
-    experience: { level: "Experienced", explanation: "Depth and water movement can make this site more demanding; confirm requirements with the operator." },
-    preparation: commonPreparation, source: sources.Redang, publicActivity: [],
-  },
-  {
-    id: "tioman-renggis", backendDiveSiteId: 3, name: "Renggis Island", island: "Tioman", publicAreaLabel: "Tioman Island", position: [2.805, 104.12],
-    introduction: "A well-known site off Tekek Beach with hard-coral gardens and varied reef life.",
-    images: [
-      { src: "/images/reef-sites/tioman-reef-1.webp", alt: "Coral and reef fish around Tioman Island" },
-      { src: "/images/reef-sites/tioman-reef-2.webp", alt: "A diver exploring the waters around Tioman Island" },
-    ],
-    reefFeatures: [
-      { title: "Hard-coral gardens", description: "The site is described for broad hard-coral habitat close to Tioman." },
-      { title: "Reef and pelagic life", description: "Cuttlefish, angelfish, barracuda and turtles are representative possibilities." },
-    ],
-    marineLife: ["Cuttlefish, angelfish and barracuda may be present.", "Turtle sightings are possible but never guaranteed."],
-    popularReasons: ["Accessible reef scenery near Tekek", "Marine-life viewing and photography"],
-    experience: { level: "Beginner", explanation: "It is commonly used for recreational diving, but the operator must assess conditions and each diver." },
-    preparation: commonPreparation, source: sources.Tioman, publicActivity: [],
-  },
-  {
-    id: "tioman-chebeh-island", backendDiveSiteId: 2, name: "Chebeh Island", island: "Tioman", publicAreaLabel: "Tioman Island", position: [2.835, 104.17],
-    introduction: "A deeper Tioman dive area known for dramatic underwater scenery and gorgonian fans.",
-    images: [
-      { src: "/images/reef-sites/tioman-reef-2.webp", alt: "A diver in blue water around Tioman Island" },
-      { src: "/images/reef-sites/tioman-reef-1.webp", alt: "Coral and fish representing Tioman Island reef habitat" },
-    ],
-    reefFeatures: [
-      { title: "Deep-water scenery", description: "The site is associated with deeper diving and large gorgonian fans." },
-      { title: "Large-animal possibility", description: "Manta rays may be encountered, but a sighting is never guaranteed." },
-    ],
-    marineLife: ["Gorgonian fans are a notable feature.", "Giant manta rays may appear under suitable conditions, without any guarantee."],
-    popularReasons: ["Deeper, more dramatic diving", "Large coral fans and possible pelagic encounters"],
-    experience: { level: "Experienced", explanation: "Deeper conditions require suitable training, experience and operator approval." },
-    preparation: commonPreparation, source: sources.Tioman, publicActivity: [],
-  },
+type ProfileSpec = {
+  id: string;
+  backendDiveSiteId: number;
+  name: string;
+  island: "Perhentian" | "Redang" | "Tioman";
+  publicAreaLabel: string;
+  position: [number, number];
+  introduction: string;
+  habitat: string;
+  marineLife: string;
+  reason: string;
+  level: "Beginner" | "Intermediate" | "Experienced";
+};
+
+const profileSpecs: ProfileSpec[] = [
+  { id: "perhentian-batu-nisan", backendDiveSiteId: 17, name: "Batu Nisan", island: "Perhentian", publicAreaLabel: "Perhentian Islands", position: [5.903, 102.721], introduction: "A named Perhentian reef area presented for coral observation and responsible recreational diving.", habitat: "Branching hard corals and compact coral heads are useful representative features to recognise.", marineLife: "Small reef fish may shelter and feed around the coral structure.", reason: "Coral-form viewing and close reef observation", level: "Intermediate" },
+  { id: "perhentian-d-lagoon", backendDiveSiteId: 19, name: "D'Lagoon", island: "Perhentian", publicAreaLabel: "Perhentian Islands", position: [5.905, 102.735], introduction: "A Perhentian dive site associated with mixed coral habitat and colourful reef fish.", habitat: "Mixed coral garden with anemones and reef-fish shelter.", marineLife: "Anemonefish and other small reef fish are representative possibilities; sightings vary.", reason: "Colourful reef scenery and underwater photography", level: "Beginner" },
+  { id: "perhentian-shark-point", backendDiveSiteId: 18, name: "Shark Point", island: "Perhentian", publicAreaLabel: "Perhentian Islands", position: [5.91, 102.739], introduction: "A named Perhentian reef site where visitors can look for varied reef structure and marine life.", habitat: "Sponges and coral surfaces add shelter and texture to the reef.", marineLife: "Reef fish are commonly associated with this habitat; the site name does not guarantee shark sightings.", reason: "Varied habitat and the possibility of wider marine-life encounters", level: "Intermediate" },
+  { id: "perhentian-sugar-wreck", backendDiveSiteId: 14, name: "Sugar Wreck", island: "Perhentian", publicAreaLabel: "Perhentian Islands", position: [5.892, 102.703], introduction: "A wreck dive in the Perhentian area, where artificial structure can support reef organisms.", habitat: "Wreck structure and nearby reef habitat can create shelter for fish and invertebrates.", marineLife: "Anemonefish, surgeonfish and other reef fish are representative possibilities around suitable habitat.", reason: "Wreck scenery and marine life using artificial structure", level: "Experienced" },
+  { id: "perhentian-tanjung-basi", backendDiveSiteId: 20, name: "Tanjung Basi", island: "Perhentian", publicAreaLabel: "Perhentian Islands", position: [5.897, 102.73], introduction: "A named Perhentian site presented as a place to observe the condition and variety of coral habitat.", habitat: "Hard-coral surfaces and reef slopes are the representative focus of this profile.", marineLife: "Small grazing and sheltering reef fish may be present when conditions are suitable.", reason: "Reef scenery and coral-condition observation", level: "Intermediate" },
+  { id: "perhentian-temple-of-the-sea", backendDiveSiteId: 13, name: "Temple of the Sea (Tokong Laut)", island: "Perhentian", publicAreaLabel: "Perhentian Islands", position: [5.93, 102.75], introduction: "An offshore named dive site in the Perhentian area with reef structure exposed to changing sea conditions.", habitat: "Dense coral cover and complex reef formations provide the profile's representative features.", marineLife: "Reef fish may gather around coral relief, but abundance and visibility change day to day.", reason: "Offshore reef structure and broad underwater views", level: "Experienced" },
+  { id: "perhentian-terumbu-tiga", backendDiveSiteId: 16, name: "Terumbu Tiga", island: "Perhentian", publicAreaLabel: "Perhentian Islands", position: [5.888, 102.727], introduction: "A named reef area in the Perhentian group with rocky relief and coral growth.", habitat: "Coral-covered rock and mixed reef surfaces create varied observation points.", marineLife: "Angelfish and other reef fish are representative possibilities rather than guaranteed sightings.", reason: "Rock-and-coral scenery and reef-fish photography", level: "Intermediate" },
+  { id: "perhentian-vietnamese-wreck", backendDiveSiteId: 15, name: "Vietnamese Wreck", island: "Perhentian", publicAreaLabel: "Perhentian Islands", position: [5.884, 102.71], introduction: "A wreck site in the Perhentian area where divers may observe marine growth around submerged structure.", habitat: "The profile pairs wreck context with representative nearby coral habitat.", marineLife: "Small schooling and grazing fish may use reef or wreck surfaces for shelter.", reason: "Submerged structure and marine colonisation", level: "Experienced" },
+  { id: "redang-mini-mount", backendDiveSiteId: 23, name: "Mini Mount", island: "Redang", publicAreaLabel: "Redang Island", position: [5.76, 103.017], introduction: "A named Redang reef site organised around a compact underwater rise.", habitat: "Shallow reef surfaces and a small mount-like profile are the representative focus.", marineLife: "Grazing fish and small schools may move across coral and rubble habitat.", reason: "Compact reef topography and fish observation", level: "Intermediate" },
+  { id: "redang-pulau-paku-besar", backendDiveSiteId: 21, name: "Pulau Paku Besar", island: "Redang", publicAreaLabel: "Redang Island", position: [5.7781, 103.0419], introduction: "A named Redang island site with reef slopes and open coral-garden views.", habitat: "Coral slopes and open reef patches provide varied depth and structure.", marineLife: "Schooling reef fish are representative, while species and numbers vary with conditions.", reason: "Open reef scenery around a small island", level: "Intermediate" },
+  { id: "redang-tanjung-tengah", backendDiveSiteId: 22, name: "Tanjung Tengah", island: "Redang", publicAreaLabel: "Redang Island", position: [5.79, 103.025], introduction: "A named Redang headland site presented for coral and reef-fish observation.", habitat: "Corals, hydroids and fan-like growth illustrate the range of attached reef life.", marineLife: "Trevally and other mobile reef fish may pass over the reef without being guaranteed.", reason: "Attached reef life and passing fish", level: "Intermediate" },
+  { id: "redang-terumbu-kili", backendDiveSiteId: 24, name: "Terumbu Kili", island: "Redang", publicAreaLabel: "Redang Island", position: [5.774, 103.052], introduction: "A named Redang reef site with mixed coral habitat and opportunities to observe reef fish.", habitat: "Mixed hard-coral forms create shelter and feeding areas.", marineLife: "Small and medium reef fish are representative possibilities around healthy coral cover.", reason: "Mixed coral habitat and fish photography", level: "Intermediate" },
+  { id: "tioman-batu-malang", backendDiveSiteId: 8, name: "Batu Malang", island: "Tioman", publicAreaLabel: "Tioman Island", position: [2.91, 104.153], introduction: "A named Tioman rock-and-reef site where divers can observe coral growing across hard structure.", habitat: "Rocky relief, coral cover and sea fans form the representative scene.", marineLife: "Small reef fish and invertebrates may use cracks and coral cover for shelter.", reason: "Rock formations and close reef observation", level: "Intermediate" },
+  { id: "tioman-chebeh-island", backendDiveSiteId: 2, name: "Chebeh Island", island: "Tioman", publicAreaLabel: "Tioman Island", position: [2.933, 104.098], introduction: "A Tioman island site associated with deeper, more dramatic underwater scenery.", habitat: "Reef ledges, coral cover and exposed rock create varied structure.", marineLife: "Small reef fish can be found close to coral; larger-animal sightings are never guaranteed.", reason: "Dramatic structure and deeper-water scenery", level: "Experienced" },
+  { id: "tioman-coral-island", backendDiveSiteId: 11, name: "Coral Island (Pulau Tulai)", island: "Tioman", publicAreaLabel: "Tioman Island", position: [2.9129, 104.1094], introduction: "A named Tioman island site presented for broad coral scenery and reef observation.", habitat: "Large coral formations and colourful tropical corals are representative features.", marineLife: "Reef fish may shelter between coral heads, with sightings dependent on conditions.", reason: "Coral-garden scenery and relaxed observation", level: "Beginner" },
+  { id: "tioman-fan-canyon", backendDiveSiteId: 9, name: "Fan Canyon", island: "Tioman", publicAreaLabel: "Tioman Island", position: [2.925, 104.116], introduction: "A named Tioman site whose profile highlights textured coral growth and canyon-like reef relief.", habitat: "Close coral texture and branching colonies show the fine detail worth observing without contact.", marineLife: "Small fish and invertebrates may shelter within branching coral habitat.", reason: "Textured reef structure and detailed photography", level: "Experienced" },
+  { id: "tioman-labas-island", backendDiveSiteId: 5, name: "Labas Island", island: "Tioman", publicAreaLabel: "Tioman Island", position: [2.886, 104.12], introduction: "A named Tioman island site used here to help visitors recognise both healthy and stressed coral appearance.", habitat: "Branching coral can appear living and coloured or unusually pale; visitors should document rather than diagnose.", marineLife: "Fish presence varies, while coral condition itself can be an important observation.", reason: "Rock-and-reef scenery and responsible coral-condition observation", level: "Intermediate" },
+  { id: "tioman-malang-rock", backendDiveSiteId: 6, name: "Malang Rock", island: "Tioman", publicAreaLabel: "Tioman Island", position: [2.904, 104.146], introduction: "A named Tioman rock site with plate, branching and mound-like coral forms.", habitat: "Plate and branching colonies create layered reef structure.", marineLife: "Small fish may use the spaces above and beneath plate corals.", reason: "Layered coral shapes around rocky relief", level: "Intermediate" },
+  { id: "tioman-marine-park", backendDiveSiteId: 12, name: "Marine Park (Tekek)", island: "Tioman", publicAreaLabel: "Tioman Island", position: [2.8341, 104.1626], introduction: "A named site near Tekek presented for accessible reef education and responsible observation.", habitat: "Corals and smaller attached organisms demonstrate that reef life includes more than fish.", marineLife: "Marine worms, small fish and other invertebrates may be visible with careful observation.", reason: "Accessible reef learning and observation practice", level: "Beginner" },
+  { id: "tioman-pirate-reef", backendDiveSiteId: 10, name: "Pirate Reef", island: "Tioman", publicAreaLabel: "Tioman Island", position: [2.86, 104.155], introduction: "A named Tioman reef site with colourful coral habitat and small benthic animals.", habitat: "Mixed coral landscapes and open reef surfaces provide varied viewing.", marineLife: "Sea stars and reef fish are representative possibilities; avoid touching or moving them.", reason: "Colourful reef scenery and small-animal observation", level: "Intermediate" },
+  { id: "tioman-renggis", backendDiveSiteId: 3, name: "Renggis Island", island: "Tioman", publicAreaLabel: "Tioman Island", position: [2.8099, 104.1356], introduction: "A well-known site off Tekek with hard-coral gardens and varied reef life.", habitat: "Open reef and mixed hard-coral gardens form the representative landscape.", marineLife: "Schooling fish and other reef species may be present; sightings vary.", reason: "Accessible coral scenery near Tekek", level: "Beginner" },
+  { id: "tioman-sepoi-island", backendDiveSiteId: 7, name: "Sepoi Island", island: "Tioman", publicAreaLabel: "Tioman Island", position: [2.948, 104.105], introduction: "A named Tioman island site presented for coral, reef-fish and sea-fan observation.", habitat: "Coral cover and gorgonian sea fans create vertical and branching forms.", marineLife: "Small reef fish may gather around coral and fan structures.", reason: "Coral-and-fan scenery and reef photography", level: "Intermediate" },
+  { id: "tioman-soyak-island", backendDiveSiteId: 4, name: "Soyak Island", island: "Tioman", publicAreaLabel: "Tioman Island", position: [2.827, 104.158], introduction: "A named Tioman island site with dense coral communities and reef-fish habitat.", habitat: "Closely spaced coral heads create a varied, shelter-rich reef surface.", marineLife: "Small reef fish are representative around healthy coral cover.", reason: "Dense coral scenery close to the main island", level: "Beginner" },
+  { id: "tioman-tiger-reef", backendDiveSiteId: 1, name: "Tiger Reef", island: "Tioman", publicAreaLabel: "Tioman Island", position: [2.965, 104.12], introduction: "A named Tioman reef site presented for layered coral structure and open-water fish activity.", habitat: "Layered hard corals and reef slopes provide varied relief.", marineLife: "Schooling fish may move above the coral slope, depending on current and visibility.", reason: "Broad coral structure and schooling-fish views", level: "Experienced" },
 ];
+
+export const reefSites: ReefSite[] = profileSpecs.map((site) => ({
+  ...site,
+  images: imagesFor(site.id),
+  reefFeatures: [
+    { title: "Representative habitat", description: site.habitat },
+    { title: "Conditions vary", description: "This visitor profile is not a live site-condition report. Check current conditions with a licensed operator." },
+  ],
+  marineLife: [site.marineLife, "Wildlife and coral condition vary by season and dive; no sighting is guaranteed."],
+  popularReasons: [site.reason, "Responsible observation without touching or removing marine life"],
+  experience: { level: site.level, explanation: `${site.level} is a general planning indicator only. A licensed operator must assess current conditions and individual suitability.` },
+  preparation: commonPreparation,
+  source: sources[site.island],
+  publicActivity: [],
+}));
 
 export const reefIslands = ["Perhentian", "Redang", "Tioman"] as const;

@@ -1,8 +1,7 @@
 import type { ReefSiteReference } from "./types";
 
 // Synced with GET /api/v1/reference/dive-sites on 15 September 2026.
-// Rich public profiles remain separate so missing photographs or visitor
-// information are not invented merely to complete this canonical list.
+// Every backend site has a matching, public-safe visitor profile in reef-sites.ts.
 export const diveSiteCatalog: ReefSiteReference[] = [
   { id: "perhentian-batu-nisan", backendDiveSiteId: 17, name: "Batu Nisan", island: "Perhentian", publicAreaLabel: "Perhentian Islands" },
   { id: "perhentian-d-lagoon", backendDiveSiteId: 19, name: "D'Lagoon", island: "Perhentian", publicAreaLabel: "Perhentian Islands" },

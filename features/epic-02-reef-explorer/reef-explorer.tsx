@@ -152,6 +152,9 @@ function SiteGallery({
           <span>View larger</span>
         </button>
       </figure>
+      <p className={styles.imageCredit}>
+        {image.caption} · Photo: <a href={image.sourceUrl} target="_blank" rel="noreferrer">{image.credit}</a> · {image.license}
+      </p>
       {site.images.length > 1 && (
         <div className={styles.galleryControls}>
           <button
@@ -264,6 +267,9 @@ function ImageDialog({ site, imageIndex, onClose }: { site: ReefSite; imageIndex
           <Image src={image.src} alt={image.alt} fill sizes="90vw" priority />
         </div>
         <p>{image.alt}</p>
+        <p className={styles.dialogImageCredit}>
+          {image.caption} · Photo: <a href={image.sourceUrl} target="_blank" rel="noreferrer">{image.credit}</a> · {image.license}
+        </p>
       </section>
     </div>
   );
@@ -307,6 +313,15 @@ export function ReefExplorer() {
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   const [showAuthentication, setShowAuthentication] = useState(false);
   const [enlargedImageIndex, setEnlargedImageIndex] = useState<number | null>(null);
+  const guidanceCategories = useMemo(
+    () => threatCategories.filter((category) => category.guidanceAvailable),
+    [],
+  );
+  const [selectedGuidanceCode, setSelectedGuidanceCode] = useState(
+    () => guidanceCategories[0]?.code ?? "coral_bleaching",
+  );
+  const selectedGuidance = guidanceCategories.find((category) => category.code === selectedGuidanceCode)
+    ?? guidanceCategories[0];
 
   const mappedProfiles = useMemo(() => reefSites.filter((site) => site.backendDiveSiteId > 0), []);
   const selectedSite = diveSiteCatalog.find((site) => site.id === selectedSiteId) ?? null;
@@ -390,21 +405,42 @@ export function ReefExplorer() {
           <p>You do not need to diagnose a reef threat scientifically.</p>
         </div>
         <div className={styles.threatGrid}>
-          {threatCategories.filter((category) => category.guidanceAvailable).map((category) => (
-            <details className={styles.threatCard} key={category.code}>
-              <summary>
+          {guidanceCategories.map((category) => (
+            <button
+              className={styles.threatCard}
+              data-selected={category.code === selectedGuidance?.code}
+              key={category.code}
+              type="button"
+              aria-pressed={category.code === selectedGuidance?.code}
+              aria-controls="selected-threat-guidance"
+              onClick={() => setSelectedGuidanceCode(category.code)}
+            >
                 <Image src={threatImages[category.code]} alt="" width={72} height={54} />
                 <span><strong>{category.label}</strong><small>{category.shortExplanation}</small></span>
-              </summary>
-              <div className={styles.threatDetail}>
-                <h3>Useful evidence</h3>
-                <ul>{category.usefulEvidence.map((item) => <li key={item}>{item}</li>)}</ul>
-                <p><strong>Safety reminder:</strong> {category.safetyReminder}</p>
-                <Link href={`/reef-threats?threat=${category.code}`}>Open Reef Threat Explorer</Link>
-              </div>
-            </details>
+                <span className={styles.cardAction}>{category.code === selectedGuidance?.code ? "Showing guidance" : "View guidance"}</span>
+            </button>
           ))}
         </div>
+        {selectedGuidance && (
+          <article className={styles.threatDetail} id="selected-threat-guidance" aria-live="polite">
+            <div className={styles.threatDetailHeading}>
+              <Image src={threatImages[selectedGuidance.code]} alt="" width={96} height={72} />
+              <div>
+                <p className={styles.eyebrow}>Selected observation guide</p>
+                <h3>{selectedGuidance.label}</h3>
+                <p>{selectedGuidance.shortExplanation}</p>
+              </div>
+            </div>
+            <div className={styles.threatDetailBody}>
+              <div>
+                <h4>Useful evidence</h4>
+                <ul>{selectedGuidance.usefulEvidence.map((item) => <li key={item}>{item}</li>)}</ul>
+              </div>
+              <p><strong>Safety reminder:</strong> {selectedGuidance.safetyReminder}</p>
+            </div>
+            <Link href={`/reef-threats?threat=${selectedGuidance.code}`}>Open Reef Threat Explorer</Link>
+          </article>
+        )}
         <aside className={styles.safetyReminder}>
           <strong>Observe safely</strong>
           <p>Do not touch, move or attempt to remove anything unless you are trained and authorised.</p>

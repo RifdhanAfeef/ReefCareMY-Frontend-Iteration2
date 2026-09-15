@@ -2,6 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ReefExplorer } from "../reef-explorer";
+import { diveSiteCatalog } from "../dive-site-catalog";
+import { reefSites } from "../reef-sites";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -18,6 +20,23 @@ vi.mock("@/features/epic-01-access/auth-context", () => ({
 }));
 
 describe("Epic 2 Reef Explorer", () => {
+  it("provides a sourced two-image profile for every backend dive site", () => {
+    expect(reefSites).toHaveLength(24);
+    expect(reefSites.map((site) => site.backendDiveSiteId).sort((a, b) => a - b)).toEqual(
+      diveSiteCatalog.map((site) => site.backendDiveSiteId).sort((a, b) => a - b),
+    );
+
+    const images = reefSites.flatMap((site) => site.images);
+    expect(images).toHaveLength(48);
+    expect(new Set(images.map((image) => image.src)).size).toBe(48);
+    images.forEach((image) => {
+      expect(image.caption).toMatch(/^Representative feature:/);
+      expect(image.credit).toBeTruthy();
+      expect(image.license).toBeTruthy();
+      expect(image.sourceUrl).toMatch(/^https:\/\/commons\.wikimedia\.org\/wiki\//);
+    });
+  });
+
   it("is publicly readable and keeps the detail panel in the same side-panel region", async () => {
     const user = userEvent.setup();
     render(<ReefExplorer />);
@@ -72,5 +91,21 @@ describe("Epic 2 Reef Explorer", () => {
 
     expect(screen.getByText("No public ReefCare activity is currently available")).toBeInTheDocument();
     expect(screen.getByText(/Only approved, privacy-safe updates appear here/i)).toBeInTheDocument();
+  });
+
+  it("uses one stable guidance panel instead of expanding cards in the grid", async () => {
+    const user = userEvent.setup();
+    render(<ReefExplorer />);
+
+    const marineDebris = screen.getByRole("button", { name: /Marine debris/i });
+    expect(marineDebris).toHaveAttribute("aria-pressed", "false");
+    await user.click(marineDebris);
+
+    expect(marineDebris).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("Selected observation guide")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open Reef Threat Explorer" })).toHaveAttribute(
+      "href",
+      "/reef-threats?threat=marine_debris",
+    );
   });
 });

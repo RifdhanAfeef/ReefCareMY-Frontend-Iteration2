@@ -39,6 +39,8 @@
 @media (prefers-reduced-motion: reduce) { .siteImage img { transition: none; } .siteImage button:hover img { transform: none; } }
 .siteImage span { position: absolute; right: 8px; bottom: 8px; padding: 5px 8px; background: rgba(11,52,64,.78); border-radius: 999px; font-size: 10px; font-weight: 800; opacity: 0; transition: opacity 160ms ease; }
 .siteImage button:hover span, .siteImage button:focus-visible span { opacity: 1; }
+.imageCredit { margin: 9px 2px 0; color: var(--color-muted); font-size: 11px; line-height: 1.5; }
+.imageCredit a, .dialogImageCredit a { color: var(--color-primary-hover); font-weight: 750; text-decoration: underline; text-underline-offset: 2px; }
 .galleryControls { display: flex; justify-content: center; align-items: center; gap: 14px; margin-top: 10px; color: var(--color-muted); font-size: 12px; font-weight: 750; }
 .galleryControls button { width: 34px; height: 34px; display: inline-grid; place-items: center; padding: 0; color: var(--color-primary-hover); background: #fff; border: 1px solid var(--color-border); border-radius: 50%; cursor: pointer; }
 .galleryControls button:hover:not(:disabled) { background: var(--color-info); border-color: var(--color-primary); }
@@ -63,6 +65,7 @@
 .enlargedImage { position: relative; width: 100%; height: min(72vh, 700px); overflow: hidden; background: #102f36; border-radius: 12px; }
 .enlargedImage img { object-fit: contain; }
 .imageDialog p { margin: 12px 4px 0; color: var(--color-muted); font-size: 13px; }
+.imageDialog .dialogImageCredit { margin-top: 5px; font-size: 12px; }
 .activity { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--color-border); }
 .sectionTitleRow { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
 .sectionTitleRow h3 { margin: 0; font-size: 18px; }
@@ -87,19 +90,24 @@
 .guidanceHeading h2 { margin: 0; font-size: clamp(30px, 3vw, 44px); line-height: 1.14; }
 .guidanceHeading > p { max-width: 400px; margin: 0; color: var(--color-muted); }
 .threatGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 28px; }
-.threatCard { overflow: hidden; background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-card); }
-.threatCard[open] { border-color: var(--color-primary); }
-.threatCard summary { min-height: 112px; display: grid; grid-template-columns: 88px 1fr; gap: 16px; align-items: center; padding: 20px; cursor: pointer; list-style: none; }
-.threatCard summary::-webkit-details-marker { display: none; }
-.threatCard summary img { width: 88px; height: 68px; object-fit: cover; border-radius: 11px; }
-.threatCard summary span { display: grid; gap: 4px; }
-.threatCard summary strong { font-size: 18px; }
-.threatCard summary small { color: var(--color-muted); font-size: 13px; }
-.threatDetail { padding: 0 22px 22px; }
-.threatDetail h3 { margin: 0; font-size: 15px; }
-.threatDetail ul { padding-left: 20px; }
-.threatDetail p { padding: 14px; background: var(--color-info); border-radius: 11px; }
-.threatDetail a { color: var(--color-primary-hover); font-weight: 800; text-decoration: underline; text-underline-offset: 4px; }
+.threatCard { min-height: 130px; display: grid; grid-template-columns: 88px 1fr; gap: 16px; align-items: center; padding: 20px; color: var(--color-ink); background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-card); cursor: pointer; text-align: left; }
+.threatCard:hover { background: #f8fbfa; border-color: var(--color-primary); }
+.threatCard[data-selected="true"] { background: var(--color-info); border-color: var(--color-primary); box-shadow: 0 0 0 2px rgba(15,139,141,.12); }
+.threatCard > img { width: 88px; height: 68px; object-fit: cover; border-radius: 11px; }
+.threatCard > span:not(.cardAction) { display: grid; gap: 4px; }
+.threatCard strong { font-size: 18px; }
+.threatCard small { color: var(--color-muted); font-size: 13px; }
+.cardAction { grid-column: 2; color: var(--color-primary-hover); font-size: 12px; font-weight: 800; }
+.threatDetail { margin-top: 18px; padding: 26px; background: #fff; border: 1px solid var(--color-primary); border-radius: var(--radius-card); }
+.threatDetailHeading { display: grid; grid-template-columns: 96px 1fr; gap: 18px; align-items: center; }
+.threatDetailHeading img { width: 96px; height: 72px; object-fit: cover; border-radius: 12px; }
+.threatDetailHeading h3 { margin: 0; font-size: 24px; }
+.threatDetailHeading p:last-child { margin: 5px 0 0; color: var(--color-muted); }
+.threatDetailBody { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; margin-top: 22px; }
+.threatDetailBody h4 { margin: 0; font-size: 15px; }
+.threatDetail ul { margin: 9px 0 0; padding-left: 20px; }
+.threatDetailBody > p { margin: 0; padding: 16px; background: var(--color-info); border-radius: 11px; }
+.threatDetail > a { display: inline-block; margin-top: 18px; color: var(--color-primary-hover); font-weight: 800; text-decoration: underline; text-underline-offset: 4px; }
 .safetyReminder { margin-top: 24px; padding: 22px 26px; color: var(--color-ink); background: var(--color-info); border-left: 5px solid var(--color-primary); border-radius: 12px; }
 .safetyReminder p { margin: 5px 0 0; }
 .dialogBackdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 24px; background: rgba(11,52,64,.48); }
@@ -113,4 +121,4 @@
 .dialog .primaryButton, .dialog .secondaryButton { width: 100%; margin-top: 11px; }
 .roleNotice { margin: 24px 0 0; color: #7b5215; font-weight: 700; }
 @media (max-width: 1040px) { .explorer, .explorerSelected { grid-template-columns: 1fr; } .mapFrame, .mapLoading, .explorerSelected .mapFrame, .explorerSelected .mapLoading { position: relative; top: auto; height: 560px; min-height: 520px; } .mapCanvas { min-height: 520px; } }
-@media (max-width: 760px) { .page { width: min(calc(100% - 32px), var(--content-width)); padding: 38px 0 56px; } .hero h1 { font-size: clamp(40px, 12vw, 56px); } .hero > p:last-child { font-size: 16px; } .explorer { margin-top: 30px; } .sidePanel { padding: 22px; } .mapFrame, .mapLoading { height: 440px; min-height: 420px; } .mapCanvas { min-height: 420px; } .siteImage { aspect-ratio: 4 / 3; } .mapPrivacy { left: 12px; right: 12px; bottom: 12px; font-size: 11px; } .guidance { margin-top: 54px; } .guidanceHeading { align-items: flex-start; flex-direction: column; } .threatGrid { grid-template-columns: 1fr; } .dialog { padding: 30px 22px 24px; } }
+@media (max-width: 760px) { .page { width: min(calc(100% - 32px), var(--content-width)); padding: 38px 0 56px; } .hero h1 { font-size: clamp(40px, 12vw, 56px); } .hero > p:last-child { font-size: 16px; } .explorer { margin-top: 30px; } .sidePanel { padding: 22px; } .mapFrame, .mapLoading { height: 440px; min-height: 420px; } .mapCanvas { min-height: 420px; } .siteImage { aspect-ratio: 4 / 3; } .mapPrivacy { left: 12px; right: 12px; bottom: 12px; font-size: 11px; } .guidance { margin-top: 54px; } .guidanceHeading { align-items: flex-start; flex-direction: column; } .threatGrid { grid-template-columns: 1fr; } .threatCard { min-height: 112px; grid-template-columns: 72px 1fr; padding: 16px; } .threatCard > img { width: 72px; height: 58px; } .threatDetail { padding: 20px; } .threatDetailHeading { grid-template-columns: 72px 1fr; } .threatDetailHeading img { width: 72px; height: 58px; } .threatDetailBody { grid-template-columns: 1fr; } .dialog { padding: 30px 22px 24px; } }
