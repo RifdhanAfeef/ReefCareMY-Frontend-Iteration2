@@ -6,6 +6,7 @@ import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import { DisplayDateInput } from "@/components/forms/display-date-input";
 import { useMockAppState } from "@/features/shared/mock-app-state";
 import {
+  dateToMalaysiaFormValues,
   isFutureDisplayDate,
   isValidDisplayDate,
 } from "@/lib/format/date";
@@ -185,12 +186,25 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
   }
 
   function confirmCaptureTime(id: string, confirmed: boolean) {
+    const selectedPhoto = reportDraft.photos.find((photo) => photo.id === id);
+    const capturedValues = confirmed && selectedPhoto?.capturedAt
+      ? dateToMalaysiaFormValues(selectedPhoto.capturedAt)
+      : null;
     updateReportDraft({
       photos: reportDraft.photos.map((photo) => photo.id === id
         ? { ...photo, capturedAtConfirmed: confirmed }
         : photo),
+      ...(capturedValues ? {
+        observationDate: capturedValues.date,
+        observationTime: capturedValues.time,
+      } : {}),
     });
     setCompleteness(null);
+    setCompletenessError("");
+    if (capturedValues) {
+      setErrors((current) => ({ ...current, date: undefined, time: undefined }));
+      setUploadMessage("Photo date and time added to the observation fields. Review them before continuing.");
+    }
   }
 
   async function runSmartStructuring() {
@@ -339,7 +353,7 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
           <div><h3 id="completeness-heading">Report completeness</h3><p>Check required items and optional details that could help a coordinator.</p></div>
           <button className={styles.secondaryButton} type="button" disabled={checkingCompleteness} onClick={runCompletenessCheck}>{checkingCompleteness ? "Checking…" : "Check completeness"}</button>
           {completenessError && <p className={styles.errorText} role="alert">{completenessError}</p>}
-          {completenessDisplay && <div className={styles.checkResults} role="status"><strong>{completenessDisplay.summary}</strong>{completenessDisplay.required.length > 0 && <div><span className={styles.requiredTag}>Required</span><p>{completenessDisplay.required.join(", ")}</p></div>}{completenessDisplay.recommended.length > 0 && <div><span className={styles.recommendedTag}>Recommended</span><p>{completenessDisplay.recommended.join(", ")}</p></div>}</div>}
+          {completenessDisplay && <div className={styles.checkResults} role="status"><strong>{completenessDisplay.summary}</strong>{completenessDisplay.required.length > 0 && <div><span className={styles.requiredTag}>Required</span><p>{completenessDisplay.required.join(", ")}</p></div>}{completenessDisplay.recommended.length > 0 && <div><span className={styles.recommendedTag}>Recommended · optional</span><p>{completenessDisplay.recommended.join(", ")}</p></div>}</div>}
         </section>
 
         <div className={styles.formFooter}>

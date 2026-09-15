@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { LocationFlow } from "../location-flow";
 import { getDiveSessions } from "@/lib/api/diveSessionsApi";
 import { getDiveSites } from "@/lib/api/referenceApi";
+import { selectedReefSiteStorageKey } from "@/features/epic-02-reef-explorer/selected-site-storage";
 
 type TestSession = {
   id: string;
@@ -52,6 +53,7 @@ vi.mock("@/lib/api/diveSessionsApi");
 vi.mock("@/lib/api/referenceApi");
 
 beforeEach(() => {
+  window.localStorage.clear();
   appState.updateLocationDraft.mockReset();
   Object.assign(appState.locationDraft, {
     step: "session",
@@ -127,5 +129,54 @@ describe("Finding 4 — no-session journey", () => {
     expect(await screen.findByRole("heading", { name: "Where on the reef did you observe it?" })).toBeInTheDocument();
     expect(screen.getByText("Batu Nisan — Perhentian Islands")).toBeInTheDocument();
     expect(screen.queryByRole("combobox", { name: /Named dive site/i })).not.toBeInTheDocument();
+  });
+});
+
+describe("Epic 2 report CTA handoff", () => {
+  it("opens session creation with the selected dive site prefilled when no matching session exists", async () => {
+    window.localStorage.setItem(selectedReefSiteStorageKey, JSON.stringify({
+      id: "perhentian-d-lagoon",
+      backendDiveSiteId: 19,
+      name: "D'Lagoon",
+      publicAreaLabel: "Perhentian Islands",
+    }));
+    vi.mocked(getDiveSites).mockResolvedValue([
+      { diveSiteId: 19, name: "D'Lagoon", publicAreaLabel: "Perhentian Islands" },
+    ]);
+
+    render(<LocationFlow />);
+
+    await waitFor(() => expect(appState.updateLocationDraft).toHaveBeenCalledWith(expect.objectContaining({
+      form: expect.objectContaining({ site: "19" }),
+      step: "create",
+    })));
+    expect(window.localStorage.getItem(selectedReefSiteStorageKey)).toBeNull();
+  });
+
+  it("prioritises and preselects an existing session for the selected dive site", async () => {
+    window.localStorage.setItem(selectedReefSiteStorageKey, JSON.stringify({
+      id: "perhentian-d-lagoon",
+      backendDiveSiteId: 19,
+      name: "D'Lagoon",
+      publicAreaLabel: "Perhentian Islands",
+    }));
+    vi.mocked(getDiveSites).mockResolvedValue([
+      { diveSiteId: 19, name: "D'Lagoon", publicAreaLabel: "Perhentian Islands" },
+      { diveSiteId: 17, name: "Batu Nisan", publicAreaLabel: "Perhentian Islands" },
+    ]);
+    vi.mocked(getDiveSessions).mockResolvedValue([
+      { diveSessionId: 4, label: null, diveDate: "2026-09-02", namedDiveSite: { diveSiteId: 17, name: "Batu Nisan", publicAreaLabel: "Perhentian Islands" }, approximateStartTime: null, approximateEndTime: null },
+      { diveSessionId: 9, label: "Dive 1", diveDate: "2026-09-12", namedDiveSite: { diveSiteId: 19, name: "D'Lagoon", publicAreaLabel: "Perhentian Islands" }, approximateStartTime: null, approximateEndTime: null },
+    ]);
+
+    render(<LocationFlow />);
+
+    await waitFor(() => expect(appState.updateLocationDraft).toHaveBeenCalledWith(expect.objectContaining({
+      selectedSessionId: "backend-session-9",
+      step: "session",
+      sessions: expect.arrayContaining([expect.objectContaining({ id: "backend-session-9" })]),
+    })));
+    const call = appState.updateLocationDraft.mock.calls.find(([value]) => value.selectedSessionId === "backend-session-9");
+    expect(call?.[0].sessions[0].id).toBe("backend-session-9");
   });
 });

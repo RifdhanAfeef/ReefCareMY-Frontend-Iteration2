@@ -16,6 +16,7 @@ export type ReefFeature = {
 
 export type ReefSite = {
   id: string;
+  backendDiveSiteId: number;
   name: string;
   island: "Perhentian" | "Redang" | "Tioman";
   publicAreaLabel: string;
@@ -36,3 +37,8 @@ export type ReefSite = {
   };
   publicActivity: ReefActivity[];
 };
+
+export type ReefSiteReference = Pick<
+  ReefSite,
+  "id" | "backendDiveSiteId" | "name" | "island" | "publicAreaLabel"
+>;

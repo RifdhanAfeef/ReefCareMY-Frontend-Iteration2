@@ -7,9 +7,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/epic-01-access/auth-context";
 import { threatCategories } from "@/features/epic-02-reporting/threat-data";
+import { diveSiteCatalog } from "./dive-site-catalog";
 import { reefIslands, reefSites } from "./reef-sites";
 import { storeSelectedReefSite } from "./selected-site-storage";
-import type { ReefSite } from "./types";
+import type { ReefSite, ReefSiteReference } from "./types";
 import styles from "./reef-explorer.module.css";
 
 const ReefExplorerMap = dynamic(
@@ -33,7 +34,7 @@ function SiteList({
   selectedSiteId,
   onSelect,
 }: {
-  sites: ReefSite[];
+  sites: ReefSiteReference[];
   selectedSiteId: string | null;
   onSelect: (siteId: string) => void;
 }) {
@@ -46,7 +47,7 @@ function SiteList({
           <section className={styles.islandGroup} key={island} aria-labelledby={`island-${island}`}>
             <div className={styles.islandHeading}>
               <h3 id={`island-${island}`}>{island}</h3>
-              <span>{islandSites.length} named {islandSites.length === 1 ? "site" : "sites"}</span>
+              <span>{islandSites.length} dive {islandSites.length === 1 ? "site" : "sites"}</span>
             </div>
             {islandSites.map((site) => (
               <button
@@ -64,6 +65,33 @@ function SiteList({
         );
       })}
     </div>
+  );
+}
+
+function BasicSiteDetail({
+  site,
+  onBack,
+  onReport,
+}: {
+  site: ReefSiteReference;
+  onBack: () => void;
+  onReport: () => void;
+}) {
+  return (
+    <article className={styles.siteDetail} aria-labelledby="selected-site-heading">
+      <button className={styles.backToSites} type="button" onClick={onBack}>
+        <span aria-hidden="true">←</span> All reef areas
+      </button>
+      <p className={styles.siteArea}>{site.publicAreaLabel}</p>
+      <h2 id="selected-site-heading">{site.name}</h2>
+      <p className={styles.siteIntroduction}>
+        Explore this recognised {site.publicAreaLabel} dive site or use it as the starting point for a reef-threat report.
+      </p>
+      <div className={styles.siteActions}>
+        <button className={styles.primaryButton} type="button" onClick={onReport}>Report a Reef Threat</button>
+        <a className={styles.secondaryButton} href="#responsible-observation">View guidance</a>
+      </div>
+    </article>
   );
 }
 
@@ -241,7 +269,7 @@ function ImageDialog({ site, imageIndex, onClose }: { site: ReefSite; imageIndex
   );
 }
 
-function AuthenticationDialog({ site, onClose }: { site: ReefSite; onClose: () => void }) {
+function AuthenticationDialog({ site, onClose }: { site: ReefSiteReference; onClose: () => void }) {
   const next = encodeURIComponent("/report-a-reef");
   const rememberSite = () => storeSelectedReefSite(site);
 
@@ -280,11 +308,13 @@ export function ReefExplorer() {
   const [showAuthentication, setShowAuthentication] = useState(false);
   const [enlargedImageIndex, setEnlargedImageIndex] = useState<number | null>(null);
 
-  const selectedSite = reefSites.find((site) => site.id === selectedSiteId) ?? null;
+  const mappedProfiles = useMemo(() => reefSites.filter((site) => site.backendDiveSiteId > 0), []);
+  const selectedSite = diveSiteCatalog.find((site) => site.id === selectedSiteId) ?? null;
+  const selectedProfile = reefSites.find((site) => site.id === selectedSiteId && site.backendDiveSiteId > 0) ?? null;
   const filteredSites = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return reefSites;
-    return reefSites.filter((site) =>
+    if (!query) return diveSiteCatalog;
+    return diveSiteCatalog.filter((site) =>
       `${site.name} ${site.island} ${site.publicAreaLabel}`.toLowerCase().includes(query),
     );
   }, [search]);
@@ -306,19 +336,23 @@ export function ReefExplorer() {
         <p className={styles.eyebrow}>Public Reef Information and Engagement</p>
         <h1>Explore Malaysia&apos;s reef areas</h1>
         <p>
-          Discover selected islands and named dive sites, learn what to observe responsibly and see privacy-safe ReefCare activity without logging in.
+          Discover selected islands and dive sites, learn what to observe responsibly and see privacy-safe ReefCare activity without logging in.
         </p>
       </header>
 
-      <section className={styles.explorer} aria-labelledby="explorer-heading">
+      <section className={`${styles.explorer} ${selectedSite ? styles.explorerSelected : ""}`} aria-labelledby="explorer-heading">
         <aside className={styles.sidePanel}>
           {selectedSite ? (
-            <SiteDetail
-              site={selectedSite}
-              onBack={() => setSelectedSiteId(null)}
-              onReport={startReport}
-              onEnlargeImage={setEnlargedImageIndex}
-            />
+            selectedProfile ? (
+              <SiteDetail
+                site={selectedProfile}
+                onBack={() => setSelectedSiteId(null)}
+                onReport={startReport}
+                onEnlargeImage={setEnlargedImageIndex}
+              />
+            ) : (
+              <BasicSiteDetail site={selectedSite} onBack={() => setSelectedSiteId(null)} onReport={startReport} />
+            )
           ) : (
             <>
               <p className={styles.eyebrow}>Selected Malaysian reef areas</p>
@@ -329,7 +363,7 @@ export function ReefExplorer() {
                   type="search"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search named dive sites"
+                  placeholder="Search dive sites"
                 />
               </label>
               {filteredSites.length > 0 ? (
@@ -344,7 +378,7 @@ export function ReefExplorer() {
           )}
         </aside>
 
-        <ReefExplorerMap sites={reefSites} selectedSiteId={selectedSiteId} onSelectSite={setSelectedSiteId} />
+        <ReefExplorerMap sites={mappedProfiles} selectedSiteId={selectedSiteId} onSelectSite={setSelectedSiteId} />
       </section>
 
       <section className={styles.guidance} id="responsible-observation" aria-labelledby="guidance-heading">
@@ -383,8 +417,8 @@ export function ReefExplorer() {
       {showAuthentication && selectedSite && (
         <AuthenticationDialog site={selectedSite} onClose={() => setShowAuthentication(false)} />
       )}
-      {selectedSite && enlargedImageIndex !== null && (
-        <ImageDialog site={selectedSite} imageIndex={enlargedImageIndex} onClose={() => setEnlargedImageIndex(null)} />
+      {selectedProfile && enlargedImageIndex !== null && (
+        <ImageDialog site={selectedProfile} imageIndex={enlargedImageIndex} onClose={() => setEnlargedImageIndex(null)} />
       )}
     </main>
   );

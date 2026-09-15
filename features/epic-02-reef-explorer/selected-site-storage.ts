@@ -1,13 +1,14 @@
-import type { ReefSite } from "./types";
+import type { ReefSiteReference } from "./types";
 
 export const selectedReefSiteStorageKey = "reefcare-my-i2-selected-reef-site";
 
-export type StoredReefSite = Pick<ReefSite, "id" | "name" | "publicAreaLabel">;
+export type StoredReefSite = Pick<ReefSiteReference, "id" | "backendDiveSiteId" | "name" | "publicAreaLabel">;
 
-export function storeSelectedReefSite(site: ReefSite) {
+export function storeSelectedReefSite(site: ReefSiteReference) {
   if (typeof window === "undefined") return;
   const stored: StoredReefSite = {
     id: site.id,
+    backendDiveSiteId: site.backendDiveSiteId,
     name: site.name,
     publicAreaLabel: site.publicAreaLabel,
   };
@@ -22,6 +23,7 @@ export function readSelectedReefSite(): StoredReefSite | null {
     const parsed = JSON.parse(raw) as Partial<StoredReefSite>;
     if (
       typeof parsed.id !== "string"
+      || !Number.isInteger(parsed.backendDiveSiteId)
       || typeof parsed.name !== "string"
       || typeof parsed.publicAreaLabel !== "string"
     ) {

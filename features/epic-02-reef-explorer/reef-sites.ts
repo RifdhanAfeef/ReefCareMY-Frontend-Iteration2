@@ -13,7 +13,7 @@ const sources = {
 
 export const reefSites: ReefSite[] = [
   {
-    id: "perhentian-d-lagoon", name: "D'Lagoon", island: "Perhentian", publicAreaLabel: "Perhentian Islands", position: [5.905, 102.735],
+    id: "perhentian-d-lagoon", backendDiveSiteId: 19, name: "D'Lagoon", island: "Perhentian", publicAreaLabel: "Perhentian Islands", position: [5.905, 102.735],
     introduction: "A Perhentian dive site known for a mix of soft and hard coral habitat and colourful reef fish.",
     images: [
       { src: "/images/reef-sites/perhentian-reef-1.webp", alt: "Clownfish among anemones in the Perhentian Islands" },
@@ -29,7 +29,7 @@ export const reefSites: ReefSite[] = [
     preparation: commonPreparation, source: sources.Perhentian, publicActivity: [],
   },
   {
-    id: "perhentian-sail-rock", name: "Sail Rock", island: "Perhentian", publicAreaLabel: "Perhentian Islands", position: [5.915, 102.755],
+    id: "perhentian-sail-rock", backendDiveSiteId: 0, name: "Sail Rock", island: "Perhentian", publicAreaLabel: "Perhentian Islands", position: [5.915, 102.755],
     introduction: "A named Perhentian reef site with varied coral forms and opportunities to observe reef fish.",
     images: [
       { src: "/images/reef-sites/perhentian-reef-2.webp", alt: "A diver exploring reef habitat in the Perhentian Islands" },
@@ -45,7 +45,7 @@ export const reefSites: ReefSite[] = [
     preparation: commonPreparation, source: sources.Perhentian, publicActivity: [],
   },
   {
-    id: "redang-tanjung-tokong", name: "Tanjung Tokong", island: "Redang", publicAreaLabel: "Redang Island", position: [5.785, 103.015],
+    id: "redang-tanjung-tokong", backendDiveSiteId: 0, name: "Tanjung Tokong", island: "Redang", publicAreaLabel: "Redang Island", position: [5.785, 103.015],
     introduction: "A Redang dive site shaped by submerged boulders, swim-throughs and coral-covered overhangs.",
     images: [
       { src: "/images/reef-sites/redang-reef-1.webp", alt: "Table coral in the waters around Redang Island" },
@@ -61,7 +61,7 @@ export const reefSites: ReefSite[] = [
     preparation: commonPreparation, source: sources.Redang, publicActivity: [],
   },
   {
-    id: "redang-big-mount", name: "Big Mount", island: "Redang", publicAreaLabel: "Redang Island", position: [5.77, 103.005],
+    id: "redang-big-mount", backendDiveSiteId: 0, name: "Big Mount", island: "Redang", publicAreaLabel: "Redang Island", position: [5.77, 103.005],
     introduction: "A Redang site featuring underwater boulders, coral habitat, sponges and anemones.",
     images: [
       { src: "/images/reef-sites/redang-reef-2.webp", alt: "A hawksbill turtle near a Redang Island reef" },
@@ -77,7 +77,7 @@ export const reefSites: ReefSite[] = [
     preparation: commonPreparation, source: sources.Redang, publicActivity: [],
   },
   {
-    id: "tioman-renggis", name: "Renggis Island", island: "Tioman", publicAreaLabel: "Tioman Island", position: [2.805, 104.12],
+    id: "tioman-renggis", backendDiveSiteId: 3, name: "Renggis Island", island: "Tioman", publicAreaLabel: "Tioman Island", position: [2.805, 104.12],
     introduction: "A well-known site off Tekek Beach with hard-coral gardens and varied reef life.",
     images: [
       { src: "/images/reef-sites/tioman-reef-1.webp", alt: "Coral and reef fish around Tioman Island" },
@@ -93,7 +93,7 @@ export const reefSites: ReefSite[] = [
     preparation: commonPreparation, source: sources.Tioman, publicActivity: [],
   },
   {
-    id: "tioman-chebeh", name: "Chebeh", island: "Tioman", publicAreaLabel: "Tioman Island", position: [2.835, 104.17],
+    id: "tioman-chebeh-island", backendDiveSiteId: 2, name: "Chebeh Island", island: "Tioman", publicAreaLabel: "Tioman Island", position: [2.835, 104.17],
     introduction: "A deeper Tioman dive area known for dramatic underwater scenery and gorgonian fans.",
     images: [
       { src: "/images/reef-sites/tioman-reef-2.webp", alt: "A diver in blue water around Tioman Island" },

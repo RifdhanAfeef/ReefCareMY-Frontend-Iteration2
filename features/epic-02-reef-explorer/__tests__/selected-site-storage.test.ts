@@ -15,6 +15,7 @@ describe("selected reef-site handoff", () => {
 
     expect(readSelectedReefSite()).toEqual({
       id: reefSites[0].id,
+      backendDiveSiteId: reefSites[0].backendDiveSiteId,
       name: reefSites[0].name,
       publicAreaLabel: reefSites[0].publicAreaLabel,
     });

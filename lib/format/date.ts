@@ -83,6 +83,29 @@ export function inputDateToDisplayValue(value: string) {
   return `${day}/${month}/${year}`;
 }
 
+export function dateToMalaysiaFormValues(value: string | Date) {
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return null;
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: REEFCARE_TIME_ZONE,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+  const day = part("day");
+  const month = part("month");
+  const year = part("year");
+  const hour = part("hour");
+  const minute = part("minute");
+  if (!day || !month || !year || !hour || !minute) return null;
+  return { date: `${day}/${month}/${year}`, time: `${hour}:${minute}` };
+}
+
 export function formatDisplayDateInput(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 8);
   const parts = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)]

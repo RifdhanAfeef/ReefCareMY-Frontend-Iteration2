@@ -24,6 +24,9 @@ describe("Epic 2 Reef Explorer", () => {
 
     expect(screen.getByRole("heading", { name: "Explore Malaysia's reef areas" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Choose an island or dive site" })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search dive sites")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Temple of the Sea/i })).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/named dive sites/i)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /D'Lagoon/i }));
 
@@ -65,7 +68,7 @@ describe("Epic 2 Reef Explorer", () => {
     const user = userEvent.setup();
     render(<ReefExplorer />);
 
-    await user.click(screen.getByRole("button", { name: /Sail Rock/i }));
+    await user.click(screen.getByRole("button", { name: /Renggis Island/i }));
 
     expect(screen.getByText("No public ReefCare activity is currently available")).toBeInTheDocument();
     expect(screen.getByText(/Only approved, privacy-safe updates appear here/i)).toBeInTheDocument();

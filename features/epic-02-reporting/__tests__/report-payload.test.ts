@@ -1,8 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { initialLocationDraft, initialReportDraft } from "@/features/shared/mock-app-state";
-import { buildReportSubmissionPayload } from "../report-payload";
+import { buildReportCompletenessPayload, buildReportSubmissionPayload } from "../report-payload";
 
 describe("report submission boundary", () => {
+  it("includes a completed observation date and time in the completeness request", () => {
+    const payload = buildReportCompletenessPayload({
+      ...initialReportDraft,
+      observationDate: "15/09/2026",
+      observationTime: "17:53",
+    }, initialLocationDraft, 1);
+
+    expect(payload.observedAt).toBe(new Date("2026-09-15T17:53:00+08:00").toISOString());
+    expect(payload.evidenceCount).toBe(1);
+  });
+
   it("converts display values to the documented camelCase API payload", () => {
     const report = {
       ...initialReportDraft,

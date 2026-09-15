@@ -10,13 +10,17 @@ const malaysiaBounds: [[number, number], [number, number]] = [
   [7.7, 119.6],
 ];
 
-function FitMalaysia() {
+function FocusMap({ selectedSite }: { selectedSite: ReefSite | null }) {
   const map = useMap();
 
   useEffect(() => {
     map.invalidateSize();
-    map.fitBounds(malaysiaBounds, { padding: [28, 28], animate: false });
-  }, [map]);
+    if (selectedSite) {
+      map.flyTo(selectedSite.position, 12, { animate: true, duration: 0.6 });
+      return;
+    }
+    map.fitBounds(malaysiaBounds, { padding: [28, 28], animate: true });
+  }, [map, selectedSite]);
 
   return null;
 }
@@ -31,6 +35,7 @@ export function ReefExplorerMap({
   onSelectSite: (siteId: string) => void;
 }) {
   const [tilesUnavailable, setTilesUnavailable] = useState(false);
+  const selectedSite = sites.find((site) => site.id === selectedSiteId) ?? null;
 
   return (
     <div className={styles.mapFrame} aria-label="Interactive map of selected Malaysian reef areas">
@@ -48,7 +53,7 @@ export function ReefExplorerMap({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           eventHandlers={{ tileerror: () => setTilesUnavailable(true) }}
         />
-        <FitMalaysia />
+        <FocusMap selectedSite={selectedSite} />
         {sites.map((site) => {
           const selected = site.id === selectedSiteId;
           return (
@@ -71,10 +76,10 @@ export function ReefExplorerMap({
           );
         })}
       </MapContainer>
-      <p className={styles.mapPrivacy}>Named dive sites only. Exact report coordinates are never shown.</p>
+      <p className={styles.mapPrivacy}>Dive sites only. Exact report coordinates are never shown.</p>
       {tilesUnavailable && (
         <p className={styles.mapFallback} role="status">
-          The map background is temporarily unavailable. The named site list is still available.
+          The map background is temporarily unavailable. The dive-site list is still available.
         </p>
       )}
     </div>

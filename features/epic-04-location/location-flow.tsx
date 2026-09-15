@@ -12,7 +12,7 @@ import { getDiveSites } from "@/lib/api/referenceApi";
 import { checkReportLocation } from "@/lib/api/reportsApi";
 import type { DiveSiteReference, LocationCheckResponse } from "@/lib/api/types";
 import { userFacingError } from "@/lib/api/user-facing-error";
-import { readSelectedReefSite } from "@/features/epic-02-reef-explorer/selected-site-storage";
+import { clearSelectedReefSite, readSelectedReefSite } from "@/features/epic-02-reef-explorer/selected-site-storage";
 import { buildLocationCheckPayload } from "@/features/epic-02-reporting/report-payload";
 import { displayDateAndTimeToIso, displayDateToIsoDate, inputDateToDisplayValue, isFutureDisplayDate, isValidDisplayDate } from "@/lib/format/date";
 import styles from "./location-flow.module.css";
@@ -111,9 +111,9 @@ export function LocationFlow() {
   const sessionTitle = session ? `${session.site}${session.label ? ` - ${session.label}` : ""}` : "No Dive Session selected";
   const confidenceLabel = confidenceOptions.find((item) => item.value === confidence)?.label ?? "Not provided";
   const coordinates = mapCoordinates(pin);
-  const confirmedEvidenceDates = useMemo(() => new Set((reportDraft?.photos ?? [])
+  const confirmedEvidenceDates = new Set((reportDraft?.photos ?? [])
     .filter((photo) => photo.capturedAtConfirmed && photo.capturedAt)
-    .map((photo) => inputDateToDisplayValue((photo.capturedAt as string).slice(0, 10)))), [reportDraft?.photos]);
+    .map((photo) => inputDateToDisplayValue((photo.capturedAt as string).slice(0, 10))));
   const hasExactCoordinates = locationSource === "map_pin" || locationSource === "manual_coordinates";
   const availableConfidenceOptions = hasExactCoordinates
     ? confidenceOptions.filter((item) => item.value !== "dive_site_only")
@@ -126,21 +126,20 @@ export function LocationFlow() {
     Promise.allSettled([getDiveSites(), getDiveSessions()])
       .then(([siteResult, sessionResult]) => {
         if (cancelled) return;
+        const storedSite = readSelectedReefSite();
+        let matchedSite: DiveSiteReference | undefined;
         if (siteResult.status === "fulfilled") {
           setDiveSites(siteResult.value);
-          const storedSite = readSelectedReefSite();
-          const matchedSite = storedSite
+          matchedSite = storedSite
             ? siteResult.value.find((site) =>
-                site.name.toLowerCase() === storedSite.name.toLowerCase()
+                site.diveSiteId === storedSite.backendDiveSiteId
+                || site.name.toLowerCase() === storedSite.name.toLowerCase()
                 || (
                   site.publicAreaLabel.toLowerCase() === storedSite.publicAreaLabel.toLowerCase()
                   && site.name.toLowerCase().includes(storedSite.name.toLowerCase())
                 ),
               )
             : undefined;
-          if (matchedSite && !initialForm.current.site) {
-            updateLocationDraft({ form: { ...initialForm.current, site: String(matchedSite.diveSiteId) } });
-          }
         } else {
           setSiteLoadError(userFacingError(siteResult.reason, "Dive sites are temporarily unavailable. Please try again."));
         }
@@ -159,19 +158,37 @@ export function LocationFlow() {
           start: item.approximateStartTime ? new Date(item.approximateStartTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : undefined,
           end: item.approximateEndTime ? new Date(item.approximateEndTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : undefined,
         }));
+        const matchingSessions = matchedSite
+          ? nextSessions.filter((item) => item.namedDiveSiteId === matchedSite.diveSiteId)
+          : [];
+        const orderedSessions = matchingSessions.length > 0
+          ? [...matchingSessions, ...nextSessions.filter((item) => item.namedDiveSiteId !== matchedSite?.diveSiteId)]
+          : nextSessions;
+        const currentSelection = orderedSessions.find((item) => item.id === initiallySelectedSessionId.current)?.id;
+        const selectedId = matchingSessions[0]?.id ?? currentSelection ?? orderedSessions[0]?.id ?? "";
+        const selectedSiteForm = matchedSite
+          ? {
+              ...initialForm.current,
+              site: String(matchedSite.diveSiteId),
+              date: initialForm.current.date || reportDraft?.observationDate || "",
+            }
+          : initialForm.current;
         updateLocationDraft({
-          sessions: nextSessions,
-          selectedSessionId: nextSessions.some((item) => item.id === initiallySelectedSessionId.current)
-            ? initiallySelectedSessionId.current
-            : (nextSessions[0]?.id ?? ""),
+          sessions: orderedSessions,
+          selectedSessionId: selectedId,
+          ...(matchedSite ? {
+            form: selectedSiteForm,
+            step: matchingSessions.length > 0 ? "session" : "create",
+          } : {}),
         });
+        if (matchedSite) clearSelectedReefSite();
       }).finally(() => {
         if (!cancelled) setLoadingReferences(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [referenceReloadKey, updateLocationDraft]);
+  }, [referenceReloadKey, reportDraft?.observationDate, updateLocationDraft]);
 
   useEffect(() => {
     const heading = document.querySelector<HTMLElement>("[data-location-flow-heading]");
