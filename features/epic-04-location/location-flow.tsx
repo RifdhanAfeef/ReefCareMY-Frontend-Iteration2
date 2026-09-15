@@ -10,7 +10,7 @@ import { useMockAppState, type DiveSession, type MapPin } from "@/features/share
 import { createDiveSession, getDiveSessions } from "@/lib/api/diveSessionsApi";
 import { getDiveSites } from "@/lib/api/referenceApi";
 import { checkReportLocation } from "@/lib/api/reportsApi";
-import type { DiveSiteReference, LocationCheckResponse } from "@/lib/api/types";
+import type { DiveSiteReference } from "@/lib/api/types";
 import { userFacingError } from "@/lib/api/user-facing-error";
 import { clearSelectedReefSite, readSelectedReefSite } from "@/features/epic-02-reef-explorer/selected-site-storage";
 import { buildLocationCheckPayload } from "@/features/epic-02-reporting/report-payload";
@@ -82,6 +82,13 @@ function mapCoordinates(pin: MapPin | null) {
   return resolved ? `${resolved.latitude.toFixed(5)}, ${resolved.longitude.toFixed(5)}` : null;
 }
 
+function isWithinSupportedMalaysiaArea(pin: MapPin) {
+  return pin.latitude >= malaysiaBounds.south
+    && pin.latitude <= malaysiaBounds.north
+    && pin.longitude >= malaysiaBounds.west
+    && pin.longitude <= malaysiaBounds.east;
+}
+
 function MapPreview({ pin, interactive = false, onSetPin }: { pin: MapPin | null; interactive?: boolean; onSetPin?: (pin: MapPin) => void }) {
   const resolvedPin = normalisePin(pin);
   return <MalaysiaMap pin={resolvedPin} interactive={interactive} onSetPin={onSetPin} />;
@@ -102,7 +109,7 @@ export function LocationFlow() {
   const [manualLatitude, setManualLatitude] = useState(pin?.latitude?.toFixed(6) ?? "");
   const [manualLongitude, setManualLongitude] = useState(pin?.longitude?.toFixed(6) ?? "");
   const [coordinateError, setCoordinateError] = useState("");
-  const [locationCheck, setLocationCheck] = useState<LocationCheckResponse | null>(null);
+  const [mapPinError, setMapPinError] = useState("");
   const [locationCheckError, setLocationCheckError] = useState("");
   const [checkingLocation, setCheckingLocation] = useState(false);
   const initiallySelectedSessionId = useRef(selectedSessionId);
@@ -158,14 +165,8 @@ export function LocationFlow() {
           start: item.approximateStartTime ? new Date(item.approximateStartTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : undefined,
           end: item.approximateEndTime ? new Date(item.approximateEndTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : undefined,
         }));
-        const matchingSessions = matchedSite
-          ? nextSessions.filter((item) => item.namedDiveSiteId === matchedSite.diveSiteId)
-          : [];
-        const orderedSessions = matchingSessions.length > 0
-          ? [...matchingSessions, ...nextSessions.filter((item) => item.namedDiveSiteId !== matchedSite?.diveSiteId)]
-          : nextSessions;
-        const currentSelection = orderedSessions.find((item) => item.id === initiallySelectedSessionId.current)?.id;
-        const selectedId = matchingSessions[0]?.id ?? currentSelection ?? orderedSessions[0]?.id ?? "";
+        const currentSelection = nextSessions.find((item) => item.id === initiallySelectedSessionId.current)?.id;
+        const selectedId = currentSelection ?? nextSessions[0]?.id ?? "";
         const selectedSiteForm = matchedSite
           ? {
               ...initialForm.current,
@@ -174,11 +175,11 @@ export function LocationFlow() {
             }
           : initialForm.current;
         updateLocationDraft({
-          sessions: orderedSessions,
+          sessions: nextSessions,
           selectedSessionId: selectedId,
           ...(matchedSite ? {
             form: selectedSiteForm,
-            step: matchingSessions.length > 0 ? "session" : "create",
+            step: "create",
           } : {}),
         });
         if (matchedSite) clearSelectedReefSite();
@@ -230,19 +231,47 @@ export function LocationFlow() {
       setSavingSession(false);
     }
   };
-  const continueFromLocation = (source: "dive_site" | "map_pin") => {
+  const checkExactLocation = async (source: "map_pin" | "manual_coordinates", nextPin: MapPin) => {
+    setLocationCheckError("");
+    if (!isWithinSupportedMalaysiaArea(nextPin)) {
+      const message = "Select a location within Malaysia or its supported surrounding waters before continuing.";
+      if (source === "map_pin") setMapPinError(message);
+      else setCoordinateError(message);
+      return false;
+    }
+    const payload = buildLocationCheckPayload({ ...locationDraft, locationSource: source, pin: nextPin });
+    if (!payload) return true;
+    setCheckingLocation(true);
+    try {
+      const result = await checkReportLocation(payload);
+      if (result.hasWarning) {
+        const message = result.message ?? "This location is too far from the selected dive site. Choose a closer location before continuing.";
+        if (source === "map_pin") setMapPinError(message);
+        else setCoordinateError(message);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      setLocationCheckError(userFacingError(error, "The site-to-pin check is temporarily unavailable. The Malaysia location check was still applied."));
+      return true;
+    } finally {
+      setCheckingLocation(false);
+    }
+  };
+  const continueFromLocation = async (source: "dive_site" | "map_pin") => {
+    if (source === "map_pin") {
+      const resolvedPin = normalisePin(pin);
+      if (!resolvedPin || !(await checkExactLocation("map_pin", resolvedPin))) return;
+    }
     updateLocationDraft({ locationSource: source, pin: source === "dive_site" ? null : pin, confidence: source === "dive_site" ? "dive_site_only" : "", step: "confirm" });
     setConfidenceError("");
+    setMapPinError("");
   };
-  const continueWithManualCoordinates = () => {
+  const continueWithManualCoordinates = async () => {
     const latitude = Number(manualLatitude);
     const longitude = Number(manualLongitude);
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
       setCoordinateError("Enter valid latitude and longitude values.");
-      return;
-    }
-    if (latitude < malaysiaBounds.south || latitude > malaysiaBounds.north || longitude < malaysiaBounds.west || longitude > malaysiaBounds.east) {
-      setCoordinateError("Enter coordinates within the supported Malaysia map area.");
       return;
     }
     const nextPin = {
@@ -251,6 +280,7 @@ export function LocationFlow() {
       x: ((longitude - malaysiaBounds.west) / (malaysiaBounds.east - malaysiaBounds.west)) * 100,
       y: ((malaysiaBounds.north - latitude) / (malaysiaBounds.north - malaysiaBounds.south)) * 100,
     };
+    if (!(await checkExactLocation("manual_coordinates", nextPin))) return;
     setCoordinateError("");
     updateLocationDraft({ locationSource: "manual_coordinates", pin: nextPin, confidence: "", step: "confirm" });
   };
@@ -258,23 +288,10 @@ export function LocationFlow() {
     setCoordinateError("");
     updateLocationDraft({ locationSource: "dive_site", pin: null, confidence: "unsure", step: "confirm" });
   };
-  const confirmLocation = async (event: FormEvent<HTMLFormElement>) => {
+  const confirmLocation = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!confidence) { setConfidenceError("Select a location-confidence option before continuing."); return; }
     setConfidenceError("");
-    setLocationCheck(null);
-    setLocationCheckError("");
-    const payload = buildLocationCheckPayload(locationDraft);
-    if (payload) {
-      setCheckingLocation(true);
-      try {
-        setLocationCheck(await checkReportLocation(payload));
-      } catch (error) {
-        setLocationCheckError(userFacingError(error, "The site-to-pin check is unavailable. This does not block your report."));
-      } finally {
-        setCheckingLocation(false);
-      }
-    }
     setStep("privacy");
   };
   const retryReferences = () => {
@@ -322,9 +339,10 @@ export function LocationFlow() {
 
   if (step === "location") return <section className={styles.page}>
     <PageHeading eyebrow="Report a Reef / Location" title="Where on the reef did you observe it?" description="Use the Dive Session site, select a map point, enter coordinates or say that the exact location is unknown." currentStep="location" />
+    {locationCheckError && <aside className={styles.locationWarning} role="status"><strong>Location check</strong><p>{locationCheckError}</p></aside>}
     <div className={`${styles.choiceGrid} ${styles.locationChoices}`}><section className={`${styles.card} ${styles.selectedCard}`}><h2>General dive-site location</h2><div className={styles.readOnlyLabel}>Named dive site *<p className={styles.readOnlyValue}>{session.site}</p></div><div className={styles.infoBox}><strong>Exact location optional</strong><p>You can continue with the named site when precise coordinates are unavailable.</p></div><button className={styles.primaryButton} type="button" onClick={() => continueFromLocation("dive_site")}>Use dive-site location</button><button className={styles.textRetry} type="button" onClick={continueWithUnknownLocation}>I don&apos;t know the exact location</button></section>
-      <section className={styles.card}><h2>Select on map</h2><p className={styles.supporting}>Select the observed location on the map of Malaysia.</p><MapPreview pin={pin} interactive onSetPin={(nextPin) => updateLocationDraft({ pin: nextPin })} />{coordinates && <p className={styles.coordinateReadout}>Selected coordinates: {coordinates}</p>}<button className={styles.secondaryButton} type="button" disabled={!pin} onClick={() => continueFromLocation("map_pin")}>Confirm map pin</button></section>
-      <section className={styles.card}><h2>Enter coordinates</h2><p className={styles.supporting}>Use coordinates from a dive computer, GPS device or another trusted source.</p><div className={styles.coordinateFields}><label className={styles.field}>Latitude<input type="number" min={malaysiaBounds.south} max={malaysiaBounds.north} step="any" value={manualLatitude} onChange={(event) => { setManualLatitude(event.target.value); setCoordinateError(""); }} placeholder="3.15021" /></label><label className={styles.field}>Longitude<input type="number" min={malaysiaBounds.west} max={malaysiaBounds.east} step="any" value={manualLongitude} onChange={(event) => { setManualLongitude(event.target.value); setCoordinateError(""); }} placeholder="104.21864" /></label></div>{coordinateError && <p className={styles.errorText} role="alert">{coordinateError}</p>}<button className={styles.secondaryButton} type="button" onClick={continueWithManualCoordinates}>Use these coordinates</button></section></div>
+      <section className={styles.card}><h2>Select on map</h2><p className={styles.supporting}>Select the observed location on the map of Malaysia.</p><MapPreview pin={pin} interactive onSetPin={(nextPin) => { updateLocationDraft({ pin: nextPin }); setMapPinError(""); }} />{coordinates && <p className={styles.coordinateReadout}>Selected coordinates: {coordinates}</p>}{mapPinError && <p className={styles.errorText} role="alert">{mapPinError}</p>}<button className={styles.secondaryButton} type="button" disabled={!pin || checkingLocation} onClick={() => continueFromLocation("map_pin")}>{checkingLocation ? "Checking location…" : "Confirm map pin"}</button></section>
+      <section className={styles.card}><h2>Enter coordinates</h2><p className={styles.supporting}>Use coordinates from a dive computer, GPS device or another trusted source.</p><div className={styles.coordinateFields}><label className={styles.field}>Latitude<input type="number" min={malaysiaBounds.south} max={malaysiaBounds.north} step="any" value={manualLatitude} onChange={(event) => { setManualLatitude(event.target.value); setCoordinateError(""); }} placeholder="3.15021" /></label><label className={styles.field}>Longitude<input type="number" min={malaysiaBounds.west} max={malaysiaBounds.east} step="any" value={manualLongitude} onChange={(event) => { setManualLongitude(event.target.value); setCoordinateError(""); }} placeholder="104.21864" /></label></div>{coordinateError && <p className={styles.errorText} role="alert">{coordinateError}</p>}<button className={styles.secondaryButton} type="button" disabled={checkingLocation} onClick={continueWithManualCoordinates}>{checkingLocation ? "Checking location…" : "Use these coordinates"}</button></section></div>
     <aside className={styles.privacyStrip}><strong>Coordinates are optional</strong><p>Coordinates are stored only when you provide a map pin. Other users receive only the appropriate general-location view.</p></aside><button className={`${styles.secondaryButton} ${styles.backOutside}`} type="button" onClick={() => setStep("session")}>Back to Dive Session</button>
   </section>;
 
@@ -335,7 +353,6 @@ export function LocationFlow() {
 
   if (step === "privacy") return <section className={styles.page}>
     <PageHeading eyebrow="Report a Reef / Location privacy" title="Review your location privacy" description="See how ReefCare protects the precise location you submitted." currentStep="privacy" />
-    {(locationCheck?.hasWarning || locationCheckError) && <aside className={styles.locationWarning} role="status"><strong>Location check</strong><p>{locationCheck?.message ?? locationCheckError}</p><small>This is guidance only. You can still continue and the selected source is preserved.</small></aside>}
     <div className={styles.privacyGrid}><section className={styles.card}><h2>Your submitted location</h2><MapPreview pin={pin} /><p><strong>{hasExactCoordinates ? `Coordinates within ${session.site}` : session.site}</strong></p><p>Confidence: <strong>{confidenceLabel}</strong></p><p className={styles.supporting}>You will see this location in your own report.</p></section><section className={`${styles.card} ${styles.sidePanel}`}><h2>Who can see what?</h2><dl className={styles.accessList}><div><dt>You</dt><dd>Your submitted location</dd></div><div><dt>Claiming Case Coordinator</dt><dd>Your location and accuracy</dd></div><div><dt>Other coordinators</dt><dd>General site until they claim the case</dd></div><div><dt>System Administrator</dt><dd>General site only</dd></div><div><dt>Unauthenticated visitors</dt><dd>Report location is not displayed</dd></div></dl></section></div>
     <div className={styles.splitActions}><button className={styles.secondaryButton} type="button" onClick={() => setStep("confirm")}>Back</button><button className={styles.primaryButton} type="button" onClick={() => setStep("saved")}>Confirm privacy and continue</button></div>
   </section>;

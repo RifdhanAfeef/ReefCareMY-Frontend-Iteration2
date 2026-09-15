@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { LocationFlow } from "../location-flow";
 import { getDiveSessions } from "@/lib/api/diveSessionsApi";
 import { getDiveSites } from "@/lib/api/referenceApi";
+import { checkReportLocation } from "@/lib/api/reportsApi";
 import { selectedReefSiteStorageKey } from "@/features/epic-02-reef-explorer/selected-site-storage";
 
 type TestSession = {
@@ -22,9 +23,9 @@ type TestLocationDraft = {
   sessions: TestSession[];
   selectedSessionId: string;
   form: { site: string; label: string; date: string; start: string; end: string };
-  pin: null;
-  locationSource: "dive_site";
-  confidence: "";
+  pin: { x: number; y: number; latitude: number; longitude: number } | null;
+  locationSource: "dive_site" | "map_pin" | "manual_coordinates";
+  confidence: "" | "exact" | "within_100m" | "within_1km" | "dive_site_only" | "unsure";
 };
 
 const appState = vi.hoisted(() => ({
@@ -51,6 +52,7 @@ vi.mock("next/dynamic", () => ({
 }));
 vi.mock("@/lib/api/diveSessionsApi");
 vi.mock("@/lib/api/referenceApi");
+vi.mock("@/lib/api/reportsApi");
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -68,6 +70,16 @@ beforeEach(() => {
     { diveSiteId: 1, name: "Batu Nisan", publicAreaLabel: "Perhentian Islands" },
   ]);
   vi.mocked(getDiveSessions).mockResolvedValue([]);
+  vi.mocked(checkReportLocation).mockResolvedValue({
+    checkAvailable: true,
+    hasWarning: false,
+    warningCode: null,
+    message: null,
+    distanceMetres: 100,
+    thresholdMetres: 5000,
+    selectedSiteId: 1,
+    selectedSiteName: "Batu Nisan",
+  });
   vi.stubGlobal("scrollTo", vi.fn());
 });
 
@@ -153,7 +165,7 @@ describe("Epic 2 report CTA handoff", () => {
     expect(window.localStorage.getItem(selectedReefSiteStorageKey)).toBeNull();
   });
 
-  it("prioritises and preselects an existing session for the selected dive site", async () => {
+  it("opens session creation even when an existing session matches the selected dive site", async () => {
     window.localStorage.setItem(selectedReefSiteStorageKey, JSON.stringify({
       id: "perhentian-d-lagoon",
       backendDiveSiteId: 19,
@@ -172,11 +184,68 @@ describe("Epic 2 report CTA handoff", () => {
     render(<LocationFlow />);
 
     await waitFor(() => expect(appState.updateLocationDraft).toHaveBeenCalledWith(expect.objectContaining({
-      selectedSessionId: "backend-session-9",
-      step: "session",
-      sessions: expect.arrayContaining([expect.objectContaining({ id: "backend-session-9" })]),
+      form: expect.objectContaining({ site: "19" }),
+      selectedSessionId: "backend-session-4",
+      step: "create",
     })));
-    const call = appState.updateLocationDraft.mock.calls.find(([value]) => value.selectedSessionId === "backend-session-9");
-    expect(call?.[0].sessions[0].id).toBe("backend-session-9");
+  });
+});
+
+describe("Location validation", () => {
+  const selectedSession = {
+    id: "backend-session-7",
+    backendId: 7,
+    namedDiveSiteId: 1,
+    site: "Batu Nisan — Perhentian Islands",
+    date: "05/09/2026",
+  };
+
+  beforeEach(() => {
+    appState.locationDraft.step = "location";
+    appState.locationDraft.sessions = [selectedSession];
+    appState.locationDraft.selectedSessionId = selectedSession.id;
+    vi.mocked(getDiveSessions).mockResolvedValue([{
+      diveSessionId: 7,
+      label: null,
+      diveDate: "2026-09-05",
+      namedDiveSite: { diveSiteId: 1, name: "Batu Nisan", publicAreaLabel: "Perhentian Islands" },
+      approximateStartTime: null,
+      approximateEndTime: null,
+    }]);
+  });
+
+  it("blocks a map pin outside the supported Malaysia area on the Location step", async () => {
+    appState.locationDraft.pin = { x: 50, y: 50, latitude: 10.06723, longitude: 108.56992 };
+    render(<LocationFlow />);
+    await screen.findByRole("heading", { name: "Where on the reef did you observe it?" });
+    appState.updateLocationDraft.mockClear();
+
+    await userEvent.click(screen.getByRole("button", { name: "Confirm map pin" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/within Malaysia/i);
+    expect(checkReportLocation).not.toHaveBeenCalled();
+    expect(appState.updateLocationDraft).not.toHaveBeenCalledWith(expect.objectContaining({ step: "confirm" }));
+  });
+
+  it("shows a backend distance warning on the Location step and prevents continuing", async () => {
+    appState.locationDraft.pin = { x: 50, y: 50, latitude: 5.8, longitude: 116.0 };
+    vi.mocked(checkReportLocation).mockResolvedValue({
+      checkAvailable: true,
+      hasWarning: true,
+      warningCode: "far_from_dive_site",
+      message: "The supplied location appears far from the selected dive site.",
+      distanceMetres: 400000,
+      thresholdMetres: 5000,
+      selectedSiteId: 1,
+      selectedSiteName: "Batu Nisan",
+    });
+    render(<LocationFlow />);
+    await screen.findByRole("heading", { name: "Where on the reef did you observe it?" });
+    appState.updateLocationDraft.mockClear();
+
+    await userEvent.click(screen.getByRole("button", { name: "Confirm map pin" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/far from the selected dive site/i);
+    expect(appState.updateLocationDraft).not.toHaveBeenCalledWith(expect.objectContaining({ step: "confirm" }));
   });
 });

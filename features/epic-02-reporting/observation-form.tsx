@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { DisplayDateInput } from "@/components/forms/display-date-input";
 import { useMockAppState } from "@/features/shared/mock-app-state";
 import {
@@ -64,9 +64,42 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
   const initialPhotoMetadata = useRef(reportDraft.photos);
   const [assistantMessage, setAssistantMessage] = useState("");
   const [assistantBusy, setAssistantBusy] = useState(false);
+  const smartStructuringRequest = useRef(0);
+  const lastStructuredDescription = useRef(
+    reportDraft.aiSuggestions.length > 0 ? reportDraft.description.trim() : "",
+  );
   const [completeness, setCompleteness] = useState<ReportCompletenessResponse | null>(null);
   const [completenessError, setCompletenessError] = useState("");
   const [checkingCompleteness, setCheckingCompleteness] = useState(false);
+
+  const runSmartStructuring = useCallback(async (description: string, requestId: number) => {
+    setAssistantBusy(true);
+    setAssistantMessage("Analysing your description…");
+    try {
+      const result = await structureReportDescription(description);
+      if (requestId !== smartStructuringRequest.current) return;
+      lastStructuredDescription.current = description;
+      if (!result.available) {
+        setAssistantMessage(result.message ?? "Smart Report Structuring is unavailable. Continue manually.");
+        return;
+      }
+      updateReportDraft({
+        aiSuggestions: result.suggestions.map((suggestion) => ({ ...suggestion, status: "unresolved" })),
+      });
+      if (result.missingFields.length > 0) {
+        setAssistantMessage(`Consider adding: ${result.missingFields.join(", ")}.`);
+      } else if (result.warnings.length > 0) {
+        setAssistantMessage(result.warnings.join(" "));
+      } else {
+        setAssistantMessage("Suggestions are ready for your review.");
+      }
+    } catch (error) {
+      if (requestId !== smartStructuringRequest.current) return;
+      setAssistantMessage(userFacingError(error, "Smart Report Structuring is unavailable. Continue manually."));
+    } finally {
+      if (requestId === smartStructuringRequest.current) setAssistantBusy(false);
+    }
+  }, [updateReportDraft]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -116,6 +149,22 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
       previewUrls.current.forEach((url) => URL.revokeObjectURL(url));
     };
   }, [updateReportDraft]);
+
+  useEffect(() => {
+    const description = reportDraft.description.trim();
+    const requestId = ++smartStructuringRequest.current;
+    if (!description) {
+      lastStructuredDescription.current = "";
+      return;
+    }
+    if (description === lastStructuredDescription.current) return;
+
+    setAssistantMessage("AI suggestions will update automatically when you pause typing.");
+    const timeoutId = window.setTimeout(() => {
+      void runSmartStructuring(description, requestId);
+    }, 800);
+    return () => window.clearTimeout(timeoutId);
+  }, [reportDraft.description, runSmartStructuring]);
 
   useEffect(() => {
     if (!initialThreat || reportDraft.threatCategoryCode || reportDraft.threatCategoryId) return;
@@ -227,33 +276,6 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
     }
   }
 
-  async function runSmartStructuring() {
-    if (!reportDraft.description.trim()) return;
-    setAssistantBusy(true);
-    setAssistantMessage("");
-    try {
-      const result = await structureReportDescription(reportDraft.description.trim());
-      if (!result.available) {
-        setAssistantMessage(result.message ?? "Smart Report Structuring is unavailable. Continue manually.");
-        return;
-      }
-      updateReportDraft({
-        aiSuggestions: result.suggestions.map((suggestion) => ({ ...suggestion, status: "unresolved" })),
-      });
-      if (result.missingFields.length > 0) {
-        setAssistantMessage(`Consider adding: ${result.missingFields.join(", ")}.`);
-      } else if (result.warnings.length > 0) {
-        setAssistantMessage(result.warnings.join(" "));
-      } else {
-        setAssistantMessage("Suggestions are ready for your review.");
-      }
-    } catch (error) {
-      setAssistantMessage(userFacingError(error, "Smart Report Structuring is unavailable. Continue manually."));
-    } finally {
-      setAssistantBusy(false);
-    }
-  }
-
   function updateSuggestion(index: number, changes: Partial<ReportDraft["aiSuggestions"][number]>) {
     updateReportDraft({
       aiSuggestions: (reportDraft.aiSuggestions ?? []).map((suggestion, suggestionIndex) =>
@@ -355,7 +377,7 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
         </div>
 
         <section className={styles.assistantCard} aria-labelledby="smart-report-heading">
-          <div className={styles.assistantHeader}><div><p className={styles.assistantLabel}>Optional AI assistance</p><h3 id="smart-report-heading">Smart Report Structuring</h3><p>Check your description for possible structured details. Nothing is accepted until you confirm it.</p></div><button className={styles.secondaryButton} type="button" disabled={assistantBusy || !reportDraft.description.trim()} onClick={runSmartStructuring}>{assistantBusy ? "Checking…" : "Check my description"}</button></div>
+          <div className={styles.assistantHeader}><div><p className={styles.assistantLabel}>Optional AI assistance</p><h3 id="smart-report-heading">Smart Report Structuring</h3><p>AI automatically checks your description for possible structured details and missing information. Nothing is accepted until you confirm it.</p></div>{assistantBusy && <span className={styles.muted} role="status">Checking…</span>}</div>
           {assistantMessage && <p className={styles.assistantMessage} role="status">{assistantMessage}</p>}
           {(reportDraft.aiSuggestions ?? []).length > 0 && <div className={styles.suggestionList}>{reportDraft.aiSuggestions.map((suggestion, index) => <article className={styles.suggestionRow} key={`${suggestion.field}-${index}`}>
             <div><span className={styles.aiBadge}>AI suggestion</span><strong>{suggestion.label}</strong></div>
