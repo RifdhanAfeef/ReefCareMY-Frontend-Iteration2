@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   getOpenInformationRequest,
   getReportDetail,
@@ -14,6 +14,7 @@ import type {
 import { userFacingError } from "@/lib/api/user-facing-error";
 import { formatDateTime } from "@/lib/format/date";
 import styles from "./report-detail.module.css";
+import { readSubmittedStructuredDetails, type SubmittedStructuredDetails } from "@/features/epic-02-reporting/submitted-structured-details";
 
 type LoadState = "loading" | "loaded" | "error";
 type ResponsePhoto = { id: string; file: File; previewUrl: string };
@@ -43,6 +44,7 @@ export function ReportDetail({ reportReference }: { reportReference: string }) {
   const [submittingResponse, setSubmittingResponse] = useState(false);
   const [responsePhotos, setResponsePhotos] = useState<ResponsePhoto[]>([]);
   const [responsePhotoMessage, setResponsePhotoMessage] = useState("");
+  const structuredDetails = useMemo<SubmittedStructuredDetails>(() => readSubmittedStructuredDetails(reportReference), [reportReference]);
   const responsePreviewUrls = useRef<string[]>([]);
 
   useEffect(() => {
@@ -197,7 +199,7 @@ export function ReportDetail({ reportReference }: { reportReference: string }) {
 
       <dl className={styles.summary}>
         <div className={styles.row}>
-          <dt>Threat type</dt>
+          <dt>Possible threat type</dt>
           <dd>{report.threatCategory}</dd>
         </div>
         <div className={styles.row}>
@@ -233,6 +235,17 @@ export function ReportDetail({ reportReference }: { reportReference: string }) {
           </p>
         </div>
       )}
+
+      <details className={styles.structuredDetails}>
+        <summary>Structured report details</summary>
+        <dl>
+          <div><dt>Estimated depth</dt><dd>{structuredDetails.estimated_depth_metres ?? (report.estimatedDepthMetres != null ? `${report.estimatedDepthMetres} m` : "Not included")}</dd></div>
+          <div><dt>Approximate size</dt><dd>{structuredDetails.approximate_size ?? "Not included"}</dd></div>
+          <div><dt>Coral interaction</dt><dd>{structuredDetails.coral_interaction ?? "Not included"}</dd></div>
+          <div><dt>Marine-animal interaction</dt><dd>{structuredDetails.animal_interaction ?? "Not included"}</dd></div>
+          <div><dt>Site reference</dt><dd>{structuredDetails.site_reference ?? "Not included"}</dd></div>
+        </dl>
+      </details>
 
       {(informationRequest?.reason || informationRequest?.requestReason || report.informationRequestReason) && (
         <section className={styles.infoRequest} aria-labelledby="information-request-heading">

@@ -81,6 +81,7 @@ beforeEach(() => {
     selectedSiteName: "Batu Nisan",
   });
   vi.stubGlobal("scrollTo", vi.fn());
+  vi.stubGlobal("confirm", vi.fn(() => true));
 });
 
 describe("Finding 4 — no-session journey", () => {
@@ -246,6 +247,31 @@ describe("Location validation", () => {
     await userEvent.click(screen.getByRole("button", { name: "Confirm map pin" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/far from the selected dive site/i);
+    expect(appState.updateLocationDraft).not.toHaveBeenCalledWith(expect.objectContaining({ step: "confirm" }));
+  });
+
+  it("asks for confirmation between 5 km and 15 km and allows the user to continue", async () => {
+    appState.locationDraft.pin = { x: 50, y: 50, latitude: 3.04, longitude: 104.12 };
+    render(<LocationFlow />);
+    await screen.findByRole("heading", { name: "Where on the reef did you observe it?" });
+    appState.updateLocationDraft.mockClear();
+
+    await userEvent.click(screen.getByRole("button", { name: "Confirm map pin" }));
+
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringMatching(/beyond the dive site.*within the island/i));
+    expect(appState.updateLocationDraft).toHaveBeenCalledWith(expect.objectContaining({ step: "confirm" }));
+  });
+
+  it("stays on the Location step when the user declines the 5–15 km confirmation", async () => {
+    vi.mocked(window.confirm).mockReturnValue(false);
+    appState.locationDraft.pin = { x: 50, y: 50, latitude: 3.04, longitude: 104.12 };
+    render(<LocationFlow />);
+    await screen.findByRole("heading", { name: "Where on the reef did you observe it?" });
+    appState.updateLocationDraft.mockClear();
+
+    await userEvent.click(screen.getByRole("button", { name: "Confirm map pin" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/within 5 km/i);
     expect(appState.updateLocationDraft).not.toHaveBeenCalledWith(expect.objectContaining({ step: "confirm" }));
   });
 });

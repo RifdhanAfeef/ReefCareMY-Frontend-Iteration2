@@ -87,11 +87,11 @@ it("accepts all non-conflicting AI suggestions together at final review", async 
   }];
   render(<ReportReview />);
 
-  const acceptAll = await screen.findByRole("button", { name: "Accept all non-conflicting suggestions" });
+  const acceptAll = await screen.findByRole("button", { name: "Accept AI suggestions" });
   expect(screen.getByText("AI suggested")).toBeInTheDocument();
   fireEvent.click(acceptAll);
 
-  await waitFor(() => expect(screen.queryByRole("button", { name: "Accept all non-conflicting suggestions" })).not.toBeInTheDocument());
+  await waitFor(() => expect(screen.queryByRole("button", { name: "Accept AI suggestions" })).not.toBeInTheDocument());
   await waitFor(() => expect(screen.getByRole("button", { name: "Submit report" })).toBeEnabled());
   expect(screen.getByText("AI assisted - reviewed")).toBeInTheDocument();
 });

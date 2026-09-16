@@ -4,7 +4,7 @@ import { threatCategories } from "./threat-data";
 import type { ReportAISuggestion, ReportDraft, SmartReportField, ThreatCategoryCode } from "./types";
 
 export const smartReportFields: Array<{ field: SmartReportField; label: string }> = [
-  { field: "possible_threat", label: "Possible threat" },
+  { field: "possible_threat", label: "Possible threat type" },
   { field: "estimated_depth_metres", label: "Estimated depth" },
   { field: "approximate_size", label: "Approximate size" },
   { field: "coral_interaction", label: "Coral interaction" },

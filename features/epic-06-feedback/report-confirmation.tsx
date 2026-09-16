@@ -56,7 +56,7 @@ export function ReportConfirmation() {
           <h3 id="report-summary-heading">Report summary</h3>
           <dl className={styles.summary}>
             <div className={styles.row}>
-              <dt>Threat type</dt>
+              <dt>Possible threat type</dt>
               <dd>{threatCategory}</dd>
             </div>
             <div className={styles.row}>

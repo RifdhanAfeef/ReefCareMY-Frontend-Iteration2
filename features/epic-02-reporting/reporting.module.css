@@ -120,7 +120,8 @@
 .assistantMessage { padding: 11px 13px; background: #fff; border-radius: 10px; }
 .inlineSuggestionGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .inlineSuggestionField { display: grid; gap: 8px; padding: 14px; background: #fff; border: 1px solid #cfe2e8; border-radius: 11px; }
-.inlineSuggestionField input { min-height: 42px; padding: 8px 11px; border: 1px solid var(--color-border); border-radius: var(--radius-field); }
+.inlineSuggestionField input, .inlineSuggestionField select { min-height: 42px; padding: 8px 11px; color: var(--color-ink); background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-field); }
+.inlineSuggestionField input[aria-invalid="true"], .inlineSuggestionField select[aria-invalid="true"] { border: 2px solid var(--color-danger); }
 .inlineFieldHeading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .inlineFieldHeading em { width: fit-content; padding: 4px 8px; color: #27677d; background: #e4f4f7; border-radius: 999px; font-size: 10px; font-style: normal; font-weight: 900; text-transform: uppercase; }
 .inlineFieldHeading em[data-state="needs-checking"] { color: #765015; background: #fff3dc; }
@@ -148,6 +149,8 @@
 .reviewSuggestionItem { display: grid; grid-template-columns: minmax(140px, .55fr) 1fr; gap: 8px 16px; padding: 16px 0; border-bottom: 1px solid var(--color-border); }
 .reviewSuggestionItem > div:first-child { display: grid; gap: 4px; }
 .reviewSuggestionItem > p, .reviewSuggestionItem > .compactActions { grid-column: 1 / -1; margin: 0; }
+.suggestionEditor { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.suggestionEditor input, .suggestionEditor select { min-width: min(100%, 260px); min-height: 42px; padding: 8px 11px; color: var(--color-ink); background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-field); }
 .reviewConflict { margin-inline: -12px; padding-inline: 12px; background: #fffaf1; border: 1px solid #efd6a4; border-radius: 10px; }
 
 @media (max-width: 650px) {

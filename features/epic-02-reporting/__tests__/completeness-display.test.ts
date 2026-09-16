@@ -12,7 +12,7 @@ describe("report completeness display", () => {
     });
 
     expect(display.required).toEqual([
-      "Threat type",
+      "Possible threat type",
       "Observation date and time",
       "What you observed",
       "Photographs",

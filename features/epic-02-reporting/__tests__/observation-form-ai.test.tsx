@@ -89,9 +89,10 @@ describe("automatic Smart Report Structuring", () => {
     expect(structureReportDescription).toHaveBeenCalledWith(
       "A large fishing net is tangled around coral at about 12 metres.",
     );
-    expect(updateReportDraft).toHaveBeenCalledWith({
+    expect(updateReportDraft).toHaveBeenCalledWith(expect.objectContaining({
+      estimatedDepthMetres: "12",
       aiSuggestions: [expect.objectContaining({ field: "estimated_depth_metres", status: "unresolved", conflict: false })],
-    });
+    }));
     expect(screen.getByText(/Consider adding: approximate size/i)).toBeInTheDocument();
   });
 

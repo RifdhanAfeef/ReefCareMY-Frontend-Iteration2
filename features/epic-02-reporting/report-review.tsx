@@ -17,6 +17,7 @@ import { buildReportReviewPayload, buildReportSubmissionPayload } from "./report
 import { applySuggestionValue, suggestionStateLabel } from "./smart-report-state";
 import styles from "./reporting.module.css";
 import { formatCompletenessItem } from "./completeness-display";
+import { saveSubmittedStructuredDetails } from "./submitted-structured-details";
 
 type ReviewPhoto = StoredDraftPhoto & { previewUrl: string };
 
@@ -34,6 +35,8 @@ export function ReportReview() {
   const [reviewError, setReviewError] = useState("");
   const [reviewing, setReviewing] = useState(true);
   const [categoryReferences, setCategoryReferences] = useState<ThreatCategoryReference[]>([]);
+  const [editingSuggestion, setEditingSuggestion] = useState<number | null>(null);
+  const [editedSuggestionValue, setEditedSuggestionValue] = useState("");
   const threat = getThreatCategory(reportDraft.threatCategoryCode);
   const session = locationDraft.sessions.find((item) => item.id === locationDraft.selectedSessionId);
 
@@ -138,6 +141,31 @@ export function ReportReview() {
     updateReportDraft(nextReport);
   }
 
+  function beginEditingSuggestion(index: number) {
+    setEditingSuggestion(index);
+    setEditedSuggestionValue(reportDraft.aiSuggestions[index]?.suggestedValue ?? "");
+  }
+
+  function saveEditedSuggestion(index: number) {
+    const suggestion = reportDraft.aiSuggestions[index];
+    if (!suggestion) return;
+    const value = editedSuggestionValue.trim();
+    const updatedSuggestion = {
+      ...suggestion,
+      suggestedValue: value || null,
+      observerValue: value || null,
+      status: value ? "corrected" as const : "removed" as const,
+      conflict: false,
+    };
+    const fieldChanges = value ? applySuggestionValue(reportDraft, updatedSuggestion, categoryReferences) : {};
+    updateReportDraft({
+      ...fieldChanges,
+      aiSuggestions: reportDraft.aiSuggestions.map((item, itemIndex) => itemIndex === index ? updatedSuggestion : item),
+    });
+    setEditingSuggestion(null);
+    setEditedSuggestionValue("");
+  }
+
   async function submit() {
     if (!canSubmit || submissionInProgress.current) return;
     submissionInProgress.current = true;
@@ -146,6 +174,7 @@ export function ReportReview() {
     try {
       const payload = buildReportSubmissionPayload(reportDraft, locationDraft);
       const result = await submitReportApi(payload, photos.map((photo) => photo.file));
+      saveSubmittedStructuredDetails(result.reportReference, reportDraft);
       const query = new URLSearchParams({
         reportReference: result.reportReference,
         status: result.status,
@@ -189,23 +218,29 @@ export function ReportReview() {
             <div className={styles.sectionHeader}><div><h2>Observation summary</h2><p>This is the information that will be lodged with ReefCare MY.</p></div><Link className={styles.textButton} href="/report-a-reef">Edit observation</Link></div>
             {photos.length > 0 && <div className={styles.reviewPhotos}>{photos.map((photo) => <article className={styles.reviewPhoto} key={photo.id}><Image className={styles.photoImage} src={photo.previewUrl} alt={`Evidence preview: ${photo.file.name}`} width={520} height={320} unoptimized /><p title={photo.file.name}>{photo.file.name}</p></article>)}</div>}
             <dl className={styles.summaryList}>
-              <div><dt>Threat category</dt><dd>{threat?.label ?? "Not provided"}</dd></div>
+              <div><dt>Possible threat type</dt><dd>{threat?.label ?? "Not provided"}</dd></div>
               <div><dt>Observed</dt><dd>{reportDraft.observationDate && reportDraft.observationTime ? `${reportDraft.observationDate}, ${reportDraft.observationTime}` : "Not provided"}</dd></div>
               <div><dt>Estimated depth</dt><dd>{reportDraft.estimatedDepthMetres ? `${reportDraft.estimatedDepthMetres} m` : "Not provided"}</dd></div>
               <div><dt>Photographs</dt><dd>{photos.length || "Not provided"}</dd></div>
               <div className={styles.fullWidth}><dt>Description</dt><dd className={styles.description}>{reportDraft.description.trim() || "Not provided"}</dd></div>
             </dl>
             {(reportDraft.aiSuggestions ?? []).length > 0 && <section className={styles.reviewSuggestions} aria-labelledby="ai-review-heading">
-              <div className={styles.reviewSuggestionHeader}><div><h3 id="ai-review-heading">Review AI-assisted information</h3><p>{unresolvedSuggestions.length} field{unresolvedSuggestions.length === 1 ? "" : "s"} still need your review.</p></div>{reportDraft.aiSuggestions.some((item) => item.status === "unresolved" && !item.conflict) && <button className={styles.secondaryButton} type="button" onClick={acceptAllNonConflicting}>Accept all non-conflicting suggestions</button>}</div>
+              <div className={styles.reviewSuggestionHeader}><div><h3 id="ai-review-heading">Review AI-assisted information</h3><p>{unresolvedSuggestions.length} field{unresolvedSuggestions.length === 1 ? "" : "s"} still need your review.</p></div>{reportDraft.aiSuggestions.some((item) => item.status === "unresolved" && !item.conflict) && <button className={styles.secondaryButton} type="button" onClick={acceptAllNonConflicting}>Accept AI suggestions</button>}</div>
               {reportDraft.aiSuggestions.map((suggestion, index) => <article className={`${styles.reviewSuggestionItem} ${suggestion.conflict && suggestion.status === "unresolved" ? styles.reviewConflict : ""}`} key={`${suggestion.field}-${index}`}>
                 <div><span>{suggestion.label}</span><em>{suggestionStateLabel(suggestion)}</em></div>
-                <strong>{suggestion.status === "removed" ? "Not included" : suggestion.suggestedValue || "Not specified"}</strong>
+                {editingSuggestion === index ? <div className={styles.suggestionEditor}>
+                  {suggestion.field === "possible_threat" ? <select aria-label={`Edit ${suggestion.label}`} value={editedSuggestionValue} onChange={(event) => setEditedSuggestionValue(event.target.value)}><option value="">Not included</option>{categoryReferences.map((category) => <option key={category.code} value={category.label}>{category.label}</option>)}</select> : <input aria-label={`Edit ${suggestion.label}`} value={editedSuggestionValue} onChange={(event) => setEditedSuggestionValue(event.target.value)} placeholder="Not included" />}
+                  <button className={styles.smallButton} type="button" onClick={() => saveEditedSuggestion(index)}>Save</button>
+                  <button className={styles.smallButton} type="button" onClick={() => setEditingSuggestion(null)}>Cancel</button>
+                </div> : <strong>{suggestion.status === "removed" ? "Not included" : suggestion.suggestedValue || "Not included"}</strong>}
                 {suggestion.conflict && suggestion.status === "unresolved" && <p>Your report currently says <strong>{suggestion.observerValue}</strong>. Choose which value should be used.</p>}
-                {suggestion.status === "unresolved" && <div className={styles.compactActions}>
+                {editingSuggestion !== index && <div className={styles.compactActions}>
+                  {suggestion.status === "unresolved" && <>
                   <button className={styles.smallButton} type="button" onClick={() => resolveSuggestion(index, "accept")}>Use AI suggestion</button>
                   {suggestion.conflict && <button className={styles.smallButton} type="button" onClick={() => resolveSuggestion(index, "keep")}>Keep my value</button>}
                   {suggestion.field === "possible_threat" && <button className={styles.smallButton} type="button" onClick={() => resolveSuggestion(index, "unsure")}>Keep Unsure</button>}
-                  <button className={styles.smallButton} type="button" onClick={() => resolveSuggestion(index, "remove")}>Remove</button>
+                  </>}
+                  <button className={styles.smallButton} type="button" onClick={() => beginEditingSuggestion(index)}>Edit</button>
                 </div>}
               </article>)}
             </section>}

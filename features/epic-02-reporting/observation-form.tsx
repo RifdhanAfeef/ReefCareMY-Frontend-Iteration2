@@ -11,13 +11,11 @@ import {
   isValidDisplayDate,
 } from "@/lib/format/date";
 import { getThreatCategories } from "@/lib/api/referenceApi";
-import { checkReportCompleteness } from "@/lib/api/reportsApi";
 import { structureReportDescription, type SmartReportFollowUpQuestion } from "@/lib/api/smartReportApi";
-import type { ReportCompletenessResponse, ThreatCategoryReference } from "@/lib/api/types";
+import type { ThreatCategoryReference } from "@/lib/api/types";
 import { userFacingError } from "@/lib/api/user-facing-error";
-import { buildReportCompletenessPayload } from "./report-payload";
-import { observationCompletenessDisplay } from "./completeness-display";
 import {
+  applySuggestionValue,
   contextualFollowUps,
   mergeSmartReportSuggestions,
   normaliseSmartReportField,
@@ -84,7 +82,7 @@ function formatFileSize(bytes: number) {
 
 export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
   const router = useRouter();
-  const { reportDraft, locationDraft, isAccountDraftRestored, updateReportDraft, saveReportDraft } = useMockAppState();
+  const { reportDraft, isAccountDraftRestored, updateReportDraft, saveReportDraft } = useMockAppState();
   const [photos, setPhotos] = useState<PhotoPreview[]>([]);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [uploadMessage, setUploadMessage] = useState("");
@@ -104,9 +102,6 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
   const lastStructuredDescription = useRef(
     reportDraft.aiSuggestions.length > 0 ? reportDraft.description.trim() : "",
   );
-  const [completeness, setCompleteness] = useState<ReportCompletenessResponse | null>(null);
-  const [completenessError, setCompletenessError] = useState("");
-  const [checkingCompleteness, setCheckingCompleteness] = useState(false);
 
   const runSmartStructuring = useCallback(async (description: string, requestId: number) => {
     setAssistantBusy(true);
@@ -120,8 +115,22 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
         return;
       }
       const nextSuggestions = mergeSmartReportSuggestions(reportDraft, result.suggestions);
-      const nextReport = { ...reportDraft, aiSuggestions: nextSuggestions };
-      updateReportDraft({ aiSuggestions: nextSuggestions });
+      const automaticChanges: Partial<ReportDraft> = { aiSuggestions: nextSuggestions };
+      let nextReport = { ...reportDraft, ...automaticChanges };
+      for (const suggestion of nextSuggestions) {
+        if (suggestion.status !== "unresolved" || suggestion.conflict) continue;
+        if (suggestion.field === "possible_threat" && !nextReport.threatCategoryCode) {
+          const changes = applySuggestionValue(nextReport, suggestion, categoryOptions);
+          Object.assign(automaticChanges, changes);
+          nextReport = { ...nextReport, ...changes };
+        }
+        if (suggestion.field === "estimated_depth_metres" && !nextReport.estimatedDepthMetres) {
+          const changes = applySuggestionValue(nextReport, suggestion, categoryOptions);
+          Object.assign(automaticChanges, changes);
+          nextReport = { ...nextReport, ...changes };
+        }
+      }
+      updateReportDraft(automaticChanges);
       setFollowUpQuestions(contextualFollowUps(nextReport, result.followUpQuestions));
       if (result.missingFields.length > 0) {
         setAssistantMessage(`Consider adding: ${result.missingFields.join(", ")}.`);
@@ -136,7 +145,7 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
     } finally {
       if (requestId === smartStructuringRequest.current) setAssistantBusy(false);
     }
-  }, [reportDraft, updateReportDraft]);
+  }, [categoryOptions, reportDraft, updateReportDraft]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -152,8 +161,6 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
       setUploadMessage("");
       setAssistantMessage("");
       setFollowUpQuestions([]);
-      setCompleteness(null);
-      setCompletenessError("");
     };
     window.addEventListener(selectedReefSiteClearedEvent, clearFreshReportState);
 
@@ -255,8 +262,6 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
       })
       : reportDraft.aiSuggestions;
     updateReportDraft({ ...changes, aiSuggestions });
-    setCompleteness(null);
-    setCompletenessError("");
     if (errorField) setErrors((current) => ({ ...current, [errorField]: undefined }));
   }
 
@@ -272,8 +277,6 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
     if (automaticValues) {
       setErrors((current) => ({ ...current, date: undefined, time: undefined }));
     }
-    setCompleteness(null);
-    setCompletenessError("");
     await saveDraftPhotos(next.map(({ id, file }) => ({ id, file })));
     return automaticValues;
   }
@@ -324,7 +327,6 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
           ? { ...suggestion, ...changes, conflict: false, observerValue: changes.suggestedValue ?? suggestion.observerValue }
           : suggestion),
     });
-    setCompleteness(null);
   }
 
   function answerFollowUp(question: SmartReportFollowUpQuestion, answer: string) {
@@ -346,37 +348,7 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
         : [...reportDraft.aiSuggestions, answerSuggestion],
     });
     setFollowUpQuestions((current) => current.filter((item) => item.field !== question.field));
-    setCompleteness(null);
   }
-
-  useEffect(() => {
-    if (!reportDraft.description.trim()) return;
-    let cancelled = false;
-    const timeoutId = window.setTimeout(async () => {
-      setCheckingCompleteness(true);
-      setCompletenessError("");
-      try {
-        const result = await checkReportCompleteness(buildReportCompletenessPayload(reportDraft, locationDraft, photos.length));
-        if (!cancelled) setCompleteness(result);
-      } catch (error) {
-        if (!cancelled) setCompletenessError(userFacingError(error, "Completeness guidance is unavailable. You can continue filling the form manually."));
-      } finally {
-        if (!cancelled) setCheckingCompleteness(false);
-      }
-    }, 600);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeoutId);
-    };
-  }, [
-    locationDraft,
-    photos.length,
-    reportDraft,
-  ]);
-
-  const completenessDisplay = reportDraft.description.trim() && completeness
-    ? observationCompletenessDisplay(completeness)
-    : null;
 
   function validate() {
     const nextErrors: FieldErrors = {};
@@ -453,18 +425,6 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
           <div className={styles.field}><span className={styles.fieldLabel}>Observation date *</span><DisplayDateInput label="Observation date" required value={reportDraft.observationDate} onChange={(value) => updateField({ observationDate: value }, "date")} invalid={Boolean(errors.date)} describedBy={errors.date ? "observation-date-error" : undefined} />{errors.date && <span className={styles.errorText} id="observation-date-error" role="alert">{errors.date}</span>}</div>
           <label className={styles.field}><span className={styles.fieldLabel}>Approximate observation time *</span><input type="time" value={reportDraft.observationTime} onChange={(event) => updateField({ observationTime: event.target.value }, "time")} aria-invalid={Boolean(errors.time)} />{errors.time && <span className={styles.errorText} role="alert">{errors.time}</span>}</label>
           <label className={`${styles.field} ${styles.fullWidth}`}><span className={styles.fieldLabel}>Describe what you saw *</span><span className={styles.fieldHelp}>You do not need to know the threat type. Include approximate size, depth, contact with coral or marine animals if you remember them.</span><textarea value={reportDraft.description} onChange={(event) => updateField({ description: event.target.value }, "description")} aria-invalid={Boolean(errors.description)} placeholder="Example: Large fishing net tangled around coral north of D'Lagoon, around 10-15 m deep." />{errors.description && <span className={styles.errorText} role="alert">{errors.description}</span>}</label>
-          <label className={styles.field}>
-            <span className={styles.fieldLabel}>Threat category</span>
-            <span className={styles.fieldHelp}>Not selected yet? Keep Unsure and ReefCare can suggest a possible category.</span>
-            <select value={reportDraft.threatCategoryCode} disabled={categoryOptions.length === 0} onChange={(event) => { const selected = categoryOptions.find((category) => category.code === event.target.value); updateField({ threatCategoryCode: (selected?.code ?? "") as ReportDraft["threatCategoryCode"], threatCategoryId: selected?.threatCategoryId ?? null }, "threat"); }} aria-invalid={Boolean(errors.threat)}><option value="">{categoryOptions.length === 0 ? "Loading categories…" : "Not selected yet"}</option>{categoryOptions.map((category) => <option value={category.code} key={category.code}>{category.label}</option>)}</select>
-            {categoryLoadError && <span className={styles.errorText} role="alert">{categoryLoadError}</span>}
-            {errors.threat && <span className={styles.errorText} role="alert">{errors.threat}</span>}
-          </label>
-          <label className={styles.field}>
-            <span className={styles.fieldLabel}>Estimated depth in metres <span className={styles.fieldMeta}>Optional</span></span>
-            <input type="number" min="0" step="0.1" inputMode="decimal" placeholder="For example, 15" value={reportDraft.estimatedDepthMetres} onChange={(event) => updateField({ estimatedDepthMetres: event.target.value }, "depth")} aria-invalid={Boolean(errors.depth)} />
-            {errors.depth && <span className={styles.errorText} role="alert">{errors.depth}</span>}
-          </label>
         </div>
 
         <section className={styles.assistantCard} aria-labelledby="smart-report-heading">
@@ -475,15 +435,25 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
             const suggestion = suggestionIndex >= 0 ? reportDraft.aiSuggestions[suggestionIndex] : undefined;
             return <label className={`${styles.inlineSuggestionField} ${suggestion?.conflict && suggestion.status === "unresolved" ? styles.conflictField : ""}`} key={field}>
               <span className={styles.inlineFieldHeading}><strong>{label}</strong><em data-state={suggestionStateLabel(suggestion).toLowerCase().replaceAll(" ", "-")}>{suggestionStateLabel(suggestion)}</em></span>
-              <input
+              {field === "possible_threat" ? <>
+                <select aria-label="Possible threat type structured value" value={reportDraft.threatCategoryCode} disabled={categoryOptions.length === 0} aria-invalid={Boolean(errors.threat)} onChange={(event) => { const selected = categoryOptions.find((category) => category.code === event.target.value); updateField({ threatCategoryCode: (selected?.code ?? "") as ReportDraft["threatCategoryCode"], threatCategoryId: selected?.threatCategoryId ?? null }, "threat"); }}>
+                  <option value="">{categoryOptions.length === 0 ? "Loading choices…" : "Select a possible threat type"}</option>
+                  {categoryOptions.map((category) => <option value={category.code} key={category.code}>{category.label}</option>)}
+                </select>
+                {categoryLoadError && <span className={styles.errorText} role="alert">{categoryLoadError}</span>}
+                {errors.threat && <span className={styles.errorText} role="alert">{errors.threat}</span>}
+              </> : field === "estimated_depth_metres" ? <>
+                <input type="number" min="0" step="0.1" inputMode="decimal" aria-label="Estimated depth structured value" placeholder="Not included" value={reportDraft.estimatedDepthMetres} onChange={(event) => updateField({ estimatedDepthMetres: event.target.value }, "depth")} aria-invalid={Boolean(errors.depth)} />
+                {errors.depth && <span className={styles.errorText} role="alert">{errors.depth}</span>}
+              </> : <input
                 aria-label={`${label} structured value`}
-                placeholder="Not specified"
+                placeholder="Not included"
                 value={suggestion?.status === "removed" ? "" : suggestion?.suggestedValue ?? ""}
                 onChange={(event) => {
-                  if (suggestionIndex >= 0) updateSuggestion(suggestionIndex, { suggestedValue: event.target.value, status: "corrected" });
-                  else answerFollowUp({ field, question: label, options: [] }, event.target.value);
+                  if (suggestionIndex >= 0) updateSuggestion(suggestionIndex, { suggestedValue: event.target.value, status: event.target.value.trim() ? "corrected" : "removed" });
+                  else if (event.target.value.trim()) answerFollowUp({ field, question: label, options: [] }, event.target.value);
                 }}
-              />
+              />}
               {suggestion?.conflict && suggestion.status === "unresolved" && <span className={styles.conflictText}>Your report already says {suggestion.observerValue}. Review this difference before submitting.</span>}
             </label>;
           })}</div>
@@ -494,14 +464,6 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
               <div className={styles.optionButtons}>{question.options.map((option) => <button type="button" key={option} onClick={() => answerFollowUp(question, option)}>{option}</button>)}</div>
             </fieldset>)}
           </div>}
-          <p className={styles.privacyNote}>Only the written description is sent for structuring. Photos and precise location are not sent to the AI service.</p>
-        </section>
-
-        <section className={styles.completenessCard} aria-labelledby="completeness-heading">
-          <div><h3 id="completeness-heading">Report readiness</h3><p>Required information can block submission. Recommended information is useful but always optional.</p></div>
-          {checkingCompleteness && <span className={styles.muted} role="status">Updating…</span>}
-          {completenessError && <p className={styles.errorText} role="alert">{completenessError}</p>}
-          {completenessDisplay && <div className={styles.checkResults} role="status"><strong>{completenessDisplay.summary}</strong>{completenessDisplay.required.length > 0 && <div><span className={styles.requiredTag}>Required</span><p>{completenessDisplay.required.join(", ")}</p></div>}{completenessDisplay.recommended.length > 0 && <div><span className={styles.recommendedTag}>Recommended · optional</span><p>{completenessDisplay.recommended.join(", ")}</p></div>}</div>}
         </section>
 
         <div className={styles.formFooter}>

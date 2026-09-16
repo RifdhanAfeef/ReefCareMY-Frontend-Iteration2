@@ -1,8 +1,8 @@
 import type { ReportCompletenessResponse } from "@/lib/api/types";
 
 const labels: Record<string, string> = {
-  threatcategoryid: "Threat type",
-  threatcategory: "Threat type",
+  threatcategoryid: "Possible threat type",
+  threatcategory: "Possible threat type",
   observedat: "Observation date and time",
   observationdate: "Observation date",
   observationtime: "Observation time",
