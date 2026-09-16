@@ -118,12 +118,22 @@
 .assistantHeader h3, .completenessCard h3 { margin: 2px 0 5px; }
 .assistantLabel { color: #27677d !important; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
 .assistantMessage { padding: 11px 13px; background: #fff; border-radius: 10px; }
-.suggestionList { display: grid; gap: 10px; }
-.suggestionRow { display: grid; grid-template-columns: minmax(145px, .7fr) minmax(180px, 1fr) auto; gap: 12px; align-items: center; padding: 14px; background: #fff; border: 1px solid #cfe2e8; border-radius: 11px; }
-.suggestionRow > div:first-child { display: grid; gap: 4px; }
-.suggestionRow input { min-height: 42px; padding: 8px 11px; border: 1px solid var(--color-border); border-radius: var(--radius-field); }
-.aiBadge { width: fit-content; color: #27677d; font-size: 11px; font-weight: 900; text-transform: uppercase; }
-.suggestionStatus { grid-column: 2 / -1; color: var(--color-muted); font-size: 12px; text-transform: capitalize; }
+.inlineSuggestionGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.inlineSuggestionField { display: grid; gap: 8px; padding: 14px; background: #fff; border: 1px solid #cfe2e8; border-radius: 11px; }
+.inlineSuggestionField input { min-height: 42px; padding: 8px 11px; border: 1px solid var(--color-border); border-radius: var(--radius-field); }
+.inlineFieldHeading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.inlineFieldHeading em { width: fit-content; padding: 4px 8px; color: #27677d; background: #e4f4f7; border-radius: 999px; font-size: 10px; font-style: normal; font-weight: 900; text-transform: uppercase; }
+.inlineFieldHeading em[data-state="needs-checking"] { color: #765015; background: #fff3dc; }
+.inlineFieldHeading em[data-state="entered-by-you"] { color: var(--color-primary-hover); background: var(--color-info); }
+.inlineFieldHeading em[data-state="not-specified"] { color: var(--color-muted); background: #f2f5f4; }
+.conflictField { border-color: #d7a54b; background: #fffaf1; }
+.conflictText { color: #765015; font-size: 12px; }
+.followUpSection { display: grid; gap: 14px; padding: 18px; background: #fff; border: 1px solid #cfe2e8; border-radius: 11px; }
+.followUpSection h4 { margin: 0; }
+.followUpSection fieldset { display: grid; gap: 9px; padding: 0; border: 0; }
+.followUpSection legend { margin-bottom: 8px; font-weight: 800; }
+.optionButtons { display: flex; flex-wrap: wrap; gap: 8px; }
+.optionButtons button { min-height: 36px; padding: 7px 11px; color: var(--color-primary-hover); background: #fff; border: 1px solid var(--color-primary); border-radius: 999px; font-weight: 800; cursor: pointer; }
 .privacyNote { padding-top: 12px; border-top: 1px solid #cfe2e8; }
 .checkResults { grid-column: 1 / -1; display: grid; gap: 12px; padding: 16px; background: #fff; border: 1px solid var(--color-border); border-radius: 11px; }
 .checkResults > div { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; }
@@ -132,13 +142,18 @@
 .recommendedTag { color: #765015; background: #fff3dc; }
 .reviewSuggestions { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--color-border); }
 .reviewSuggestions h3 { margin: 0 0 10px; }
-.reviewSuggestions > div { display: grid; grid-template-columns: minmax(120px, .6fr) 1fr auto; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--color-border); }
 .reviewSuggestions em { color: var(--color-muted); font-size: 12px; text-transform: capitalize; }
+.reviewSuggestionHeader { display: flex; align-items: start; justify-content: space-between; gap: 20px; margin-bottom: 12px; }
+.reviewSuggestionHeader p { margin: 0; color: var(--color-muted); }
+.reviewSuggestionItem { display: grid; grid-template-columns: minmax(140px, .55fr) 1fr; gap: 8px 16px; padding: 16px 0; border-bottom: 1px solid var(--color-border); }
+.reviewSuggestionItem > div:first-child { display: grid; gap: 4px; }
+.reviewSuggestionItem > p, .reviewSuggestionItem > .compactActions { grid-column: 1 / -1; margin: 0; }
+.reviewConflict { margin-inline: -12px; padding-inline: 12px; background: #fffaf1; border: 1px solid #efd6a4; border-radius: 10px; }
 
 @media (max-width: 650px) {
   .reportProgress { grid-template-columns: 1fr; gap: 8px; }
   .selectedSiteNotice { align-items: flex-start; flex-direction: column; gap: 10px; }
   .assistantHeader { align-items: stretch; flex-direction: column; }
-  .suggestionRow, .completenessCard, .reviewSuggestions > div { grid-template-columns: 1fr; }
-  .suggestionStatus { grid-column: auto; }
+  .inlineSuggestionGrid, .completenessCard, .reviewSuggestionItem { grid-template-columns: 1fr; }
+  .reviewSuggestionHeader { align-items: stretch; flex-direction: column; }
 }

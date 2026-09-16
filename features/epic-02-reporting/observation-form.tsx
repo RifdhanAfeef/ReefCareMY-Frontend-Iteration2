@@ -12,11 +12,19 @@ import {
 } from "@/lib/format/date";
 import { getThreatCategories } from "@/lib/api/referenceApi";
 import { checkReportCompleteness } from "@/lib/api/reportsApi";
-import { structureReportDescription } from "@/lib/api/smartReportApi";
+import { structureReportDescription, type SmartReportFollowUpQuestion } from "@/lib/api/smartReportApi";
 import type { ReportCompletenessResponse, ThreatCategoryReference } from "@/lib/api/types";
 import { userFacingError } from "@/lib/api/user-facing-error";
 import { buildReportCompletenessPayload } from "./report-payload";
 import { observationCompletenessDisplay } from "./completeness-display";
+import {
+  contextualFollowUps,
+  mergeSmartReportSuggestions,
+  normaliseSmartReportField,
+  observerValueFor,
+  smartReportFields,
+  suggestionStateLabel,
+} from "./smart-report-state";
 import { createPhotoId, loadDraftPhotos, saveDraftPhotos, type StoredDraftPhoto } from "./draft-storage";
 import {
   readSelectedReefSite,
@@ -91,6 +99,7 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
   });
   const [assistantMessage, setAssistantMessage] = useState("");
   const [assistantBusy, setAssistantBusy] = useState(false);
+  const [followUpQuestions, setFollowUpQuestions] = useState<SmartReportFollowUpQuestion[]>([]);
   const smartStructuringRequest = useRef(0);
   const lastStructuredDescription = useRef(
     reportDraft.aiSuggestions.length > 0 ? reportDraft.description.trim() : "",
@@ -110,15 +119,16 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
         setAssistantMessage(result.message ?? "Smart Report Structuring is unavailable. Continue manually.");
         return;
       }
-      updateReportDraft({
-        aiSuggestions: result.suggestions.map((suggestion) => ({ ...suggestion, status: "unresolved" })),
-      });
+      const nextSuggestions = mergeSmartReportSuggestions(reportDraft, result.suggestions);
+      const nextReport = { ...reportDraft, aiSuggestions: nextSuggestions };
+      updateReportDraft({ aiSuggestions: nextSuggestions });
+      setFollowUpQuestions(contextualFollowUps(nextReport, result.followUpQuestions));
       if (result.missingFields.length > 0) {
         setAssistantMessage(`Consider adding: ${result.missingFields.join(", ")}.`);
       } else if (result.warnings.length > 0) {
         setAssistantMessage(result.warnings.join(" "));
       } else {
-        setAssistantMessage("Suggestions are ready for your review.");
+        setAssistantMessage("Suggested details have been added to the report fields for final review.");
       }
     } catch (error) {
       if (requestId !== smartStructuringRequest.current) return;
@@ -126,7 +136,7 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
     } finally {
       if (requestId === smartStructuringRequest.current) setAssistantBusy(false);
     }
-  }, [updateReportDraft]);
+  }, [reportDraft, updateReportDraft]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -141,6 +151,7 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
       setErrors({});
       setUploadMessage("");
       setAssistantMessage("");
+      setFollowUpQuestions([]);
       setCompleteness(null);
       setCompletenessError("");
     };
@@ -226,7 +237,20 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
   }, [reportDraft.threatCategoryCode, reportDraft.threatCategoryId, updateReportDraft]);
 
   function updateField(changes: Partial<ReportDraft>, errorField?: keyof FieldErrors) {
-    updateReportDraft(changes);
+    const nextReport = { ...reportDraft, ...changes };
+    const manuallyChangedFields = new Set<string>();
+    if ("threatCategoryCode" in changes || "threatCategoryId" in changes) manuallyChangedFields.add("possible_threat");
+    if ("estimatedDepthMetres" in changes) manuallyChangedFields.add("estimated_depth_metres");
+    const aiSuggestions = manuallyChangedFields.size > 0
+      ? reportDraft.aiSuggestions.map((suggestion) => {
+        if (!manuallyChangedFields.has(suggestion.field)) return suggestion;
+        const observerValue = observerValueFor(nextReport, suggestion.field);
+        return observerValue
+          ? { ...suggestion, suggestedValue: observerValue, observerValue, status: "corrected" as const, conflict: false }
+          : { ...suggestion, observerValue: null, status: "unresolved" as const, conflict: false };
+      })
+      : reportDraft.aiSuggestions;
+    updateReportDraft({ ...changes, aiSuggestions });
     setCompleteness(null);
     setCompletenessError("");
     if (errorField) setErrors((current) => ({ ...current, [errorField]: undefined }));
@@ -292,24 +316,63 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
   function updateSuggestion(index: number, changes: Partial<ReportDraft["aiSuggestions"][number]>) {
     updateReportDraft({
       aiSuggestions: (reportDraft.aiSuggestions ?? []).map((suggestion, suggestionIndex) =>
-        suggestionIndex === index ? { ...suggestion, ...changes } : suggestion),
+        suggestionIndex === index
+          ? { ...suggestion, ...changes, conflict: false, observerValue: changes.suggestedValue ?? suggestion.observerValue }
+          : suggestion),
     });
     setCompleteness(null);
   }
 
-  async function runCompletenessCheck() {
-    setCheckingCompleteness(true);
-    setCompletenessError("");
-    try {
-      setCompleteness(await checkReportCompleteness(buildReportCompletenessPayload(reportDraft, locationDraft, photos.length)));
-    } catch (error) {
-      setCompletenessError(userFacingError(error, "Completeness guidance is unavailable. You can continue filling the form manually."));
-    } finally {
-      setCheckingCompleteness(false);
-    }
+  function answerFollowUp(question: SmartReportFollowUpQuestion, answer: string) {
+    const field = normaliseSmartReportField(question.field);
+    if (!field) return;
+    const existingIndex = reportDraft.aiSuggestions.findIndex((suggestion) => suggestion.field === field);
+    const label = smartReportFields.find((item) => item.field === field)?.label ?? question.field;
+    const answerSuggestion: ReportDraft["aiSuggestions"][number] = {
+      field,
+      label,
+      suggestedValue: answer,
+      status: "corrected",
+      conflict: false,
+      observerValue: answer,
+    };
+    updateReportDraft({
+      aiSuggestions: existingIndex >= 0
+        ? reportDraft.aiSuggestions.map((suggestion, index) => index === existingIndex ? answerSuggestion : suggestion)
+        : [...reportDraft.aiSuggestions, answerSuggestion],
+    });
+    setFollowUpQuestions((current) => current.filter((item) => item.field !== question.field));
+    setCompleteness(null);
   }
 
-  const completenessDisplay = completeness ? observationCompletenessDisplay(completeness) : null;
+  useEffect(() => {
+    if (!reportDraft.description.trim()) return;
+    let cancelled = false;
+    const timeoutId = window.setTimeout(async () => {
+      setCheckingCompleteness(true);
+      setCompletenessError("");
+      try {
+        const result = await checkReportCompleteness(buildReportCompletenessPayload(reportDraft, locationDraft, photos.length));
+        if (!cancelled) setCompleteness(result);
+      } catch (error) {
+        if (!cancelled) setCompletenessError(userFacingError(error, "Completeness guidance is unavailable. You can continue filling the form manually."));
+      } finally {
+        if (!cancelled) setCheckingCompleteness(false);
+      }
+    }, 600);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    locationDraft,
+    photos.length,
+    reportDraft,
+  ]);
+
+  const completenessDisplay = reportDraft.description.trim() && completeness
+    ? observationCompletenessDisplay(completeness)
+    : null;
 
   function validate() {
     const nextErrors: FieldErrors = {};
@@ -383,31 +446,56 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
             </div>
           </section>
 
-          <label className={styles.field}><span className={styles.fieldLabel}>Threat category *</span><select value={reportDraft.threatCategoryCode} disabled={categoryOptions.length === 0} onChange={(event) => { const selected = categoryOptions.find((category) => category.code === event.target.value); updateField({ threatCategoryCode: (selected?.code ?? "") as ReportDraft["threatCategoryCode"], threatCategoryId: selected?.threatCategoryId ?? null }, "threat"); }} aria-invalid={Boolean(errors.threat)}><option value="">{categoryOptions.length === 0 ? "Loading categories…" : "Select a category"}</option>{categoryOptions.map((category) => <option value={category.code} key={category.code}>{category.label}</option>)}</select>{categoryLoadError && <span className={styles.errorText} role="alert">{categoryLoadError}</span>}{errors.threat && <span className={styles.errorText} role="alert">{errors.threat}</span>}</label>
           <div className={styles.field}><span className={styles.fieldLabel}>Observation date *</span><DisplayDateInput label="Observation date" required value={reportDraft.observationDate} onChange={(value) => updateField({ observationDate: value }, "date")} invalid={Boolean(errors.date)} describedBy={errors.date ? "observation-date-error" : undefined} />{errors.date && <span className={styles.errorText} id="observation-date-error" role="alert">{errors.date}</span>}</div>
           <label className={styles.field}><span className={styles.fieldLabel}>Approximate observation time *</span><input type="time" value={reportDraft.observationTime} onChange={(event) => updateField({ observationTime: event.target.value }, "time")} aria-invalid={Boolean(errors.time)} />{errors.time && <span className={styles.errorText} role="alert">{errors.time}</span>}</label>
-          <label className={styles.field}><span className={styles.fieldLabel}>Estimated depth in metres <span className={styles.fieldMeta}>Optional</span></span><input type="number" min="0" step="0.1" inputMode="decimal" placeholder="For example, 15" value={reportDraft.estimatedDepthMetres} onChange={(event) => updateField({ estimatedDepthMetres: event.target.value }, "depth")} aria-invalid={Boolean(errors.depth)} />{errors.depth && <span className={styles.errorText} role="alert">{errors.depth}</span>}</label>
-          <label className={`${styles.field} ${styles.fullWidth}`}><span className={styles.fieldLabel}>Short description *</span><span className={styles.fieldHelp}>Describe only what you observed, including approximate size or interaction with coral when relevant.</span><textarea value={reportDraft.description} onChange={(event) => updateField({ description: event.target.value }, "description")} aria-invalid={Boolean(errors.description)} placeholder="Example: Large fishing net tangled around branching coral, roughly 15 m deep." />{errors.description && <span className={styles.errorText} role="alert">{errors.description}</span>}</label>
+          <label className={`${styles.field} ${styles.fullWidth}`}><span className={styles.fieldLabel}>Describe what you saw *</span><span className={styles.fieldHelp}>You do not need to know the threat type. Include approximate size, depth, contact with coral or marine animals if you remember them.</span><textarea value={reportDraft.description} onChange={(event) => updateField({ description: event.target.value }, "description")} aria-invalid={Boolean(errors.description)} placeholder="Example: Large fishing net tangled around coral north of D'Lagoon, around 10-15 m deep." />{errors.description && <span className={styles.errorText} role="alert">{errors.description}</span>}</label>
+          <label className={styles.field}>
+            <span className={styles.fieldLabel}>Threat category</span>
+            <span className={styles.fieldHelp}>Not selected yet? Keep Unsure and ReefCare can suggest a possible category.</span>
+            <select value={reportDraft.threatCategoryCode} disabled={categoryOptions.length === 0} onChange={(event) => { const selected = categoryOptions.find((category) => category.code === event.target.value); updateField({ threatCategoryCode: (selected?.code ?? "") as ReportDraft["threatCategoryCode"], threatCategoryId: selected?.threatCategoryId ?? null }, "threat"); }} aria-invalid={Boolean(errors.threat)}><option value="">{categoryOptions.length === 0 ? "Loading categories…" : "Not selected yet"}</option>{categoryOptions.map((category) => <option value={category.code} key={category.code}>{category.label}</option>)}</select>
+            {categoryLoadError && <span className={styles.errorText} role="alert">{categoryLoadError}</span>}
+            {errors.threat && <span className={styles.errorText} role="alert">{errors.threat}</span>}
+          </label>
+          <label className={styles.field}>
+            <span className={styles.fieldLabel}>Estimated depth in metres <span className={styles.fieldMeta}>Optional</span></span>
+            <input type="number" min="0" step="0.1" inputMode="decimal" placeholder="For example, 15" value={reportDraft.estimatedDepthMetres} onChange={(event) => updateField({ estimatedDepthMetres: event.target.value }, "depth")} aria-invalid={Boolean(errors.depth)} />
+            {errors.depth && <span className={styles.errorText} role="alert">{errors.depth}</span>}
+          </label>
         </div>
 
         <section className={styles.assistantCard} aria-labelledby="smart-report-heading">
-          <div className={styles.assistantHeader}><div><p className={styles.assistantLabel}>Optional AI assistance</p><h3 id="smart-report-heading">Smart Report Structuring</h3><p>AI automatically checks your description for possible structured details and missing information. Nothing is accepted until you confirm it.</p></div>{assistantBusy && <span className={styles.muted} role="status">Checking…</span>}</div>
+          <div className={styles.assistantHeader}><div><p className={styles.assistantLabel}>Automatic AI assistance</p><h3 id="smart-report-heading">Structured report details</h3><p>ReefCare structures the written description when available. AI suggestions remain clearly marked and are not accepted automatically.</p></div>{assistantBusy && <span className={styles.muted} role="status">Checking…</span>}</div>
           {assistantMessage && <p className={styles.assistantMessage} role="status">{assistantMessage}</p>}
-          {(reportDraft.aiSuggestions ?? []).length > 0 && <div className={styles.suggestionList}>{reportDraft.aiSuggestions.map((suggestion, index) => <article className={styles.suggestionRow} key={`${suggestion.field}-${index}`}>
-            <div><span className={styles.aiBadge}>AI suggestion</span><strong>{suggestion.label}</strong></div>
-            <input aria-label={`${suggestion.label} suggested value`} value={suggestion.suggestedValue ?? ""} disabled={suggestion.status === "removed"} onChange={(event) => updateSuggestion(index, { suggestedValue: event.target.value, status: "corrected" })} />
-            <div className={styles.compactActions}>
-              <button className={suggestion.status === "confirmed" ? styles.selectedAction : styles.smallButton} type="button" onClick={() => updateSuggestion(index, { status: "confirmed" })}>Confirm</button>
-              <button className={suggestion.status === "removed" ? styles.selectedAction : styles.smallButton} type="button" onClick={() => updateSuggestion(index, { status: "removed" })}>Remove</button>
-            </div>
-            <span className={styles.suggestionStatus}>Status: {suggestion.status}</span>
-          </article>)}</div>}
+          <div className={styles.inlineSuggestionGrid}>{smartReportFields.map(({ field, label }) => {
+            const suggestionIndex = reportDraft.aiSuggestions.findIndex((item) => item.field === field);
+            const suggestion = suggestionIndex >= 0 ? reportDraft.aiSuggestions[suggestionIndex] : undefined;
+            return <label className={`${styles.inlineSuggestionField} ${suggestion?.conflict && suggestion.status === "unresolved" ? styles.conflictField : ""}`} key={field}>
+              <span className={styles.inlineFieldHeading}><strong>{label}</strong><em data-state={suggestionStateLabel(suggestion).toLowerCase().replaceAll(" ", "-")}>{suggestionStateLabel(suggestion)}</em></span>
+              <input
+                aria-label={`${label} structured value`}
+                placeholder="Not specified"
+                value={suggestion?.status === "removed" ? "" : suggestion?.suggestedValue ?? ""}
+                onChange={(event) => {
+                  if (suggestionIndex >= 0) updateSuggestion(suggestionIndex, { suggestedValue: event.target.value, status: "corrected" });
+                  else answerFollowUp({ field, question: label, options: [] }, event.target.value);
+                }}
+              />
+              {suggestion?.conflict && suggestion.status === "unresolved" && <span className={styles.conflictText}>Your report already says {suggestion.observerValue}. Review this difference before submitting.</span>}
+            </label>;
+          })}</div>
+          {followUpQuestions.length > 0 && <div className={styles.followUpSection}>
+            <h4>{followUpQuestions.length} optional detail{followUpQuestions.length === 1 ? "" : "s"} could make this report more useful</h4>
+            {followUpQuestions.map((question) => <fieldset key={`${question.field}-${question.question}`}>
+              <legend>{question.question}</legend>
+              <div className={styles.optionButtons}>{question.options.map((option) => <button type="button" key={option} onClick={() => answerFollowUp(question, option)}>{option}</button>)}</div>
+            </fieldset>)}
+          </div>}
           <p className={styles.privacyNote}>Only the written description is sent for structuring. Photos and precise location are not sent to the AI service.</p>
         </section>
 
         <section className={styles.completenessCard} aria-labelledby="completeness-heading">
-          <div><h3 id="completeness-heading">Report completeness</h3><p>Check required items and optional details that could help a coordinator.</p></div>
-          <button className={styles.secondaryButton} type="button" disabled={checkingCompleteness} onClick={runCompletenessCheck}>{checkingCompleteness ? "Checking…" : "Check completeness"}</button>
+          <div><h3 id="completeness-heading">Report readiness</h3><p>Required information can block submission. Recommended information is useful but always optional.</p></div>
+          {checkingCompleteness && <span className={styles.muted} role="status">Updating…</span>}
           {completenessError && <p className={styles.errorText} role="alert">{completenessError}</p>}
           {completenessDisplay && <div className={styles.checkResults} role="status"><strong>{completenessDisplay.summary}</strong>{completenessDisplay.required.length > 0 && <div><span className={styles.requiredTag}>Required</span><p>{completenessDisplay.required.join(", ")}</p></div>}{completenessDisplay.recommended.length > 0 && <div><span className={styles.recommendedTag}>Recommended · optional</span><p>{completenessDisplay.recommended.join(", ")}</p></div>}</div>}
         </section>

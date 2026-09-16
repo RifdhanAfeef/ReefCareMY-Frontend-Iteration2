@@ -83,7 +83,13 @@ function restoreReportDraft(stored?: Partial<ReportDraft>): ReportDraft {
     ...initialReportDraft,
     ...stored,
     photos: Array.isArray(stored.photos) ? stored.photos : [],
-    aiSuggestions: Array.isArray(stored.aiSuggestions) ? stored.aiSuggestions : [],
+    aiSuggestions: Array.isArray(stored.aiSuggestions)
+      ? stored.aiSuggestions.map((suggestion) => ({
+        ...suggestion,
+        conflict: Boolean(suggestion.conflict),
+        observerValue: suggestion.observerValue ?? null,
+      }))
+      : [],
   };
 }
 

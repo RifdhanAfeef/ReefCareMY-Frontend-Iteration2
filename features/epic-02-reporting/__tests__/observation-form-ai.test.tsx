@@ -61,6 +61,7 @@ describe("automatic Smart Report Structuring", () => {
       available: true,
       suggestions: [{ field: "estimated_depth", label: "Estimated depth", suggestedValue: "12m" }],
       missingFields: ["approximate size"],
+      followUpQuestions: [],
       warnings: [],
       requiresUserConfirmation: true,
     });
@@ -82,7 +83,7 @@ describe("automatic Smart Report Structuring", () => {
       "A large fishing net is tangled around coral at about 12 metres.",
     );
     expect(updateReportDraft).toHaveBeenCalledWith({
-      aiSuggestions: [expect.objectContaining({ field: "estimated_depth", status: "unresolved" })],
+      aiSuggestions: [expect.objectContaining({ field: "estimated_depth_metres", status: "unresolved", conflict: false })],
     });
     expect(screen.getByText(/Consider adding: approximate size/i)).toBeInTheDocument();
   });

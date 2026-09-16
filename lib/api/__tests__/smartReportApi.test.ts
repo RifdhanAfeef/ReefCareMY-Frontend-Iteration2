@@ -32,6 +32,7 @@ describe("Smart Report Structuring API", () => {
       { field: "interaction", label: "Interaction", suggestedValue: "tangled around coral" },
     ]);
     expect(result.missingFields).toEqual(["observation time"]);
+    expect(result.followUpQuestions).toEqual([]);
   });
 
   it("accepts the older array response without making AI mandatory", async () => {

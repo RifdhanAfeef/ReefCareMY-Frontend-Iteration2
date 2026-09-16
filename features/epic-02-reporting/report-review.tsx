@@ -8,11 +8,13 @@ import { ReviewLocationSummary } from "@/features/epic-04-location/location-flow
 import { useMockAppState } from "@/features/shared/mock-app-state";
 import { isFutureDisplayDateTime, isValidDisplayDate } from "@/lib/format/date";
 import { reviewReport, submitReport as submitReportApi } from "@/lib/api/reportsApi";
-import type { ReportReviewResponse } from "@/lib/api/types";
+import { getThreatCategories } from "@/lib/api/referenceApi";
+import type { ReportReviewResponse, ThreatCategoryReference } from "@/lib/api/types";
 import { userFacingError } from "@/lib/api/user-facing-error";
 import { clearDraftPhotos, loadDraftPhotos, type StoredDraftPhoto } from "./draft-storage";
 import { getThreatCategory } from "./threat-data";
 import { buildReportReviewPayload, buildReportSubmissionPayload } from "./report-payload";
+import { applySuggestionValue, suggestionStateLabel } from "./smart-report-state";
 import styles from "./reporting.module.css";
 import { formatCompletenessItem } from "./completeness-display";
 
@@ -20,7 +22,7 @@ type ReviewPhoto = StoredDraftPhoto & { previewUrl: string };
 
 export function ReportReview() {
   const router = useRouter();
-  const { reportDraft, locationDraft, resetReportDraft } = useMockAppState();
+  const { reportDraft, locationDraft, updateReportDraft, resetReportDraft } = useMockAppState();
   const [photos, setPhotos] = useState<ReviewPhoto[]>([]);
   const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -31,8 +33,17 @@ export function ReportReview() {
   const [backendReview, setBackendReview] = useState<ReportReviewResponse | null>(null);
   const [reviewError, setReviewError] = useState("");
   const [reviewing, setReviewing] = useState(true);
+  const [categoryReferences, setCategoryReferences] = useState<ThreatCategoryReference[]>([]);
   const threat = getThreatCategory(reportDraft.threatCategoryCode);
   const session = locationDraft.sessions.find((item) => item.id === locationDraft.selectedSessionId);
+
+  useEffect(() => {
+    let cancelled = false;
+    getThreatCategories()
+      .then((categories) => { if (!cancelled) setCategoryReferences(categories); })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,6 +96,48 @@ export function ReportReview() {
   const backendBlocking = backendReview ? !backendReview.isSubmittable : false;
   const canSubmit = missingItems.length === 0 && unresolvedSuggestions.length === 0 && !backendBlocking && !reviewing;
 
+  function resolveSuggestion(index: number, action: "accept" | "keep" | "remove" | "unsure") {
+    const suggestion = reportDraft.aiSuggestions[index];
+    if (!suggestion) return;
+    const nextSuggestions = reportDraft.aiSuggestions.map((item, suggestionIndex) => {
+      if (suggestionIndex !== index) return item;
+      if (action === "remove") return { ...item, status: "removed" as const, conflict: false };
+      if (action === "keep") return {
+        ...item,
+        suggestedValue: item.observerValue,
+        status: "corrected" as const,
+        conflict: false,
+      };
+      if (action === "unsure") return {
+        ...item,
+        suggestedValue: "Unsure",
+        status: "corrected" as const,
+        conflict: false,
+        observerValue: "Unsure",
+      };
+      return { ...item, status: "confirmed" as const, conflict: false };
+    });
+    const fieldChanges = action === "accept"
+      ? applySuggestionValue(reportDraft, suggestion, categoryReferences)
+      : action === "unsure" && suggestion.field === "possible_threat"
+        ? {
+            threatCategoryCode: "unsure" as const,
+            threatCategoryId: categoryReferences.find((category) => category.code === "unsure")?.threatCategoryId ?? 5,
+          }
+        : {};
+    updateReportDraft({ ...fieldChanges, aiSuggestions: nextSuggestions });
+  }
+
+  function acceptAllNonConflicting() {
+    let nextReport = { ...reportDraft, aiSuggestions: reportDraft.aiSuggestions.map((item) => ({ ...item })) };
+    nextReport.aiSuggestions.forEach((suggestion, index) => {
+      if (suggestion.status !== "unresolved" || suggestion.conflict) return;
+      nextReport = { ...nextReport, ...applySuggestionValue(nextReport, suggestion, categoryReferences) };
+      nextReport.aiSuggestions[index] = { ...suggestion, status: "confirmed", conflict: false };
+    });
+    updateReportDraft(nextReport);
+  }
+
   async function submit() {
     if (!canSubmit || submissionInProgress.current) return;
     submissionInProgress.current = true;
@@ -127,7 +180,7 @@ export function ReportReview() {
       {submissionError && <section className={styles.errorBox} role="alert"><strong>Report not submitted</strong><p>{submissionError}</p></section>}
       {reviewing && <section className={styles.infoBox} role="status"><strong>Checking report completeness…</strong><p>Required fields, suggestions and location guidance are being checked.</p></section>}
       {reviewError && <section className={styles.errorBox} role="alert"><strong>Server review unavailable</strong><p>{reviewError}</p></section>}
-      {unresolvedSuggestions.length > 0 && <section className={styles.errorBox} role="alert"><strong>Resolve AI suggestions before submitting</strong><p>Return to observation details and confirm, correct or remove: {unresolvedSuggestions.map((item) => item.field.replaceAll("_", " ")).join(", ")}.</p><Link className={styles.textButton} href="/report-a-reef">Review suggestions</Link></section>}
+      {unresolvedSuggestions.length > 0 && <section className={styles.warningBox} role="status"><strong>AI-assisted details need your review</strong><p>Resolve the highlighted fields below before submitting.</p></section>}
       {backendReview?.locationWarning?.hasWarning && <section className={styles.warningBox} role="status"><strong>Location guidance</strong><p>{backendReview.locationWarning.message}</p><small>This warning does not block submission.</small></section>}
 
       <div className={styles.reviewLayout}>
@@ -142,7 +195,20 @@ export function ReportReview() {
               <div><dt>Photographs</dt><dd>{photos.length || "Not provided"}</dd></div>
               <div className={styles.fullWidth}><dt>Description</dt><dd className={styles.description}>{reportDraft.description.trim() || "Not provided"}</dd></div>
             </dl>
-            {(reportDraft.aiSuggestions ?? []).length > 0 && <div className={styles.reviewSuggestions}><h3>AI suggestions reviewed by you</h3>{reportDraft.aiSuggestions.map((suggestion, index) => <div key={`${suggestion.field}-${index}`}><span>{suggestion.label}</span><strong>{suggestion.status === "removed" ? "Removed" : suggestion.suggestedValue || "Not specified"}</strong><em>{suggestion.status}</em></div>)}</div>}
+            {(reportDraft.aiSuggestions ?? []).length > 0 && <section className={styles.reviewSuggestions} aria-labelledby="ai-review-heading">
+              <div className={styles.reviewSuggestionHeader}><div><h3 id="ai-review-heading">Review AI-assisted information</h3><p>{unresolvedSuggestions.length} field{unresolvedSuggestions.length === 1 ? "" : "s"} still need your review.</p></div>{reportDraft.aiSuggestions.some((item) => item.status === "unresolved" && !item.conflict) && <button className={styles.secondaryButton} type="button" onClick={acceptAllNonConflicting}>Accept all non-conflicting suggestions</button>}</div>
+              {reportDraft.aiSuggestions.map((suggestion, index) => <article className={`${styles.reviewSuggestionItem} ${suggestion.conflict && suggestion.status === "unresolved" ? styles.reviewConflict : ""}`} key={`${suggestion.field}-${index}`}>
+                <div><span>{suggestion.label}</span><em>{suggestionStateLabel(suggestion)}</em></div>
+                <strong>{suggestion.status === "removed" ? "Not included" : suggestion.suggestedValue || "Not specified"}</strong>
+                {suggestion.conflict && suggestion.status === "unresolved" && <p>Your report currently says <strong>{suggestion.observerValue}</strong>. Choose which value should be used.</p>}
+                {suggestion.status === "unresolved" && <div className={styles.compactActions}>
+                  <button className={styles.smallButton} type="button" onClick={() => resolveSuggestion(index, "accept")}>Use AI suggestion</button>
+                  {suggestion.conflict && <button className={styles.smallButton} type="button" onClick={() => resolveSuggestion(index, "keep")}>Keep my value</button>}
+                  {suggestion.field === "possible_threat" && <button className={styles.smallButton} type="button" onClick={() => resolveSuggestion(index, "unsure")}>Keep Unsure</button>}
+                  <button className={styles.smallButton} type="button" onClick={() => resolveSuggestion(index, "remove")}>Remove</button>
+                </div>}
+              </article>)}
+            </section>}
           </section>
           <ReviewLocationSummary />
         </div>

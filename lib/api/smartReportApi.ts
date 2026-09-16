@@ -6,11 +6,18 @@ export type SmartReportSuggestion = {
   suggestedValue: string | null;
 };
 
+export type SmartReportFollowUpQuestion = {
+  field: string;
+  question: string;
+  options: string[];
+};
+
 type SmartReportWireResult = {
   available?: boolean;
   suggestions?: SmartReportSuggestion[] | Record<string, unknown>;
   missingFields?: string[];
   missingInformation?: string[];
+  followUpQuestions?: SmartReportFollowUpQuestion[];
   warnings?: string[];
   message?: string;
   requiresUserConfirmation?: boolean;
@@ -20,6 +27,7 @@ export type SmartReportResult = {
   available: boolean;
   suggestions: SmartReportSuggestion[];
   missingFields: string[];
+  followUpQuestions: SmartReportFollowUpQuestion[];
   warnings: string[];
   message?: string;
   requiresUserConfirmation: boolean;
@@ -59,6 +67,14 @@ export async function structureReportDescription(description: string): Promise<S
     missingFields: Array.isArray(result.missingFields)
       ? result.missingFields
       : Array.isArray(result.missingInformation) ? result.missingInformation : [],
+    followUpQuestions: Array.isArray(result.followUpQuestions)
+      ? result.followUpQuestions.filter((question) =>
+        Boolean(question)
+        && typeof question.field === "string"
+        && typeof question.question === "string"
+        && Array.isArray(question.options),
+      )
+      : [],
     warnings: Array.isArray(result.warnings) ? result.warnings : [],
     message: result.message,
     requiresUserConfirmation: result.requiresUserConfirmation !== false,

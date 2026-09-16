@@ -83,6 +83,9 @@
 .locationWarning { margin-top: 28px; padding: 18px 22px; color: #765015; background: #fff3dc; border: 1px solid #efd6a4; border-radius: var(--radius-card); }
 .locationWarning p { margin: 5px 0; }
 .locationWarning small { color: #765015; }
+.aiLocationNote { margin-top: 28px; padding: 18px 22px; color: #27677d; background: #eef8fb; border: 1px solid #bddce8; border-radius: var(--radius-card); }
+.aiLocationNote p { margin: 6px 0; color: var(--color-ink); font-weight: 800; }
+.aiLocationNote small { color: var(--color-muted); }
 .backOutside { margin-top: 22px; }
 .accessList { margin: 24px 0 0; }
 .accessList div { display: grid; grid-template-columns: minmax(140px, .9fr) 1.1fr; gap: 20px; padding: 18px 0; border-bottom: 1px solid var(--color-border); }

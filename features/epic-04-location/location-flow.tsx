@@ -118,6 +118,10 @@ export function LocationFlow() {
   const sessionTitle = session ? `${session.site}${session.label ? ` - ${session.label}` : ""}` : "No Dive Session selected";
   const confidenceLabel = confidenceOptions.find((item) => item.value === confidence)?.label ?? "Not provided";
   const coordinates = mapCoordinates(pin);
+  const aiSiteReference = reportDraft?.aiSuggestions?.find((suggestion) =>
+    suggestion.field === "site_reference"
+    && suggestion.status !== "removed"
+    && suggestion.suggestedValue)?.suggestedValue ?? null;
   const photoEvidenceDates = new Set((reportDraft?.photos ?? [])
     .filter((photo) => photo.capturedAtConfirmed && photo.capturedAt)
     .map((photo) => inputDateToDisplayValue((photo.capturedAt as string).slice(0, 10))));
@@ -339,6 +343,7 @@ export function LocationFlow() {
 
   if (step === "location") return <section className={styles.page}>
     <PageHeading eyebrow="Report a Reef / Location" title="Where on the reef did you observe it?" description="Use the Dive Session site, select a map point, enter coordinates or say that the exact location is unknown." currentStep="location" />
+    {aiSiteReference && <aside className={styles.aiLocationNote} role="note"><strong>Location reference from your description</strong><p>{aiSiteReference}</p><small>This is a contextual note only. Confirm the Dive Session, location source and accuracy below.</small></aside>}
     {locationCheckError && <aside className={styles.locationWarning} role="status"><strong>Location check</strong><p>{locationCheckError}</p></aside>}
     <div className={`${styles.choiceGrid} ${styles.locationChoices}`}><section className={`${styles.card} ${styles.selectedCard}`}><h2>General dive-site location</h2><div className={styles.readOnlyLabel}>Named dive site *<p className={styles.readOnlyValue}>{session.site}</p></div><div className={styles.infoBox}><strong>Exact location optional</strong><p>You can continue with the named site when precise coordinates are unavailable.</p></div><button className={styles.primaryButton} type="button" onClick={() => continueFromLocation("dive_site")}>Use dive-site location</button><button className={styles.textRetry} type="button" onClick={continueWithUnknownLocation}>I don&apos;t know the exact location</button></section>
       <section className={styles.card}><h2>Select on map</h2><p className={styles.supporting}>Select the observed location on the map of Malaysia.</p><MapPreview pin={pin} interactive onSetPin={(nextPin) => { updateLocationDraft({ pin: nextPin }); setMapPinError(""); }} />{coordinates && <p className={styles.coordinateReadout}>Selected coordinates: {coordinates}</p>}{mapPinError && <p className={styles.errorText} role="alert">{mapPinError}</p>}<button className={styles.secondaryButton} type="button" disabled={!pin || checkingLocation} onClick={() => continueFromLocation("map_pin")}>{checkingLocation ? "Checking location…" : "Confirm map pin"}</button></section>
@@ -373,9 +378,10 @@ export function LocationFlow() {
 }
 
 export function ReviewLocationSummary() {
-  const { locationDraft } = useMockAppState();
+  const { locationDraft, reportDraft } = useMockAppState();
   const session = locationDraft.sessions.find((item) => item.id === locationDraft.selectedSessionId);
   const confidenceLabel = confidenceOptions.find((item) => item.value === locationDraft.confidence)?.label;
   const coordinates = mapCoordinates(locationDraft.pin);
-  return <section className={styles.card} aria-labelledby="review-location-heading"><h2 id="review-location-heading">Dive Session and location</h2><dl className={styles.detailList}><div><dt>Named dive site</dt><dd>{session?.site ?? "Not yet selected"}</dd></div><div><dt>Location source</dt><dd>{locationDraft.locationSource === "manual_coordinates" ? "Entered coordinates" : locationDraft.locationSource === "map_pin" ? "Optional map pin" : locationDraft.confidence === "unsure" ? "Exact location unknown" : "Named dive site"}</dd></div><div><dt>Location confidence</dt><dd>{confidenceLabel ?? "Not yet selected"}</dd></div>{coordinates && <div><dt>Selected coordinates</dt><dd>{coordinates}</dd></div>}</dl><Link className={styles.secondaryButton} href="/report-a-reef/location">Edit location</Link></section>;
+  const aiSiteReference = reportDraft?.aiSuggestions?.find((suggestion) => suggestion.field === "site_reference" && suggestion.status !== "removed")?.suggestedValue;
+  return <section className={styles.card} aria-labelledby="review-location-heading"><h2 id="review-location-heading">Dive Session and location</h2><dl className={styles.detailList}><div><dt>Named dive site</dt><dd>{session?.site ?? "Not yet selected"}</dd></div>{aiSiteReference && <div><dt>Description location note</dt><dd>{aiSiteReference} <small>AI-assisted context only</small></dd></div>}<div><dt>Location source</dt><dd>{locationDraft.locationSource === "manual_coordinates" ? "Entered coordinates" : locationDraft.locationSource === "map_pin" ? "Optional map pin" : locationDraft.confidence === "unsure" ? "Exact location unknown" : "Named dive site"}</dd></div><div><dt>Location confidence</dt><dd>{confidenceLabel ?? "Not yet selected"}</dd></div>{coordinates && <div><dt>Selected coordinates</dt><dd>{coordinates}</dd></div>}</dl><Link className={styles.secondaryButton} href="/report-a-reef/location">Edit location</Link></section>;
 }

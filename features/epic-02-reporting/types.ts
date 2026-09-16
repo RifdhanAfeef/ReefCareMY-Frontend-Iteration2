@@ -14,11 +14,21 @@ export type ReportPhotoMetadata = {
   capturedAtConfirmed?: boolean;
 };
 
+export type SmartReportField =
+  | "possible_threat"
+  | "estimated_depth_metres"
+  | "approximate_size"
+  | "coral_interaction"
+  | "animal_interaction"
+  | "site_reference";
+
 export type ReportAISuggestion = {
-  field: string;
+  field: SmartReportField;
   label: string;
   suggestedValue: string | null;
   status: "unresolved" | "confirmed" | "corrected" | "removed";
+  conflict: boolean;
+  observerValue: string | null;
 };
 
 export type ReportDraft = {
