@@ -2,8 +2,13 @@ import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildAutomaticPhotoDraftChanges, ObservationForm } from "../observation-form";
 import { structureReportDescription } from "@/lib/api/smartReportApi";
+import { getThreatCategories } from "@/lib/api/referenceApi";
+import { loadDraftPhotos } from "@/features/epic-02-reporting/draft-storage";
 
-const { updateReportDraft } = vi.hoisted(() => ({ updateReportDraft: vi.fn() }));
+const { updateReportDraft, runtime } = vi.hoisted(() => ({
+  updateReportDraft: vi.fn(),
+  runtime: { draftRestored: undefined as boolean | undefined },
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -22,6 +27,7 @@ vi.mock("@/features/shared/mock-app-state", () => ({
       aiSuggestions: [],
       lastSavedAt: null,
     },
+    isAccountDraftRestored: runtime.draftRestored,
     locationDraft: {
       sessions: [],
       selectedSessionId: "",
@@ -55,6 +61,7 @@ vi.mock("@/lib/api/smartReportApi", () => ({
 describe("automatic Smart Report Structuring", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    runtime.draftRestored = undefined;
     vi.setSystemTime(new Date("2026-09-16T00:00:00Z"));
     vi.clearAllMocks();
     vi.mocked(structureReportDescription).mockResolvedValue({
@@ -114,5 +121,37 @@ describe("automatic Smart Report Structuring", () => {
     );
     expect(preserved.changes).not.toHaveProperty("observationDate");
     expect(preserved.changes).not.toHaveProperty("observationTime");
+  });
+
+  it("selects the physical-damage category carried from the threat explorer", async () => {
+    vi.mocked(getThreatCategories).mockResolvedValue([{
+      threatCategoryId: 44,
+      code: "physical_reef_damage",
+      label: "Physical reef damage",
+      shortExplanation: "Recently damaged coral.",
+      usefulEvidence: "A close and wider photograph.",
+      safetyReminder: "Observe safely.",
+      iconReference: null,
+    }]);
+
+    render(<ObservationForm initialThreat="physical_reef_damage" />);
+    await act(async () => { await Promise.resolve(); });
+
+    expect(updateReportDraft).toHaveBeenCalledWith({
+      threatCategoryCode: "physical_reef_damage",
+      threatCategoryId: 44,
+    });
+  });
+
+  it("waits for the account draft before restoring photo metadata", async () => {
+    runtime.draftRestored = false;
+    const view = render(<ObservationForm />);
+    await act(async () => { await Promise.resolve(); });
+    expect(loadDraftPhotos).not.toHaveBeenCalled();
+
+    runtime.draftRestored = true;
+    view.rerender(<ObservationForm />);
+    await act(async () => { await Promise.resolve(); });
+    expect(loadDraftPhotos).toHaveBeenCalledTimes(1);
   });
 });

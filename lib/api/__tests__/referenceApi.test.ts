@@ -38,6 +38,28 @@ describe("reference API adapters", () => {
     });
   });
 
+  it("normalises the backend physical-damage code for report handoff", async () => {
+    mockedApiRequest.mockResolvedValue([
+      {
+        threatCategoryId: 4,
+        code: "physical_damage",
+        label: "Physical reef damage",
+        shortExplanation: "Recently damaged coral.",
+        usefulEvidence: "A close and wider photograph.",
+        safetyReminder: "Observe safely.",
+        iconReference: null,
+      },
+    ]);
+
+    await expect(getThreatCategories()).resolves.toEqual([
+      expect.objectContaining({
+        threatCategoryId: 4,
+        code: "physical_reef_damage",
+        label: "Physical reef damage",
+      }),
+    ]);
+  });
+
   it("loads authenticated dive-site references", async () => {
     mockedApiRequest.mockResolvedValue([]);
     await getDiveSites();

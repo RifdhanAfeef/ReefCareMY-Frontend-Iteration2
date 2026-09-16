@@ -11,15 +11,18 @@ const supportedThreats = new Set([
   "physical_reef_damage",
 ]);
 
+function normaliseThreatHandoff(value: string) {
+  return value === "physical_damage" ? "physical_reef_damage" : value;
+}
+
 export default async function ReportAReefPage({
   searchParams,
 }: {
   searchParams: Promise<{ threat?: string | string[] }>;
 }) {
   const threatValue = (await searchParams).threat;
-  const initialThreat = typeof threatValue === "string" && supportedThreats.has(threatValue)
-    ? threatValue
-    : undefined;
+  const normalisedThreat = typeof threatValue === "string" ? normaliseThreatHandoff(threatValue) : undefined;
+  const initialThreat = normalisedThreat && supportedThreats.has(normalisedThreat) ? normalisedThreat : undefined;
 
   return (
     <PageTemplate

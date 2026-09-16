@@ -84,7 +84,7 @@ function formatFileSize(bytes: number) {
 
 export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
   const router = useRouter();
-  const { reportDraft, locationDraft, updateReportDraft, saveReportDraft } = useMockAppState();
+  const { reportDraft, locationDraft, isAccountDraftRestored, updateReportDraft, saveReportDraft } = useMockAppState();
   const [photos, setPhotos] = useState<PhotoPreview[]>([]);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [uploadMessage, setUploadMessage] = useState("");
@@ -164,6 +164,10 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
   }, []);
 
   useEffect(() => {
+    // Wait for the authenticated account's local draft before restoring photo
+    // files. Otherwise photo metadata can populate an empty initial draft just
+    // before the user's saved observation date/time is hydrated.
+    if (isAccountDraftRestored === false) return;
     let cancelled = false;
     loadDraftPhotos()
       .then((stored) => {
@@ -187,7 +191,7 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
       cancelled = true;
       previewUrls.current.forEach((url) => URL.revokeObjectURL(url));
     };
-  }, [updateReportDraft]);
+  }, [isAccountDraftRestored, updateReportDraft]);
 
   useEffect(() => {
     const description = reportDraft.description.trim();

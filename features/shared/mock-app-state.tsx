@@ -96,6 +96,7 @@ function restoreReportDraft(stored?: Partial<ReportDraft>): ReportDraft {
 type AppStateContextValue = {
   locationDraft: LocationDraft;
   reportDraft: ReportDraft;
+  isAccountDraftRestored: boolean;
   updateLocationDraft: (changes: Partial<LocationDraft>) => void;
   updateReportDraft: (changes: Partial<ReportDraft>) => void;
   saveReportDraft: () => void;
@@ -165,16 +166,19 @@ export function MockAppStateProvider({ children }: { children: React.ReactNode }
     setLocationDraft(initialLocationDraft);
   }, []);
 
+  const isAccountDraftRestored = status !== "loading" && restoredKey === activeStorageKey;
+
   const value = useMemo<AppStateContextValue>(
     () => ({
       locationDraft,
       reportDraft,
+      isAccountDraftRestored,
       updateLocationDraft,
       updateReportDraft,
       saveReportDraft,
       resetReportDraft,
     }),
-    [locationDraft, reportDraft, updateLocationDraft, updateReportDraft, saveReportDraft, resetReportDraft],
+    [locationDraft, reportDraft, isAccountDraftRestored, updateLocationDraft, updateReportDraft, saveReportDraft, resetReportDraft],
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

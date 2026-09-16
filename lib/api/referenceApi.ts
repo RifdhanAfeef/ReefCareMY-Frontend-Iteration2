@@ -20,6 +20,18 @@ function requiredString(value: unknown, field: string): string {
   return value;
 }
 
+function normaliseThreatCategoryCode(value: unknown): ThreatCategoryCode {
+  const code = requiredString(value, "threat category code");
+  // The reference/reporting API currently uses physical_damage while older
+  // public threat links use physical_reef_damage. Keep one canonical frontend
+  // value so the handoff works without changing the backend contract.
+  if (code === "physical_damage") return "physical_reef_damage";
+  if (["ghost_gear", "coral_bleaching", "marine_debris", "physical_reef_damage", "unsure"].includes(code)) {
+    return code as ThreatCategoryCode;
+  }
+  throw new Error("ReefCare MY returned an invalid threat category code. Please try again.");
+}
+
 function normaliseThreatCategory(item: RawThreatCategory): ThreatCategoryReference {
   const threatCategoryId = item.threatCategoryId ?? item.threat_category_id;
   if (!Number.isInteger(threatCategoryId) || Number(threatCategoryId) <= 0) {
@@ -28,7 +40,7 @@ function normaliseThreatCategory(item: RawThreatCategory): ThreatCategoryReferen
 
   return {
     threatCategoryId: Number(threatCategoryId),
-    code: requiredString(item.code, "threat category code") as ThreatCategoryCode,
+    code: normaliseThreatCategoryCode(item.code),
     label: requiredString(item.label, "threat category label"),
     shortExplanation: requiredString(
       item.shortExplanation ?? item.short_explanation,
