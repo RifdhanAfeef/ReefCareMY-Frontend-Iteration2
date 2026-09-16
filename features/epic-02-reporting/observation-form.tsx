@@ -37,13 +37,36 @@ function captureTimeCandidate(file: File) {
 }
 
 function photoMetadata(photo: StoredDraftPhoto, existing?: ReportDraft["photos"][number]) {
+  const capturedAt = existing?.capturedAt ?? captureTimeCandidate(photo.file);
   return {
     id: photo.id,
     name: photo.file.name,
     type: photo.file.type,
     size: photo.file.size,
-    capturedAt: existing?.capturedAt ?? captureTimeCandidate(photo.file),
-    capturedAtConfirmed: existing?.capturedAtConfirmed ?? false,
+    capturedAt,
+    capturedAtConfirmed: Boolean(capturedAt),
+  };
+}
+
+export function buildAutomaticPhotoDraftChanges(
+  photos: StoredDraftPhoto[],
+  existingPhotos: ReportDraft["photos"],
+  observationDate: string,
+  observationTime: string,
+) {
+  const metadata = photos.map((photo) => photoMetadata(
+    photo,
+    existingPhotos.find((item) => item.id === photo.id),
+  ));
+  const capturedAt = metadata.find((photo) => photo.capturedAt)?.capturedAt;
+  const automaticValues = capturedAt ? dateToMalaysiaFormValues(capturedAt) : null;
+  return {
+    changes: {
+      photos: metadata,
+      ...(!observationDate && automaticValues ? { observationDate: automaticValues.date } : {}),
+      ...(!observationTime && automaticValues ? { observationTime: automaticValues.time } : {}),
+    } satisfies Partial<ReportDraft>,
+    automaticValues,
   };
 }
 
@@ -62,6 +85,10 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
   const [selectedReefSite, setSelectedReefSite] = useState<StoredReefSite | null>(null);
   const previewUrls = useRef<string[]>([]);
   const initialPhotoMetadata = useRef(reportDraft.photos);
+  const initialObservationValues = useRef({
+    date: reportDraft.observationDate,
+    time: reportDraft.observationTime,
+  });
   const [assistantMessage, setAssistantMessage] = useState("");
   const [assistantBusy, setAssistantBusy] = useState(false);
   const smartStructuringRequest = useRef(0);
@@ -136,12 +163,13 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
           return { ...photo, previewUrl };
         });
         setPhotos(restored);
-        updateReportDraft({
-          photos: stored.map((photo) => photoMetadata(
-            photo,
-            initialPhotoMetadata.current.find((item) => item.id === photo.id),
-          )),
-        });
+        const { changes } = buildAutomaticPhotoDraftChanges(
+          stored,
+          initialPhotoMetadata.current,
+          initialObservationValues.current.date,
+          initialObservationValues.current.time,
+        );
+        updateReportDraft(changes);
       })
       .catch(() => setUploadMessage("Saved photos could not be restored in this browser. Please select them again."));
     return () => {
@@ -205,16 +233,21 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
   }
 
   async function syncPhotos(next: PhotoPreview[]) {
+    const { changes, automaticValues } = buildAutomaticPhotoDraftChanges(
+      next,
+      reportDraft.photos,
+      reportDraft.observationDate,
+      reportDraft.observationTime,
+    );
     setPhotos(next);
-    updateReportDraft({
-      photos: next.map((photo) => photoMetadata(
-        photo,
-        reportDraft.photos.find((item) => item.id === photo.id),
-      )),
-    });
+    updateReportDraft(changes);
+    if (automaticValues) {
+      setErrors((current) => ({ ...current, date: undefined, time: undefined }));
+    }
     setCompleteness(null);
     setCompletenessError("");
     await saveDraftPhotos(next.map(({ id, file }) => ({ id, file })));
+    return automaticValues;
   }
 
   async function choosePhotos(event: ChangeEvent<HTMLInputElement>) {
@@ -238,9 +271,11 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
       });
     if (additions.length === 0) { setUploadMessage("Those photos are already attached to this draft."); return; }
     try {
-      await syncPhotos([...photos, ...additions]);
+      const automaticValues = await syncPhotos([...photos, ...additions]);
       setErrors((current) => ({ ...current, photos: undefined }));
-      setUploadMessage(`${additions.length} photo${additions.length === 1 ? "" : "s"} attached to this report draft.`);
+      setUploadMessage(automaticValues
+        ? `${additions.length} photo${additions.length === 1 ? "" : "s"} attached. The photo date and time were added to the observation fields; review them before continuing.`
+        : `${additions.length} photo${additions.length === 1 ? "" : "s"} attached to this report draft.`);
     } catch {
       setUploadMessage("The photos could not be saved locally. Please try again.");
     }
@@ -252,28 +287,6 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
     previewUrls.current = previewUrls.current.filter((url) => url !== removed?.previewUrl);
     await syncPhotos(photos.filter((photo) => photo.id !== id));
     setUploadMessage("Photo removed from the draft.");
-  }
-
-  function confirmCaptureTime(id: string, confirmed: boolean) {
-    const selectedPhoto = reportDraft.photos.find((photo) => photo.id === id);
-    const capturedValues = confirmed && selectedPhoto?.capturedAt
-      ? dateToMalaysiaFormValues(selectedPhoto.capturedAt)
-      : null;
-    updateReportDraft({
-      photos: reportDraft.photos.map((photo) => photo.id === id
-        ? { ...photo, capturedAtConfirmed: confirmed }
-        : photo),
-      ...(capturedValues ? {
-        observationDate: capturedValues.date,
-        observationTime: capturedValues.time,
-      } : {}),
-    });
-    setCompleteness(null);
-    setCompletenessError("");
-    if (capturedValues) {
-      setErrors((current) => ({ ...current, date: undefined, time: undefined }));
-      setUploadMessage("Photo date and time added to the observation fields. Review them before continuing.");
-    }
   }
 
   function updateSuggestion(index: number, changes: Partial<ReportDraft["aiSuggestions"][number]>) {
@@ -326,6 +339,11 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
 
   return (
     <form className={styles.formShell} onSubmit={continueToLocation} noValidate>
+      <ol className={styles.reportProgress} aria-label="Report progress">
+        <li aria-current="step" data-status="current"><span aria-hidden="true">1</span><strong>Observation</strong></li>
+        <li data-status="upcoming"><span aria-hidden="true">2</span><strong>Dive &amp; location</strong></li>
+        <li data-status="upcoming"><span aria-hidden="true">3</span><strong>Review &amp; submit</strong></li>
+      </ol>
       {selectedReefSite && (
         <aside className={styles.selectedSiteNotice} aria-label="Selected reef site carried from Reef Explorer">
           <div>
@@ -356,13 +374,9 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
                   <Image className={styles.photoImage} src={photo.previewUrl} alt={`Selected evidence: ${photo.file.name}`} width={360} height={220} unoptimized />
                   <div className={styles.photoMeta}><strong title={photo.file.name}>{photo.file.name}</strong><span>{formatFileSize(photo.file.size)}</span><button className={styles.textButton} type="button" onClick={() => removePhoto(photo.id)}>Remove</button></div>
                   {metadata?.capturedAt && <div className={styles.metadataPrompt}>
-                    <strong>Possible photo time</strong>
+                    <strong>Photo date and time added</strong>
                     <span>{new Date(metadata.capturedAt).toLocaleString()}</span>
-                    <p>This comes from the file date. Confirm it only if it matches the dive.</p>
-                    <div className={styles.compactActions}>
-                      <button className={metadata.capturedAtConfirmed ? styles.selectedAction : styles.smallButton} type="button" onClick={() => confirmCaptureTime(photo.id, true)}>Use this time</button>
-                      <button className={!metadata.capturedAtConfirmed ? styles.selectedAction : styles.smallButton} type="button" onClick={() => confirmCaptureTime(photo.id, false)}>Ignore</button>
-                    </div>
+                    <p>This comes from the photo file date and was loaded into the observation fields automatically. Review or edit the fields if needed.</p>
                   </div>}
                 </article>;
               })}</div>}

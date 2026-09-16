@@ -1,6 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ObservationForm } from "../observation-form";
+import { buildAutomaticPhotoDraftChanges, ObservationForm } from "../observation-form";
 import { structureReportDescription } from "@/lib/api/smartReportApi";
 
 const { updateReportDraft } = vi.hoisted(() => ({ updateReportDraft: vi.fn() }));
@@ -55,6 +55,7 @@ vi.mock("@/lib/api/smartReportApi", () => ({
 describe("automatic Smart Report Structuring", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-16T00:00:00Z"));
     vi.clearAllMocks();
     vi.mocked(structureReportDescription).mockResolvedValue({
       available: true,
@@ -70,6 +71,8 @@ describe("automatic Smart Report Structuring", () => {
   it("analyses the description after typing pauses without requiring a button", async () => {
     render(<ObservationForm />);
 
+    expect(screen.getByRole("list", { name: "Report progress" })).toBeInTheDocument();
+    expect(screen.getByText("Observation").closest("li")).toHaveAttribute("aria-current", "step");
     expect(screen.queryByRole("button", { name: "Check my description" })).not.toBeInTheDocument();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(800);
@@ -82,5 +85,33 @@ describe("automatic Smart Report Structuring", () => {
       aiSuggestions: [expect.objectContaining({ field: "estimated_depth", status: "unresolved" })],
     });
     expect(screen.getByText(/Consider adding: approximate size/i)).toBeInTheDocument();
+  });
+
+  it("loads photo file date and time immediately while preserving values already entered", () => {
+    const file = new File(["reef"], "reef.jpg", {
+      type: "image/jpeg",
+      lastModified: Date.parse("2026-08-28T07:26:21Z"),
+    });
+
+    const automatic = buildAutomaticPhotoDraftChanges(
+      [{ id: "photo-1", file }],
+      [],
+      "",
+      "",
+    );
+    expect(automatic.changes).toEqual(expect.objectContaining({
+      observationDate: "28/08/2026",
+      observationTime: "15:26",
+      photos: [expect.objectContaining({ capturedAtConfirmed: true })],
+    }));
+
+    const preserved = buildAutomaticPhotoDraftChanges(
+      [{ id: "photo-1", file }],
+      [],
+      "27/08/2026",
+      "14:10",
+    );
+    expect(preserved.changes).not.toHaveProperty("observationDate");
+    expect(preserved.changes).not.toHaveProperty("observationTime");
   });
 });
