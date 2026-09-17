@@ -276,7 +276,7 @@ function ImageDialog({ site, imageIndex, onClose }: { site: ReefSite; imageIndex
 }
 
 function AuthenticationDialog({ site, onClose }: { site: ReefSiteReference; onClose: () => void }) {
-  const next = encodeURIComponent("/report-a-reef");
+  const next = encodeURIComponent("/report-a-reef?source=explore");
   const rememberSite = () => storeSelectedReefSite(site);
 
   return (
@@ -338,7 +338,7 @@ export function ReefExplorer() {
     if (!selectedSite) return;
     storeSelectedReefSite(selectedSite);
     if (status === "authenticated" && user?.role === "observer") {
-      router.push("/report-a-reef");
+      router.push("/report-a-reef?source=explore");
       return;
     }
     if (status === "authenticated") return;
