@@ -30,6 +30,8 @@ const report: CoordinatorCase = {
     latitude: 2.7902,
     longitude: 104.1698,
     uncertaintyMetres: 25,
+    confidenceLabel: "Within 100 m",
+    sourceLabel: "Observer map pin",
   },
   statusCode: "under_review",
   statusLabel: "Under Review",
@@ -96,10 +98,12 @@ describe("Coordinator case workflow", () => {
     expect(screen.getByText(/03\/09\/2026, \d{1,2}:20 [AP]M/)).toBeInTheDocument();
     expect(screen.queryByText("2026-09-03T04:20:00Z")).not.toBeInTheDocument();
     expect(screen.getByText("Submitted location")).toBeInTheDocument();
+    expect(screen.getByText("Confidence: Within 100 m")).toBeInTheDocument();
+    expect(screen.getByText("Source: Observer map pin")).toBeInTheDocument();
     expect(screen.queryByText("Authorised exact location")).not.toBeInTheDocument();
   });
 
-  it("shows structured AI information separately from submitted and Coordinator-confirmed information", async () => {
+  it("shows only Observer-reviewed AI-assisted fields and never presents model output as verification", async () => {
     mockedGetCoordinatorCase.mockResolvedValueOnce({
       ...report,
       aiAssisted: {
@@ -108,19 +112,42 @@ describe("Coordinator case workflow", () => {
         generatedAt: "2026-09-03T04:25:00Z",
         suggestions: [
           { field: "estimated_depth", label: "Estimated depth", suggestedValue: "12 metres", status: "confirmed" },
+          { field: "affected_area", label: "Affected area", suggestedValue: "Branching coral", status: "corrected" },
           { field: "interaction", label: "Observed interaction", suggestedValue: "Net caught across coral", status: "unresolved" },
+          { field: "colour", label: "Colour", suggestedValue: "Blue", status: "removed" },
         ],
       },
     });
 
     render(<CoordinatorCaseRoute reportReference={report.reportReference} />);
 
-    expect(await screen.findByRole("heading", { name: "Structured report information" })).toBeInTheDocument();
-    expect(screen.getByText("Possible ghost gear entanglement affecting coral.")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Observer-confirmed structured information" })).toBeInTheDocument();
     expect(screen.getByText("12 metres")).toBeInTheDocument();
-    expect(screen.getByText("Observer confirmed")).toBeInTheDocument();
-    expect(screen.getByText("AI suggested")).toBeInTheDocument();
-    expect(screen.getByText(/not verification or a Coordinator finding/i)).toBeInTheDocument();
+    expect(screen.getByText("Branching coral")).toBeInTheDocument();
+    expect(screen.getAllByText("Observer confirmed")).toHaveLength(2);
+    expect(screen.getByText("AI-assisted · accepted by Observer")).toBeInTheDocument();
+    expect(screen.getByText("AI-assisted · edited by Observer")).toBeInTheDocument();
+    expect(screen.queryByText("Possible ghost gear entanglement affecting coral.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Net caught across coral")).not.toBeInTheDocument();
+    expect(screen.queryByText("Blue")).not.toBeInTheDocument();
+    expect(screen.getByText(/do not independently verify that a genuine threat exists/i)).toBeInTheDocument();
+    expect(screen.getByText(/not Coordinator-confirmed findings/i)).toBeInTheDocument();
+  });
+
+  it("does not infer Observer confirmation from legacy AI fields without review statuses", async () => {
+    mockedGetCoordinatorCase.mockResolvedValueOnce({
+      ...report,
+      aiAssisted: {
+        available: true,
+        suggestions: { interaction: "Net caught across coral" },
+      },
+    });
+
+    render(<CoordinatorCaseRoute reportReference={report.reportReference} />);
+
+    expect(await screen.findByRole("heading", { name: "Review reef observation" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Observer-confirmed structured information" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Net caught across coral")).not.toBeInTheDocument();
   });
 
   it("claims a queue report through the backend before loading protected details", async () => {

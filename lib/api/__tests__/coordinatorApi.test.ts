@@ -7,12 +7,14 @@ import {
   getConservationActions,
   getConservationActionTypes,
   getCoordinatorCase,
+  getCoordinatorCaseHistory,
   getCoordinatorEvidence,
   getCoordinatorQueue,
   recordEvidenceAssessment,
   recordCaseDecision,
   requestMoreInformation,
   startReview,
+  uploadConservationActionEvidence,
 } from "../coordinatorApi";
 
 vi.mock("../client");
@@ -36,6 +38,22 @@ describe("coordinator API contract", () => {
       "/api/v1/coordinator/reports/RC-0241/claim",
       "/api/v1/coordinator/reports/RC-0241",
     ]);
+  });
+
+  it("uses the deployed closed-case history filters", async () => {
+    await getCoordinatorCaseHistory({
+      closureReason: "referred_other_org",
+      threatCategory: "marine_debris",
+      closedFrom: "2026-09-01T00:00:00.000Z",
+      closedTo: "2026-10-01T00:00:00.000Z",
+      wasReferred: true,
+      page: 2,
+      pageSize: 20,
+    });
+
+    expect(mockedApiRequest).toHaveBeenCalledWith({
+      path: "/api/v1/coordinator/cases/history?closureReason=referred_other_org&threatCategory=marine_debris&closedFrom=2026-09-01T00%3A00%3A00.000Z&closedTo=2026-10-01T00%3A00%3A00.000Z&wasReferred=true&page=2&pageSize=20",
+    });
   });
 
   it("uses the start-review, evidence-assessment and protected evidence contracts", async () => {
@@ -114,5 +132,20 @@ describe("coordinator API contract", () => {
         },
       }],
     ]);
+  });
+
+  it("uploads one evidence file to the recorded action", async () => {
+    const file = new File(["reef evidence"], "action.jpg", { type: "image/jpeg" });
+
+    await uploadConservationActionEvidence("RC-0710", 5, file);
+
+    const request = mockedApiRequest.mock.calls[0][0];
+    expect(request).toMatchObject({
+      path: "/api/v1/coordinator/reports/RC-0710/actions/5/evidence",
+      method: "POST",
+      timeoutMs: 60_000,
+    });
+    expect(request.body).toBeInstanceOf(FormData);
+    expect((request.body as FormData).get("file")).toBe(file);
   });
 });

@@ -112,19 +112,31 @@
 .reportSection { display: grid; gap: 18px; }
 .reportSection > button { justify-self: start; }
 .muted { color: #526e72; font-size: .85rem; }
-.context { display: grid; grid-template-columns: 1fr 1.6fr auto; align-items: center; gap: 24px; padding: 20px 24px; margin: 22px 0; border: 1px solid #bbd9d0; border-radius: 13px; background: #eef7f2; color: #143642; }
+.context { display: grid; gap: 17px; padding: 22px 24px; margin: 22px 0; border: 1px solid #bbd9d0; border-radius: 13px; background: #eef7f2; color: #143642; }
+.contextHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+.contextHeader > p { max-width: 500px; color: #42666a; }
 .context .eyebrow { margin-bottom: 6px; }
 .context p { font-size: .8rem; margin: 5px 0; }
-.context .loading { min-height: 40px; padding: 6px; justify-content: flex-start; }
+.context .loading { min-height: 40px; padding: 6px 0; justify-content: flex-start; }
 .context small { display: block; color: #526e72; font-size: .7rem; margin-top: 5px; }
 .context h2 { font-size: 1rem; }
+.contextState { padding: 13px 15px; border: 1px solid #d2e3dd; border-radius: 9px; background: #f9fcfb; }
+.contextState > strong { font-size: .84rem; }
+.contextSummary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0; }
+.contextSummary > div { min-width: 0; padding: 12px 14px; border: 1px solid #d2e3dd; border-radius: 9px; background: #fff; }
+.contextSummary dt { color: #526e72; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.contextSummary dd { margin: 5px 0 0; overflow-wrap: anywhere; font-size: .86rem; font-weight: 700; }
+.contextActions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
+.contextActions p { flex: 1 1 360px; color: #42666a; }
+.contextActions small { flex: 0 1 auto; margin: 0; }
+.contextActions > a { flex: 0 0 auto; }
 .intakeCard { max-width: 960px; }
 .intakeDetails { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin: 28px 0; }
 .intakeDetails dt { font-size: .73rem; color: #526e72; margin-bottom: 7px; }
 .intakeDetails dd { font-size: .95rem; font-weight: 650; margin: 0; overflow-wrap: anywhere; }
 .intakeCard .actions { margin-top: 24px; }
 .page > a + .pageHeading { margin-top: 24px; }
-@media (max-width: 1060px) { .analysisGrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .context { grid-template-columns: 1fr 1.5fr; } .context > a { justify-self: start; grid-column: 1 / -1; } .filterGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 760px) { .page { width: calc(100% - 32px); padding-top: 28px; } .pageHeading, .resultsHeading { align-items: flex-start; flex-direction: column; gap: 16px; } .pageHeading h1 { font-size: 2rem; } .pageHeading > a { align-self: flex-start; } .analysisGrid { grid-template-columns: minmax(0, 1fr); } .updated { align-items: flex-start; } .statGrid { gap: 10px; } .statGrid > div { padding: 16px 12px; } .statGrid strong { font-size: 1.7rem; } .statGrid span { font-size: .7rem; } .sectionHeading, .cardHeading { gap: 12px; flex-wrap: wrap; } .filterPanel, .card { padding: 20px; } .cardHeading { padding: 20px 20px 0; } .coverage dl { grid-template-columns: minmax(0, 1fr); gap: 18px; } .coverage dl > div { flex-direction: row; justify-content: space-between; align-items: center; } .coverage dd { font-size: 1.25rem; } .context { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 18px; } .pagination { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 1060px) { .analysisGrid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .filterGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .page { width: calc(100% - 32px); padding-top: 28px; } .pageHeading, .resultsHeading { align-items: flex-start; flex-direction: column; gap: 16px; } .pageHeading h1 { font-size: 2rem; } .pageHeading > a { align-self: flex-start; } .analysisGrid { grid-template-columns: minmax(0, 1fr); } .updated { align-items: flex-start; } .statGrid { gap: 10px; } .statGrid > div { padding: 16px 12px; } .statGrid strong { font-size: 1.7rem; } .statGrid span { font-size: .7rem; } .sectionHeading, .cardHeading { gap: 12px; flex-wrap: wrap; } .filterPanel, .card { padding: 20px; } .cardHeading { padding: 20px 20px 0; } .coverage dl { grid-template-columns: minmax(0, 1fr); gap: 18px; } .coverage dl > div { flex-direction: row; justify-content: space-between; align-items: center; } .coverage dd { font-size: 1.25rem; } .context { gap: 12px; padding: 18px; } .contextHeader { flex-direction: column; gap: 5px; } .contextSummary { grid-template-columns: minmax(0, 1fr); } .contextActions { align-items: flex-start; flex-direction: column; } .pagination { align-items: flex-start; flex-direction: column; } }
 @media (max-width: 430px) { .filterGrid { grid-template-columns: minmax(0, 1fr); gap: 15px; } .filterActions { margin-top: 3px; } .interpretation { padding: 16px; } .statGrid > div { padding: 14px 10px; } .statGrid small { font-size: .64rem; } .emptyMap { min-height: 260px; padding: 28px 20px; } .intakeDetails { grid-template-columns: minmax(0, 1fr); gap: 20px; } .intakeCard .actions > :is(a, button) { width: 100%; text-align: center; } .mapCanvas { height: 320px; } }
 @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }

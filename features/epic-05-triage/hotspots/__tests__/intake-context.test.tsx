@@ -68,15 +68,34 @@ it("keeps historical closed reports without an owner at summary access", async (
 it("links case context to exactly the backend selection and its historical observation dates", async () => {
   render(<HotspotCaseContext reportReference={intake.reportReference} />);
   expect(await screen.findByRole("link", { name: /View area on hotspot map/ })).toHaveAttribute("href", "/coordinator/hotspots?siteId=1&observedFrom=2026-09-01&observedTo=2026-09-13&interval=week");
+  expect(screen.getByText("Represented area")).toBeInTheDocument();
+  expect(screen.getByText("Test Reef North")).toBeInTheDocument();
+  expect(screen.getByText("Time period")).toBeInTheDocument();
+  expect(screen.getByText("Reports in selection")).toBeInTheDocument();
   expect(screen.getByText("8 reports")).toBeInTheDocument();
+  expect(screen.getByText(/not verified incidents or ecological risk/i)).toBeInTheDocument();
 });
 
 it("keeps case review available when area context fails and supports an independent retry", async () => {
   vi.mocked(getHotspotContext).mockRejectedValueOnce(new ApiError("Unavailable", 503));
   render(<><p>Authorised case controls</p><HotspotCaseContext reportReference={intake.reportReference} /></>);
-  expect(await screen.findByText(/Area context is unavailable/)).toBeInTheDocument();
+  expect(await screen.findByText("Area context unavailable")).toBeInTheDocument();
   expect(screen.getByText("Authorised case controls")).toBeInTheDocument();
   expect(screen.queryByText("0 reports")).not.toBeInTheDocument();
   await userEvent.click(screen.getByRole("button", { name: "Retry area context" }));
   expect(await screen.findByText("8 reports")).toBeInTheDocument();
+});
+
+it("shows limited-data context without blocking the normal case review", async () => {
+  vi.mocked(getHotspotContext).mockResolvedValue({
+    ...context,
+    state: "insufficient_data",
+    message: "There are not enough reports for a reliable trend.",
+    reportCount: 1,
+  });
+  render(<><p>Authorised case controls</p><HotspotCaseContext reportReference={intake.reportReference} /></>);
+  expect(await screen.findByText("Limited area context")).toBeInTheDocument();
+  expect(screen.getByText("There are not enough reports for a reliable trend.")).toBeInTheDocument();
+  expect(screen.getByText("Authorised case controls")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /View area on hotspot map/ })).toBeInTheDocument();
 });

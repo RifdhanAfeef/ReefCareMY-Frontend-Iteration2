@@ -54,7 +54,3 @@ export async function register(payload: RegisterPayload): Promise<RegisteredUser
 export async function getCurrentUser(): Promise<AuthUser> {
   return apiRequest<AuthUser>({ path: "/api/v1/auth/me" });
 }
-
-export async function logout(): Promise<void> {
-  return apiRequest<void>({ path: "/api/v1/auth/logout", method: "POST" });
-}

@@ -1,11 +1,12 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import { DisplayDateInput } from "@/components/forms/display-date-input";
 import {
   createConservationAction,
   getConservationActions,
   getConservationActionTypes,
+  uploadConservationActionEvidence,
 } from "@/lib/api/coordinatorApi";
 import type {
   ConservationAction,
@@ -25,6 +26,9 @@ const actionStateLabels: Record<ConservationActionState, string> = {
   action_planned: "Action planned — not completed",
   action_taken: "Action taken",
 };
+
+const supportedEvidenceTypes = ["image/jpeg", "image/png", "image/webp"];
+const maximumEvidenceSize = 10 * 1024 * 1024;
 
 function displayCalendarDate(value: string | null) {
   if (!value) return "Not provided";
@@ -64,6 +68,11 @@ function ActionHistory({ actions }: { actions: ConservationAction[] }) {
             <div><dt>Recorded by</dt><dd>{action.createdByName || "Authorised coordinator"}</dd></div>
           </dl>
           {action.notes && <p className={styles.notes}>{action.notes}</p>}
+          {(action.evidence?.length ?? 0) > 0 && (
+            <p className={styles.evidenceSummary}>
+              {action.evidence?.length} evidence image{action.evidence?.length === 1 ? "" : "s"} attached
+            </p>
+          )}
           {action.actionState === "action_planned" && (
             <p className={styles.plannedReminder}>This is a plan only. It does not confirm that conservation work has happened.</p>
           )}
@@ -86,6 +95,8 @@ export function ConservationActionPanel({ reportReference }: { reportReference: 
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [pendingEvidence, setPendingEvidence] = useState<{ actionId: number; file: File } | null>(null);
 
   async function retryLoad() {
     setLoading(true);
@@ -134,6 +145,51 @@ export function ConservationActionPanel({ reportReference }: { reportReference: 
     [actionTypeCode, actionTypes],
   );
 
+  function chooseEvidence(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = "";
+    setFormError("");
+    if (!file) return;
+    if (!supportedEvidenceTypes.includes(file.type)) {
+      setEvidenceFile(null);
+      setFormError("Choose a JPG, PNG or WebP evidence image.");
+      return;
+    }
+    if (file.size === 0) {
+      setEvidenceFile(null);
+      setFormError("The selected evidence file is empty.");
+      return;
+    }
+    if (file.size > maximumEvidenceSize) {
+      setEvidenceFile(null);
+      setFormError("The evidence image must be 10 MB or smaller.");
+      return;
+    }
+    setEvidenceFile(file);
+  }
+
+  async function retryEvidenceUpload() {
+    if (!pendingEvidence) return;
+    setSubmitting(true);
+    setFormError("");
+    try {
+      const uploaded = await uploadConservationActionEvidence(
+        reportReference,
+        pendingEvidence.actionId,
+        pendingEvidence.file,
+      );
+      setActions((current) => current.map((action) => action.caseActionId === pendingEvidence.actionId
+        ? { ...action, evidence: [...(action.evidence ?? []), uploaded] }
+        : action));
+      setPendingEvidence(null);
+      setSuccessMessage("The evidence image is now attached to the conservation action.");
+    } catch (requestError) {
+      setFormError(userFacingError(requestError, "The evidence image could not be attached. Please try again."));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   async function saveAction(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError("");
@@ -170,13 +226,27 @@ export function ConservationActionPanel({ reportReference }: { reportReference: 
         notes: notes.trim() || null,
       });
       setActions((current) => [...current, saved]);
-      setSuccessMessage(actionState === "action_taken"
+      let evidenceAttached = false;
+      if (evidenceFile) {
+        try {
+          const uploaded = await uploadConservationActionEvidence(reportReference, saved.caseActionId, evidenceFile);
+          setActions((current) => current.map((action) => action.caseActionId === saved.caseActionId
+            ? { ...action, evidence: [...(action.evidence ?? []), uploaded] }
+            : action));
+          evidenceAttached = true;
+        } catch (requestError) {
+          setPendingEvidence({ actionId: saved.caseActionId, file: evidenceFile });
+          setFormError(userFacingError(requestError, "The action was recorded, but its evidence image could not be attached. Try the upload again below."));
+        }
+      }
+      setSuccessMessage(`${actionState === "action_taken"
         ? "The completed conservation action was recorded."
-        : "The planned conservation action was recorded without marking it as completed.");
+        : "The planned conservation action was recorded without marking it as completed."}${evidenceAttached ? " The evidence image was attached." : ""}`);
       setActionState("action_planned");
       setActionDate("");
       setResponsibleTeam("");
       setNotes("");
+      setEvidenceFile(null);
     } catch (requestError) {
       setFormError(userFacingError(requestError, "The conservation action could not be recorded. Please check the details and try again."));
     } finally {
@@ -258,10 +328,17 @@ export function ConservationActionPanel({ reportReference }: { reportReference: 
               <small>{notes.length}/2000 characters</small>
             </label>
 
-            <aside className={styles.evidenceNotice}>
-              <strong>Supporting evidence</strong>
-              <p>Supporting files cannot be attached to this action yet. Record any evidence reference in the notes for now.</p>
-            </aside>
+            <section className={styles.evidenceUpload} aria-labelledby="action-evidence-heading">
+              <div>
+                <strong id="action-evidence-heading">Supporting evidence <span>Optional</span></strong>
+                <p>Attach one image that supports this planned or completed action.</p>
+                <small>JPG, PNG or WebP. Maximum 10 MB.</small>
+              </div>
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseEvidence} disabled={submitting} aria-label="Choose action evidence image" />
+              {evidenceFile && <div className={styles.selectedEvidence}><span>{evidenceFile.name}</span><button type="button" onClick={() => setEvidenceFile(null)} disabled={submitting}>Remove</button></div>}
+            </section>
+
+            {pendingEvidence && <aside className={styles.evidenceRetry} role="alert"><strong>Evidence still needs uploading</strong><p>{pendingEvidence.file.name} belongs to the action that was just recorded.</p><button type="button" onClick={() => void retryEvidenceUpload()} disabled={submitting}>{submitting ? "Uploading…" : "Retry evidence upload"}</button></aside>}
 
             {formError && <p className={styles.formError} role="alert">{formError}</p>}
             {successMessage && <p className={styles.successMessage} role="status">{successMessage}</p>}

@@ -84,7 +84,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await authApi.logout().catch(() => undefined);
+    // The backend uses stateless bearer tokens and does not expose a logout route.
+    // Signing out is therefore a local session operation: remove the stored token
+    // and immediately return the interface to its unauthenticated state.
     setUser(null);
     setAccessToken(null);
     setStatus("unauthenticated");

@@ -141,14 +141,15 @@ export type ObserverInformationRequest = {
 };
 
 export type ObserverInformationResponseCreate = {
-  text: string;
-  evidenceIds: number[];
+  responseText: string;
 };
 
 export type ObserverInformationResponseResult = {
   reportReference: string;
   status: "under_review";
+  responseText: string;
   respondedAt: string;
+  coordinatorRetained?: number | null;
 };
 
 export type ReportTimelineEvent = {
@@ -333,6 +334,49 @@ export type CoordinatorQueueItem = {
   claimedAt?: string | null;
 };
 
+export type CoordinatorHistoryCodeLabel = {
+  code: string;
+  label: string;
+};
+
+export type CoordinatorReferralHistoryEntry = {
+  referredTo: string;
+  referredAt: string;
+  note?: string | null;
+  decidedByName?: string | null;
+};
+
+export type CoordinatorHistoryItem = {
+  reportReference: string;
+  threatCategory: CoordinatorHistoryCodeLabel;
+  generalLocation?: string | null;
+  status: CoordinatorHistoryCodeLabel;
+  submittedAt: string;
+  closedAt?: string | null;
+  closureReason?: CoordinatorHistoryCodeLabel | null;
+  closureNote?: string | null;
+  wasReferred: boolean;
+  referrals: CoordinatorReferralHistoryEntry[];
+};
+
+export type CoordinatorHistoryFilters = {
+  closureReason?: string;
+  threatCategory?: string;
+  closedFrom?: string;
+  closedTo?: string;
+  wasReferred?: boolean;
+  page?: number;
+  pageSize?: number;
+};
+
+export type CoordinatorHistoryResult = {
+  items: CoordinatorHistoryItem[];
+  page: number;
+  pageSize: number;
+  total: number;
+  appliedFilters: Omit<CoordinatorHistoryFilters, "page" | "pageSize">;
+};
+
 export type CoordinatorQueueResult = {
   items: CoordinatorQueueItem[];
   page: number;
@@ -501,8 +545,17 @@ export type ConservationActionCreate = {
   notes?: string | null;
 };
 
+export type ConservationActionEvidence = {
+  evidenceId: number;
+  mediaType: string;
+  fileSizeBytes?: number | null;
+  uploadedAt: string;
+  caseActionId?: number;
+};
+
 export type ConservationAction = {
   caseActionId: number;
+  caseEventId?: number;
   reportReference: string;
   actionTypeCode: string;
   actionTypeLabel: string;
@@ -514,6 +567,7 @@ export type ConservationAction = {
   createdBy: number;
   createdByName: string | null;
   createdAt: string;
+  evidence?: ConservationActionEvidence[];
 };
 
 export type ConservationActionList = {

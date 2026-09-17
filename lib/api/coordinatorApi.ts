@@ -7,15 +7,35 @@ import type {
   ClaimedCase,
   ConservationAction,
   ConservationActionCreate,
+  ConservationActionEvidence,
   ConservationActionList,
   ConservationActionTypeOption,
   CoordinatorCase,
+  CoordinatorHistoryFilters,
+  CoordinatorHistoryResult,
   CoordinatorQueueResult,
   EvidenceAssessmentCreate,
   EvidenceAssessmentResult,
   InformationRequestResult,
   StartReviewResult,
 } from "./types";
+
+export async function getCoordinatorCaseHistory(
+  filters: CoordinatorHistoryFilters = {},
+): Promise<CoordinatorHistoryResult> {
+  const query = new URLSearchParams();
+  if (filters.closureReason) query.set("closureReason", filters.closureReason);
+  if (filters.threatCategory) query.set("threatCategory", filters.threatCategory);
+  if (filters.closedFrom) query.set("closedFrom", filters.closedFrom);
+  if (filters.closedTo) query.set("closedTo", filters.closedTo);
+  if (filters.wasReferred !== undefined) query.set("wasReferred", String(filters.wasReferred));
+  query.set("page", String(filters.page ?? 1));
+  query.set("pageSize", String(filters.pageSize ?? 20));
+
+  return apiRequest<CoordinatorHistoryResult>({
+    path: `/api/v1/coordinator/cases/history?${query.toString()}`,
+  });
+}
 
 export async function getCoordinatorQueue(
   page = 1,
@@ -123,5 +143,20 @@ export async function createConservationAction(
     path: `/api/v1/coordinator/reports/${encodeURIComponent(reportReference)}/actions`,
     method: "POST",
     body: payload,
+  });
+}
+
+export async function uploadConservationActionEvidence(
+  reportReference: string,
+  actionId: number,
+  file: File,
+): Promise<ConservationActionEvidence> {
+  const formData = new FormData();
+  formData.set("file", file);
+  return apiRequest<ConservationActionEvidence>({
+    path: `/api/v1/coordinator/reports/${encodeURIComponent(reportReference)}/actions/${encodeURIComponent(String(actionId))}/evidence`,
+    method: "POST",
+    body: formData,
+    timeoutMs: 60_000,
   });
 }

@@ -106,7 +106,7 @@ type AiStructuredItem = {
   key: string;
   label: string;
   value: string;
-  sourceLabel: string;
+  provenanceLabel: string;
 };
 
 function displayAiValue(value: unknown): string {
@@ -125,12 +125,9 @@ function aiStructuredItems(suggestions: CoordinatorAiAssisted["suggestions"]): A
   if (!suggestions) return [];
 
   if (!Array.isArray(suggestions)) {
-    return Object.entries(suggestions).map(([field, value]) => ({
-      key: field,
-      label: formatFieldName(field),
-      value: displayAiValue(value),
-      sourceLabel: "AI suggested",
-    }));
+    // A legacy field/value map has no Observer review status. Do not infer
+    // confirmation or expose those values as case information.
+    return [];
   }
 
   return suggestions.flatMap((item, index) => {
@@ -139,13 +136,13 @@ function aiStructuredItems(suggestions: CoordinatorAiAssisted["suggestions"]): A
     const label = typeof item.label === "string" ? item.label : formatFieldName(field);
     const value = item.suggestedValue ?? item.value ?? item.suggestion;
     const status = typeof item.status === "string" ? item.status.toLowerCase() : "";
-    if (status === "removed") return [];
-    const sourceLabel = status === "confirmed"
-      ? "Observer confirmed"
-      : status === "corrected"
-        ? "Observer corrected"
-        : "AI suggested";
-    return [{ key: `${field}-${index}`, label, value: displayAiValue(value), sourceLabel }];
+    // US5.2 only permits Observer-reviewed values in the case view. Raw,
+    // unresolved or removed model output must not be presented as case facts.
+    if (status !== "confirmed" && status !== "corrected") return [];
+    const provenanceLabel = status === "corrected"
+      ? "AI-assisted · edited by Observer"
+      : "AI-assisted · accepted by Observer";
+    return [{ key: `${field}-${index}`, label, value: displayAiValue(value), provenanceLabel }];
   });
 }
 
@@ -509,7 +506,7 @@ function CaseWorkflow({ report, refreshCase, claimConfirmation }: { report: Coor
     <HotspotCaseContext reportReference={report.reportReference} />
     {claimConfirmation && <div className={styles.successBox} role="status"><strong>{claimConfirmation.statusLabel}: report assigned successfully</strong><p>Claimed at {displayDateTime(claimConfirmation.claimedAt)}. You can now begin reviewing its evidence.</p></div>}
     {triage && <section className={styles.triageContext} aria-labelledby="triage-context-heading"><div><p className={styles.eyebrow}>Transparent triage cues</p><h2 id="triage-context-heading">Priority: {formatFieldName(triage.priority ?? "not set")}</h2><p>{formatFieldName(triage.evidenceCompleteness ?? "not assessed")} evidence · {triage.evidenceCount ?? report.evidence.length} file{(triage.evidenceCount ?? report.evidence.length) === 1 ? "" : "s"} · {triage.hoursInQueue == null ? "Queue age unavailable" : `${Math.round(triage.hoursInQueue)} hours in queue`}</p></div>{priorityReasons.length > 0 && <div><strong>Rules that contributed</strong><ul>{priorityReasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div>}<p className={styles.triageDisclaimer}>Priority helps order review. It does not verify the report or make a conservation decision.</p></section>}
-    {report.aiAssisted && report.aiAssisted.available !== false && <section className={styles.aiContext} aria-labelledby="ai-context-heading"><span>AI-assisted information</span><h2 id="ai-context-heading">Structured report information</h2>{report.aiAssisted.summary && <div className={styles.aiSummary}><strong>AI-generated summary</strong><p>{report.aiAssisted.summary}</p></div>}{structuredAiItems.length > 0 && <dl className={styles.aiStructuredGrid}>{structuredAiItems.map((item) => <div key={item.key}><dt>{item.label}<small>{item.sourceLabel}</small></dt><dd>{item.value}</dd></div>)}</dl>}<p className={styles.aiDisclaimer}>This information supports triage only. It is separate from the Observer&apos;s original submission and is not verification or a Coordinator finding.</p>{report.aiAssisted.generatedAt && <small>Generated {displayDateTime(report.aiAssisted.generatedAt)}</small>}</section>}
+    {report.aiAssisted && report.aiAssisted.available !== false && structuredAiItems.length > 0 && <section className={styles.aiContext} aria-labelledby="ai-context-heading"><span>Observer-confirmed · AI-assisted provenance</span><h2 id="ai-context-heading">Observer-confirmed structured information</h2><p>The Observer reviewed these structured values before submitting the report.</p><dl className={styles.aiStructuredGrid}>{structuredAiItems.map((item) => <div key={item.key}><dt>{item.label}<span className={styles.aiLabels}><small>Observer confirmed</small><small>{item.provenanceLabel}</small></span></dt><dd>{item.value}</dd></div>)}</dl><p className={styles.aiDisclaimer}>These values remain information confirmed by the Observer. AI assistance and Observer confirmation do not independently verify that a genuine threat exists, and they are not Coordinator-confirmed findings.</p>{report.aiAssisted.generatedAt && <small>AI structuring completed {displayDateTime(report.aiAssisted.generatedAt)}</small>}</section>}
     {informationExchange && (informationExchange.requestReason || informationExchange.responseText) && <section className={styles.informationExchange} aria-labelledby="information-exchange-heading"><h2 id="information-exchange-heading">Information request and response</h2>{informationExchange.requestReason && <div><strong>Coordinator request</strong><p>{informationExchange.requestReason}</p>{informationExchange.requestedAt && <small>{displayDateTime(informationExchange.requestedAt)}</small>}</div>}{informationExchange.responseText && <div><strong>Observer response</strong><p>{informationExchange.responseText}</p>{informationExchange.respondedAt && <small>{displayDateTime(informationExchange.respondedAt)}</small>}</div>}</section>}
     <div className={styles.reviewGrid}><section className={styles.card}>
       <h2>Submitted evidence</h2><p className={styles.muted}>Evidence provided by the observer with this report.</p><EvidenceRecords reportReference={report.reportReference} evidence={report.evidence} />

@@ -60,30 +60,13 @@ describe("observer information requests", () => {
   });
 
   it("submits text to the same report without creating a new report", async () => {
-    await submitInformationResponse("RC-0241", { text: "The net was about 3 metres wide.", evidenceIds: [] });
+    await submitInformationResponse("RC-0241", { responseText: "The net was about 3 metres wide." });
 
     expect(mockedApiRequest).toHaveBeenCalledWith({
       path: "/api/v1/reports/RC-0241/information-response",
       method: "POST",
-      body: { text: "The net was about 3 metres wide.", evidenceIds: [] },
+      body: { responseText: "The net was about 3 metres wide." },
     });
   });
 
-  it("uses multipart form data when new photographs accompany the response", async () => {
-    const photo = new File(["reef-photo"], "clearer-reef.jpg", { type: "image/jpeg" });
-    const payload = { text: "Here is a clearer photograph.", evidenceIds: [] };
-
-    await submitInformationResponse("RC-0241", payload, [photo]);
-
-    const request = mockedApiRequest.mock.calls[0][0];
-    expect(request).toMatchObject({
-      path: "/api/v1/reports/RC-0241/information-response",
-      method: "POST",
-      timeoutMs: 60_000,
-    });
-    expect(request.body).toBeInstanceOf(FormData);
-    const body = request.body as FormData;
-    expect(JSON.parse(String(body.get("payload")))).toEqual(payload);
-    expect(body.getAll("photos")).toEqual([photo]);
-  });
 });

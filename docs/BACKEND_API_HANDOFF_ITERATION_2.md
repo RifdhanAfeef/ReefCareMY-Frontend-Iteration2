@@ -1,13 +1,13 @@
 # ReefCare MY — Iteration 2 Frontend/API Handoff
 
-**Updated:** 15 September 2026  
+**Updated:** 17 September 2026  
 **Scope:** Current Iteration 2 frontend after Epics 1, 4, 5 and 7 integration
 
 ## Confirmed frontend integrations
 
 The current frontend uses the real API for:
 
-- login, registration, logout and current-session validation;
+- login, registration, local bearer-token sign-out and current-session validation;
 - administrator user listing, account creation, safe profile updates and Coordinator approval;
 - threat-category and authenticated dive-site reference data;
 - Dive Session listing and creation;
@@ -16,7 +16,8 @@ The current frontend uses the real API for:
 - coordinator queue, claim, start review, evidence assessment, information requests, decisions and closure;
 - coordinator evidence retrieval;
 - hotspot analysis, hotspot report drill-through and compact case context; and
-- conservation action types, action creation and action history.
+- coordinator closed-case/referral history and filters; and
+- conservation action types, action creation, action history and action-evidence upload.
 
 The report draft and selected public site are intentionally stored in the browser until submission. This is client draft behaviour, not dummy server data.
 
@@ -52,26 +53,6 @@ GET /api/v1/public/dive-sites/{diveSiteId}/report-handoff
 
 The current frontend preserves the selected curated site across authentication and matches it against authenticated reference data. This works but relies on site names. Once stable public IDs are available, the frontend should call the handoff endpoint and retain its canonical ID instead.
 
-### Coordinator closed-case/referral history
-
-```http
-GET /api/v1/coordinator/cases/history
-```
-
-The endpoint is documented as verified, but the supplied documentation does not define the complete response shape. The frontend cannot safely build the history table and filters until the OpenAPI schema or a complete example is provided.
-
-Required filters are:
-
-- `closureReason`
-- `threatCategory`
-- `closedFrom`
-- `closedTo`
-- `wasReferred`
-- `page`
-- `pageSize`
-
-Please provide the item fields, pagination shape, applied-filter shape and observer-safe labels.
-
 ### Optional signed evidence access
 
 ```http
@@ -82,21 +63,6 @@ This remains optional. Coordinator evidence currently uses the authorised byte-p
 
 ## Missing or incomplete backend contracts
 
-### Action evidence upload
-
-The current action endpoint accepts JSON fields for action type, state, date, responsible team and notes:
-
-```http
-POST /api/v1/coordinator/reports/{reportReference}/actions
-```
-
-US7.1 also asks for a simple evidence upload. The database/storage relationship is documented, but no browser upload request is defined. Provide one of:
-
-1. multipart action creation containing the action JSON and file; or
-2. an owner-authorised action-evidence upload endpoint that returns an evidence ID linked atomically to the action event.
-
-The contract must define accepted types, maximum size, failure behaviour and safe evidence metadata. The frontend deliberately does not send an invented payload.
-
 ### Information-response evidence upload
 
 Text responses are now integrated through:
@@ -106,7 +72,11 @@ GET  /api/v1/reports/{reportReference}/information-request
 POST /api/v1/reports/{reportReference}/information-response
 ```
 
-The documented text body is supported with `evidenceIds: []`. Uploading new evidence with the response remains unavailable because the upload route/sequence is not defined. The backend documentation states that this follow-up is outside the committed Iteration 2 scope, so text response is the current baseline.
+The deployed OpenAPI text body is supported as `{ "responseText": "..." }`. Uploading new evidence with the response remains unavailable because the deployed API does not expose an Observer information-response evidence route. The UI therefore supports the working text path and does not send an invented multipart payload.
+
+### Authentication logout contract
+
+The deployed OpenAPI does not expose `POST /api/v1/auth/logout`. The frontend now signs out locally by clearing its bearer token and cached user. If the backend later introduces token revocation, document and expose a logout endpoint before the frontend calls it.
 
 ## Confirmed hotspot contract
 

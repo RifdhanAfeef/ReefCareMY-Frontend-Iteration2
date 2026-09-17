@@ -78,23 +78,7 @@ export async function getOpenInformationRequest(
 export async function submitInformationResponse(
   reportReference: string,
   payload: ObserverInformationResponseCreate,
-  photos: File[] = [],
 ): Promise<ObserverInformationResponseResult> {
-  if (photos.length > 0) {
-    const formData = new FormData();
-    formData.set("payload", JSON.stringify(payload));
-    for (const photo of photos) {
-      formData.append("photos", photo);
-    }
-
-    return apiRequest<ObserverInformationResponseResult>({
-      path: `/api/v1/reports/${encodeURIComponent(reportReference)}/information-response`,
-      method: "POST",
-      body: formData,
-      timeoutMs: 60_000,
-    });
-  }
-
   return apiRequest<ObserverInformationResponseResult>({
     path: `/api/v1/reports/${encodeURIComponent(reportReference)}/information-response`,
     method: "POST",

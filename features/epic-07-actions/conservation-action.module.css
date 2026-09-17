@@ -38,7 +38,9 @@
 .formIntroduction,
 .field small,
 .emptyState p,
-.evidenceNotice p {
+.evidenceUpload p,
+.evidenceUpload small,
+.evidenceRetry p {
   color: var(--color-muted);
 }
 
@@ -80,7 +82,8 @@
 .emptyState,
 .loadingState,
 .errorBox,
-.evidenceNotice {
+.evidenceUpload,
+.evidenceRetry {
   border-radius: 14px;
 }
 
@@ -187,6 +190,17 @@
   background: #f5faf9;
 }
 
+.evidenceSummary {
+  width: fit-content;
+  margin: 14px 0 0;
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: #075c4e;
+  background: #dff4ef;
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
 .formIntroduction {
   margin: -10px 0 2px;
   font-size: 16px;
@@ -282,14 +296,86 @@
   line-height: 1.45;
 }
 
-.evidenceNotice {
+.evidenceUpload {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--color-border);
+  background: #fff;
+}
+
+.evidenceUpload strong span {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.evidenceUpload p {
+  margin: 5px 0 0;
+}
+
+.evidenceUpload small {
+  display: block;
+  margin-top: 5px;
+}
+
+.evidenceUpload input[type="file"] {
+  width: 100%;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.evidenceUpload input[type="file"]::file-selector-button {
+  min-height: 42px;
+  margin-right: 12px;
+  padding: 8px 14px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-field);
+  color: var(--color-primary-hover);
+  background: #fff;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.selectedEvidence {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--color-info);
+}
+
+.selectedEvidence span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selectedEvidence button,
+.evidenceRetry button {
+  border: 0;
+  color: var(--color-primary-hover);
+  background: transparent;
+  font: inherit;
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.evidenceRetry {
   padding: 14px 16px;
   border: 1px solid #d7c49b;
   background: #fff8e9;
 }
 
-.evidenceNotice p {
-  margin: 5px 0 0;
+.evidenceRetry p {
+  margin: 5px 0 10px;
 }
 
 .formError,

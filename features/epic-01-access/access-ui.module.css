@@ -3,6 +3,45 @@
   gap: 24px;
 }
 
+.viewTabs {
+  display: flex;
+  width: fit-content;
+  padding: 5px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+}
+
+.viewTabs button {
+  min-height: 42px;
+  padding: 8px 18px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--color-muted);
+  background: transparent;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.viewTabs button[aria-pressed="true"] {
+  color: #fff;
+  background: var(--color-primary);
+}
+
+.viewTabs button span {
+  display: inline-grid;
+  min-width: 24px;
+  min-height: 24px;
+  place-items: center;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 12px;
+}
+
 .toolbar,
 .pageActions,
 .buttonRow,
@@ -124,6 +163,24 @@
   margin-top: 24px;
 }
 
+.historyFilters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.historyFilterActions {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+}
+
+.historyFilterActions .primaryButton,
+.historyFilterActions .secondaryButton {
+  min-height: 50px;
+}
+
 .field {
   min-width: 220px;
   display: grid;
@@ -218,6 +275,52 @@
 
 .table tbody tr:hover {
   background: #fbfdfd;
+}
+
+.tableNote {
+  display: block;
+  max-width: 260px;
+  margin-top: 5px;
+  color: var(--color-muted);
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.referralDetails summary {
+  color: var(--color-primary-hover);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.referralDetails ul {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+.referralDetails li span {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+.pagination span {
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.pagination .secondaryButton {
+  min-height: 42px;
 }
 
 .identifier {
@@ -623,6 +726,10 @@
   .permissions {
     padding: 26px;
   }
+
+  .historyFilters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 700px) {
@@ -639,6 +746,7 @@
   }
 
   .filters,
+  .historyFilters,
   .formGrid,
   .definitionList {
     display: grid;
@@ -666,5 +774,15 @@
   .activityTime {
     grid-column: 2;
     white-space: normal;
+  }
+
+  .viewTabs,
+  .viewTabs button {
+    width: 100%;
+  }
+
+  .historyFilterActions {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

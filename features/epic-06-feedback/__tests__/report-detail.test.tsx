@@ -15,14 +15,6 @@ beforeEach(() => {
   mockedGetOpenInformationRequest.mockReset();
   mockedGetOpenInformationRequest.mockResolvedValue(null);
   mockedSubmitInformationResponse.mockReset();
-  Object.defineProperty(URL, "createObjectURL", {
-    configurable: true,
-    value: vi.fn(() => "blob:additional-evidence"),
-  });
-  Object.defineProperty(URL, "revokeObjectURL", {
-    configurable: true,
-    value: vi.fn(),
-  });
 });
 
 function baseReport(overrides: Partial<ReportDetailData> = {}): ReportDetailData {
@@ -101,6 +93,7 @@ describe("US6.3 — information request reason is visible", () => {
     mockedSubmitInformationResponse.mockResolvedValue({
       reportReference: "RC-0241",
       status: "under_review",
+      responseText: "The net was approximately 3 metres wide.",
       respondedAt: "2026-09-11T04:00:00Z",
     });
 
@@ -111,13 +104,13 @@ describe("US6.3 — information request reason is visible", () => {
 
     await waitFor(() => expect(mockedSubmitInformationResponse).toHaveBeenCalledWith(
       "RC-0241",
-      { text: "The net was approximately 3 metres wide.", evidenceIds: [] },
+      { responseText: "The net was approximately 3 metres wide." },
     ));
     expect(await screen.findByText(/attached to this report/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/Additional details/)).not.toBeInTheDocument();
   });
 
-  it("previews and submits new photographs with the response", async () => {
+  it("does not offer a photograph control until the backend upload contract exists", async () => {
     mockedGetReportDetail.mockResolvedValue(
       baseReport({
         status: "needs_more_info",
@@ -125,29 +118,12 @@ describe("US6.3 — information request reason is visible", () => {
         informationRequestReason: "Please add a clearer photograph.",
       }),
     );
-    mockedSubmitInformationResponse.mockResolvedValue({
-      reportReference: "RC-0241",
-      status: "under_review",
-      respondedAt: "2026-09-11T04:00:00Z",
-    });
-    const photo = new File(["reef-photo"], "clearer-reef.jpg", { type: "image/jpeg" });
-
     render(<ReportDetail reportReference="RC-0241" />);
-    const photoInput = await screen.findByLabelText("Choose photographs");
-    fireEvent.change(photoInput, { target: { files: [photo] } });
-
-    expect(screen.getByAltText("Selected additional evidence: clearer-reef.jpg")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Submit additional information" }));
-
-    await waitFor(() => expect(mockedSubmitInformationResponse).toHaveBeenCalledWith(
-      "RC-0241",
-      { text: "", evidenceIds: [] },
-      [photo],
-    ));
-    expect(await screen.findByText(/information and photographs were submitted/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Photograph replies are not available yet/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Choose photographs")).not.toBeInTheDocument();
   });
 
-  it("requires either written details or a photograph", async () => {
+  it("requires written details", async () => {
     mockedGetReportDetail.mockResolvedValue(
       baseReport({
         status: "needs_more_info",
@@ -159,7 +135,7 @@ describe("US6.3 — information request reason is visible", () => {
     render(<ReportDetail reportReference="RC-0241" />);
     fireEvent.click(await screen.findByRole("button", { name: "Submit additional information" }));
 
-    expect(screen.getByRole("alert")).toHaveTextContent(/written response or at least one photograph/i);
+    expect(screen.getByRole("alert")).toHaveTextContent(/Add the requested details/i);
     expect(mockedSubmitInformationResponse).not.toHaveBeenCalled();
   });
 

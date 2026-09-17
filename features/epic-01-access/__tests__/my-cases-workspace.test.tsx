@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import * as coordinatorApi from "@/lib/api/coordinatorApi";
 import type { CoordinatorQueueResult } from "@/lib/api/types";
 import { MyCasesWorkspace } from "../my-cases-workspace";
 
 vi.mock("@/lib/api/coordinatorApi");
 const mockedGetCoordinatorQueue = vi.mocked(coordinatorApi.getCoordinatorQueue);
+const mockedGetCoordinatorCaseHistory = vi.mocked(coordinatorApi.getCoordinatorCaseHistory);
 
 const owner = { id: 8, displayName: "Current Coordinator" };
 const report: CoordinatorQueueResult["items"][number] = {
@@ -32,6 +34,7 @@ function signIn() {
 beforeEach(() => {
   window.localStorage.clear();
   mockedGetCoordinatorQueue.mockReset();
+  mockedGetCoordinatorCaseHistory.mockReset();
   signIn();
 });
 
@@ -88,5 +91,45 @@ describe("Coordinator My Cases workspace", () => {
 
     expect(await screen.findByText("You have no claimed cases")).toBeInTheDocument();
     expect(screen.queryByText("Backend-verified cases")).not.toBeInTheDocument();
+  });
+
+  it("shows filterable closed-case and referral history from the coordinator history endpoint", async () => {
+    const user = userEvent.setup();
+    mockedGetCoordinatorQueue.mockResolvedValue({ items: [], page: 1, pageSize: 100, total: 0 });
+    mockedGetCoordinatorCaseHistory.mockResolvedValue({
+      items: [{
+        reportReference: "RC-1999",
+        threatCategory: { code: "marine_debris", label: "Marine debris" },
+        generalLocation: "Tioman Island",
+        status: { code: "referred", label: "Shared for possible response" },
+        submittedAt: "2026-08-01T04:00:00Z",
+        closedAt: "2026-09-12T04:00:00Z",
+        closureReason: { code: "referred_other_org", label: "Referred to another organisation" },
+        closureNote: "Shared for consideration.",
+        wasReferred: true,
+        referrals: [{
+          referredTo: "Marine Park Department",
+          referredAt: "2026-09-11T04:00:00Z",
+          note: "For consideration only.",
+          decidedByName: "Current Coordinator",
+        }],
+      }],
+      page: 1,
+      pageSize: 20,
+      total: 1,
+      appliedFilters: {},
+    });
+
+    render(<MyCasesWorkspace />);
+    await user.click(screen.getByRole("button", { name: "Closed history" }));
+
+    expect(await screen.findByRole("cell", { name: "RC-1999" })).toBeInTheDocument();
+    expect(screen.getAllByText("Referred to another organisation")).toHaveLength(2);
+    expect(screen.getAllByText("Marine Park Department").length).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: "Open history RC-1999" })).toHaveAttribute(
+      "href",
+      "/coordinator/reports/RC-1999",
+    );
+    expect(mockedGetCoordinatorCaseHistory).toHaveBeenCalledWith({ page: 1, pageSize: 20 });
   });
 });

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getCurrentUser, login, logout, register } from "../authApi";
+import { getCurrentUser, login, register } from "../authApi";
 import * as client from "../client";
 
 vi.mock("../client");
@@ -49,15 +49,6 @@ describe("session endpoints", () => {
     mockedApiRequest.mockResolvedValue({ id: 1, displayName: "Sam", role: "observer" });
     await getCurrentUser();
     expect(mockedApiRequest).toHaveBeenCalledWith({ path: "/api/v1/auth/me" });
-  });
-
-  it("posts logout with authentication", async () => {
-    mockedApiRequest.mockResolvedValue(undefined);
-    await logout();
-    expect(mockedApiRequest).toHaveBeenCalledWith({
-      path: "/api/v1/auth/logout",
-      method: "POST",
-    });
   });
 });
 
