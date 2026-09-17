@@ -436,6 +436,32 @@ describe("Coordinator case workflow", () => {
     expect(screen.getByRole("button", { name: "Record a closure outcome" })).toBeEnabled();
   });
 
+  it("opens the closure workflow from a response-complete case", async () => {
+    const user = userEvent.setup();
+    mockedGetCoordinatorCase.mockResolvedValueOnce({
+      ...report,
+      statusCode: "response_complete",
+      statusLabel: "Response Complete",
+      latestDecision: {
+        responseType: "intervention_required",
+        notes: "A clean-up response is recommended.",
+        referredTo: null,
+      },
+    });
+
+    render(<CoordinatorCaseRoute reportReference={report.reportReference} />);
+
+    const closeButton = await screen.findByRole("button", { name: "Close case" });
+    expect(closeButton).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Start evidence assessment" })).toBeDisabled();
+
+    await user.click(closeButton);
+
+    expect(await screen.findByRole("heading", { name: "Choose a closure reason" })).toBeInTheDocument();
+    expect(screen.getByLabelText(/No responsible partner available/)).toBeEnabled();
+    expect(screen.getByLabelText(/Logged for reference/)).toBeEnabled();
+  });
+
   it("records the entered referral recipient as referredTo", async () => {
     const user = userEvent.setup();
     render(<CoordinatorCaseRoute reportReference={report.reportReference} />);
