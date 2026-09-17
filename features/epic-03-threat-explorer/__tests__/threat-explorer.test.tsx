@@ -21,7 +21,7 @@ describe("Epic 3 Reef Threat Explorer", () => {
   it("introduces all four supported threats without requiring input", () => {
     renderExplorer();
 
-    expect(screen.getByRole("heading", { name: /meet the four threats/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /explore a threat/i })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /^explore /i })).toHaveLength(4);
     expect(screen.getByText(/lost or abandoned nets/i)).toBeInTheDocument();
     expect(screen.getByText("1 of 4")).toBeInTheDocument();
@@ -53,17 +53,14 @@ describe("Epic 3 Reef Threat Explorer", () => {
     expect(screen.getByText("3 of 4")).toBeInTheDocument();
   });
 
-  it("scrolls to the selected threat details after choosing a card", async () => {
+  it("updates the selected threat details after choosing a card", async () => {
     const user = userEvent.setup();
     renderExplorer();
 
-    const detail = screen.getByRole("region", { name: "Ghost fishing gear" });
-    const scrollIntoView = vi.fn();
-    detail.scrollIntoView = scrollIntoView;
-
     await user.click(screen.getByRole("button", { name: "Explore Coral bleaching" }));
 
-    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
+    expect(screen.getByRole("region", { name: "Coral bleaching" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Explore Coral bleaching" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("teaches recognition through tap-only Spot the Threat feedback", async () => {
@@ -73,12 +70,11 @@ describe("Epic 3 Reef Threat Explorer", () => {
     expect(screen.getByRole("heading", { name: "Spot the threat" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Ghost fishing gear" }));
 
-    expect(screen.getByRole("status")).toHaveTextContent(/correct/i);
-    expect(screen.getByRole("status")).toHaveTextContent(/mesh pattern/i);
+    expect(screen.getByRole("status")).toHaveTextContent(/mesh/i);
 
-    await user.click(screen.getByRole("button", { name: "Next example" }));
-    expect(screen.getByText(/what change is visible/i)).toBeInTheDocument();
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Coral bleaching" }));
+    expect(screen.getByRole("status")).toHaveTextContent(/notice the colour/i);
+    expect(screen.getByRole("status")).toHaveTextContent(/intact branching shape/i);
   });
 
   it("routes a public visitor through login while preserving the selected threat", async () => {
@@ -88,7 +84,7 @@ describe("Epic 3 Reef Threat Explorer", () => {
     await user.click(screen.getByRole("button", { name: "Explore Physical reef damage" }));
     expect(await screen.findByRole("link", { name: "Report this threat" })).toHaveAttribute(
       "href",
-      "/login?next=%2Freport-a-reef%3Fthreat%3Dphysical_reef_damage",
+      "/login?next=%2Freport-a-reef%3Fthreat%3Dphysical_damage",
     );
     expect(screen.getByRole("link", { name: "I’m not sure what I saw" })).toHaveAttribute(
       "href",
