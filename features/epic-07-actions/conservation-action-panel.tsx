@@ -1,11 +1,14 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import { DisplayDateInput } from "@/components/forms/display-date-input";
 import {
   createConservationAction,
   getConservationActions,
   getConservationActionTypes,
+  getCoordinatorEvidence,
   uploadConservationActionEvidence,
 } from "@/lib/api/coordinatorApi";
 import type {
@@ -41,7 +44,78 @@ function displayCreatedAt(value: string) {
   return Number.isNaN(parsed.getTime()) ? value : formatDateTime(parsed);
 }
 
-function ActionHistory({ actions }: { actions: ConservationAction[] }) {
+function ActionEvidencePreview({
+  reportReference,
+  evidenceId,
+  actionLabel,
+  index,
+}: {
+  reportReference: string;
+  evidenceId: number;
+  actionLabel: string;
+  index: number;
+}) {
+  const [evidenceUrl, setEvidenceUrl] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [retryKey, setRetryKey] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl = "";
+
+    getCoordinatorEvidence(reportReference, evidenceId)
+      .then((evidence) => {
+        objectUrl = URL.createObjectURL(evidence);
+        if (cancelled) URL.revokeObjectURL(objectUrl);
+        else setEvidenceUrl(objectUrl);
+      })
+      .catch((requestError) => {
+        if (!cancelled) {
+          setError(userFacingError(requestError, "This action evidence image could not be loaded."));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [evidenceId, reportReference, retryKey]);
+
+  function retry() {
+    setEvidenceUrl("");
+    setError("");
+    setLoading(true);
+    setRetryKey((value) => value + 1);
+  }
+
+  return (
+    <div className={styles.actionEvidenceItem}>
+      {loading && <span role="status">Loading action evidence…</span>}
+      {evidenceUrl && (
+        <Image
+          src={evidenceUrl}
+          alt={`Action evidence ${index + 1} for ${actionLabel}`}
+          width={360}
+          height={240}
+          unoptimized
+        />
+      )}
+      {error && <div><p role="alert">{error}</p><button type="button" onClick={retry}>Try again</button></div>}
+    </div>
+  );
+}
+
+function ActionHistory({
+  actions,
+  reportReference,
+}: {
+  actions: ConservationAction[];
+  reportReference: string;
+}) {
   if (actions.length === 0) {
     return (
       <div className={styles.emptyState} role="status">
@@ -68,11 +142,23 @@ function ActionHistory({ actions }: { actions: ConservationAction[] }) {
             <div><dt>Recorded by</dt><dd>{action.createdByName || "Authorised coordinator"}</dd></div>
           </dl>
           {action.notes && <p className={styles.notes}>{action.notes}</p>}
-          {(action.evidence?.length ?? 0) > 0 && (
-            <p className={styles.evidenceSummary}>
-              {action.evidence?.length} evidence image{action.evidence?.length === 1 ? "" : "s"} attached
-            </p>
-          )}
+          {(action.evidence?.length ?? 0) > 0 && <section className={styles.actionEvidence} aria-label={`Supporting evidence for ${action.actionTypeLabel}`}>
+            <div className={styles.actionEvidenceHeading}>
+              <strong>Supporting evidence</strong>
+              <span>{action.evidence?.length} image{action.evidence?.length === 1 ? "" : "s"}</span>
+            </div>
+            <div className={styles.actionEvidenceGrid}>
+              {action.evidence?.map((evidence, index) => (
+                <ActionEvidencePreview
+                  key={evidence.evidenceId}
+                  reportReference={reportReference}
+                  evidenceId={evidence.evidenceId}
+                  actionLabel={action.actionTypeLabel}
+                  index={index}
+                />
+              ))}
+            </div>
+          </section>}
           {action.actionState === "action_planned" && (
             <p className={styles.plannedReminder}>This is a plan only. It does not confirm that conservation work has happened.</p>
           )}
@@ -82,7 +168,13 @@ function ActionHistory({ actions }: { actions: ConservationAction[] }) {
   );
 }
 
-export function ConservationActionPanel({ reportReference }: { reportReference: string }) {
+export function ConservationActionPanel({
+  reportReference,
+  onEvidenceIdsChange,
+}: {
+  reportReference: string;
+  onEvidenceIdsChange?: (evidenceIds: number[]) => void;
+}) {
   const [actionTypes, setActionTypes] = useState<ConservationActionTypeOption[]>([]);
   const [actions, setActions] = useState<ConservationAction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,6 +189,12 @@ export function ConservationActionPanel({ reportReference }: { reportReference: 
   const [successMessage, setSuccessMessage] = useState("");
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   const [pendingEvidence, setPendingEvidence] = useState<{ actionId: number; file: File } | null>(null);
+
+  useEffect(() => {
+    onEvidenceIdsChange?.(
+      actions.flatMap((action) => (action.evidence ?? []).map((evidence) => evidence.evidenceId)),
+    );
+  }, [actions, onEvidenceIdsChange]);
 
   async function retryLoad() {
     setLoading(true);
@@ -277,7 +375,7 @@ export function ConservationActionPanel({ reportReference }: { reportReference: 
         <div className={styles.contentGrid}>
           <section className={styles.historySection} aria-labelledby="action-history-heading">
             <h3 id="action-history-heading">Case action history</h3>
-            <ActionHistory actions={actions} />
+            <ActionHistory actions={actions} reportReference={reportReference} />
           </section>
 
           <form className={styles.actionForm} onSubmit={saveAction} noValidate>
@@ -341,14 +439,16 @@ export function ConservationActionPanel({ reportReference }: { reportReference: 
             {pendingEvidence && <aside className={styles.evidenceRetry} role="alert"><strong>Evidence still needs uploading</strong><p>{pendingEvidence.file.name} belongs to the action that was just recorded.</p><button type="button" onClick={() => void retryEvidenceUpload()} disabled={submitting}>{submitting ? "Uploading…" : "Retry evidence upload"}</button></aside>}
 
             {formError && <p className={styles.formError} role="alert">{formError}</p>}
-            {successMessage && <p className={styles.successMessage} role="status">{successMessage}</p>}
-
             <button className={styles.submitButton} type="submit" disabled={submitting || actionTypes.length === 0}>
               {submitting ? "Recording action…" : "Record action update"}
             </button>
           </form>
         </div>
       )}
+      {successMessage && <footer className={styles.completionMessage} role="status">
+        <div><strong>Action update saved</strong><p>{successMessage}</p></div>
+        <Link href="/coordinator/my-cases">Back to My Cases</Link>
+      </footer>}
     </section>
   );
 }

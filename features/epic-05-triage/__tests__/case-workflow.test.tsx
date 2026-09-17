@@ -13,6 +13,8 @@ const mockedClaimReport = vi.mocked(coordinatorApi.claimReport);
 const mockedCloseCase = vi.mocked(coordinatorApi.closeCase);
 const mockedGetCoordinatorCase = vi.mocked(coordinatorApi.getCoordinatorCase);
 const mockedGetCoordinatorEvidence = vi.mocked(coordinatorApi.getCoordinatorEvidence);
+const mockedGetConservationActions = vi.mocked(coordinatorApi.getConservationActions);
+const mockedGetConservationActionTypes = vi.mocked(coordinatorApi.getConservationActionTypes);
 const mockedRecordEvidenceAssessment = vi.mocked(coordinatorApi.recordEvidenceAssessment);
 const mockedRecordCaseDecision = vi.mocked(coordinatorApi.recordCaseDecision);
 const mockedRequestMoreInformation = vi.mocked(coordinatorApi.requestMoreInformation);
@@ -48,6 +50,8 @@ beforeEach(() => {
   Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() });
   mockedGetCoordinatorCase.mockResolvedValue(report);
   mockedGetCoordinatorEvidence.mockResolvedValue(new Blob(["image"], { type: "image/jpeg" }));
+  mockedGetConservationActionTypes.mockResolvedValue([]);
+  mockedGetConservationActions.mockResolvedValue({ reportReference: report.reportReference, items: [], total: 0 });
   mockedClaimReport.mockResolvedValue({
     reportReference: report.reportReference,
     owner: report.owner,
@@ -101,6 +105,49 @@ describe("Coordinator case workflow", () => {
     expect(screen.getByText("Confidence: Within 100 m")).toBeInTheDocument();
     expect(screen.getByText("Source: Observer map pin")).toBeInTheDocument();
     expect(screen.queryByText("Authorised exact location")).not.toBeInTheDocument();
+  });
+
+  it("keeps coordinator action evidence inside action history instead of Observer submitted evidence", async () => {
+    mockedGetCoordinatorCase.mockResolvedValueOnce({
+      ...report,
+      latestDecision: {
+        responseType: "intervention_required",
+        notes: "A clean-up response is recommended.",
+        referredTo: null,
+      },
+      evidence: [
+        ...report.evidence,
+        { evidenceId: 19, mediaType: "image/jpeg", uploadedAt: "2026-09-17T14:15:00Z" },
+      ],
+    });
+    mockedGetConservationActionTypes.mockResolvedValueOnce([
+      { code: "reef_cleanup", label: "Reef clean-up", description: null },
+    ]);
+    mockedGetConservationActions.mockResolvedValueOnce({
+      reportReference: report.reportReference,
+      total: 1,
+      items: [{
+        caseActionId: 6,
+        reportReference: report.reportReference,
+        actionTypeCode: "reef_cleanup",
+        actionTypeLabel: "Reef clean-up",
+        actionState: "action_taken",
+        actionDate: "2026-09-17",
+        responsibleTeam: "Team 18",
+        notes: "Debris has been removed.",
+        statusCode: "monitoring",
+        createdBy: 8,
+        createdByName: "Case Coordinator",
+        createdAt: "2026-09-17T14:15:00Z",
+        evidence: [{ evidenceId: 19, mediaType: "image/jpeg", uploadedAt: "2026-09-17T14:15:00Z", caseActionId: 6 }],
+      }],
+    });
+
+    render(<CoordinatorCaseRoute reportReference={report.reportReference} />);
+
+    expect(await screen.findByRole("img", { name: "Submitted evidence 13" })).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: "Action evidence 1 for Reef clean-up" })).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: "Submitted evidence 19" })).not.toBeInTheDocument();
   });
 
   it("renders the backend information-exchange event list for re-review", async () => {

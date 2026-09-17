@@ -5,6 +5,7 @@ import {
   createConservationAction,
   getConservationActions,
   getConservationActionTypes,
+  getCoordinatorEvidence,
   uploadConservationActionEvidence,
 } from "@/lib/api/coordinatorApi";
 import { ConservationActionPanel } from "../conservation-action-panel";
@@ -14,13 +15,19 @@ vi.mock("@/lib/api/coordinatorApi");
 const mockedGetActionTypes = vi.mocked(getConservationActionTypes);
 const mockedGetActions = vi.mocked(getConservationActions);
 const mockedCreateAction = vi.mocked(createConservationAction);
+const mockedGetCoordinatorEvidence = vi.mocked(getCoordinatorEvidence);
 const mockedUploadActionEvidence = vi.mocked(uploadConservationActionEvidence);
 
 beforeEach(() => {
   mockedGetActionTypes.mockReset();
   mockedGetActions.mockReset();
   mockedCreateAction.mockReset();
+  mockedGetCoordinatorEvidence.mockReset();
   mockedUploadActionEvidence.mockReset();
+
+  Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn(() => "blob:action-evidence") });
+  Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() });
+  mockedGetCoordinatorEvidence.mockResolvedValue(new Blob(["image"], { type: "image/jpeg" }));
 
   mockedGetActionTypes.mockResolvedValue([
     { code: "reef_cleanup", label: "Reef clean-up", description: "Remove debris through an authorised response." },
@@ -138,6 +145,8 @@ describe("Epic 7 conservation action record", () => {
 
     await waitFor(() => expect(mockedUploadActionEvidence).toHaveBeenCalledWith("RC-0710", 6, file));
     expect(await screen.findByText(/The evidence image was attached/i)).toBeInTheDocument();
-    expect(screen.getByText("1 evidence image attached")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to My Cases" })).toHaveAttribute("href", "/coordinator/my-cases");
+    expect(await screen.findByRole("img", { name: "Action evidence 1 for Reef clean-up" })).toHaveAttribute("src", "blob:action-evidence");
+    expect(mockedGetCoordinatorEvidence).toHaveBeenCalledWith("RC-0710", 19);
   });
 });
