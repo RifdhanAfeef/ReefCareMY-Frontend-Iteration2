@@ -9,6 +9,7 @@ const supportedThreats = new Set([
   "coral_bleaching",
   "marine_debris",
   "physical_reef_damage",
+  "unsure",
 ]);
 
 function normaliseThreatHandoff(value: string) {

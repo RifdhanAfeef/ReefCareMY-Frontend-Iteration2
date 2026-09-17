@@ -2,13 +2,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useState } from "react";
+import { ArrowLeft, ArrowRight, ChevronRight, ShieldCheck, ExternalLink } from "lucide-react";
 import { useAuth } from "@/features/epic-01-access/auth-context";
 import { spotTheThreatExamples, threatExplorerItems, type ThreatExplorerCode } from "./threat-explorer-data";
 import styles from "./threat-explorer.module.css";
 
 function Arrow({ direction }: { direction: "left" | "right" }) {
-  return <span aria-hidden="true">{direction === "left" ? "←" : "→"}</span>;
+  const Icon = direction === "left" ? ArrowLeft : ArrowRight;
+  return <Icon size={18} aria-hidden="true" />;
 }
 
 export function ThreatExplorer({ initialThreat }: { initialThreat?: ThreatExplorerCode }) {
@@ -18,46 +20,34 @@ export function ThreatExplorer({ initialThreat }: { initialThreat?: ThreatExplor
     : 0;
   const [selectedIndex, setSelectedIndex] = useState(initialIndex >= 0 ? initialIndex : 0);
   const [exampleIndex, setExampleIndex] = useState(0);
-  const [answer, setAnswer] = useState<ThreatExplorerCode | null>(null);
-  const detailRef = useRef<HTMLElement | null>(null);
   const selected = threatExplorerItems[selectedIndex];
   const example = spotTheThreatExamples[exampleIndex];
 
   const selectThreat = (index: number) => {
     setSelectedIndex(index);
-    const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    detailRef.current?.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth", block: "start" });
   };
 
   const reportHref = (code: ThreatExplorerCode | "unsure") => {
-    const destination = `/report-a-reef?threat=${code}`;
+    const categoryCode = code === "physical_reef_damage" ? "physical_damage" : code;
+    const destination = `/report-a-reef?threat=${categoryCode}`;
     return status === "authenticated" && user?.role === "observer"
       ? destination
       : `/login?next=${encodeURIComponent(destination)}`;
-  };
-
-  const nextExample = () => {
-    setExampleIndex((current) => (current + 1) % spotTheThreatExamples.length);
-    setAnswer(null);
   };
 
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
         <div className={styles.heroContent}>
-          <p className={styles.eyebrow}>ReefCare MY · Reef Threat Explorer</p>
-          <h1>Meet the four threats facing Malaysia’s reefs.</h1>
+          <h1>Reef threats</h1>
+          <p>Meet the four threats facing Malaysia’s reefs. Know the signs. Observe safely.</p>
         </div>
-        <figure className={styles.heroVisual}>
-          <Image src="/images/threats/generated/coral-bleaching.webp" alt="Bleached white coral surrounded by reef fish" fill priority sizes="(max-width: 900px) 100vw, 42vw" />
-          <figcaption><span>Coral bleaching</span><strong>One of four supported threats</strong></figcaption>
-        </figure>
       </header>
 
       <div className={styles.main}>
         <section className={styles.explorer} id="threats" aria-labelledby="threats-heading">
           <div className={styles.sectionHeader}>
-            <div><p className={styles.eyebrowDark}>Four threats. Clear signals.</p><h2 id="threats-heading">Explore at your own pace</h2></div>
+            <h2 id="threats-heading">Explore a threat</h2>
             <div className={styles.carouselControls}>
               <p aria-live="polite">{selectedIndex + 1} of {threatExplorerItems.length}</p>
               <button type="button" aria-label="Previous threat" disabled={selectedIndex === 0} onClick={() => selectThreat(selectedIndex - 1)}><Arrow direction="left" /></button>
@@ -75,57 +65,59 @@ export function ThreatExplorer({ initialThreat }: { initialThreat?: ThreatExplor
                 aria-pressed={selectedIndex === index}
                 onClick={() => selectThreat(index)}
               >
-                <Image src={threat.image} alt="" fill sizes="(max-width: 640px) 82vw, 360px" />
+                <Image src={threat.image} alt="" fill sizes="(max-width: 640px) 45vw, 280px" />
                 <span className={styles.cardShade} aria-hidden="true" />
-                <span className={styles.cardNumber}>{threat.number}</span><span className={styles.cardEyebrow}>{threat.eyebrow}</span><strong>{threat.label}</strong>
-                <span className={styles.cardAction}>Explore <Arrow direction="right" /></span>
+                <span className={styles.cardNumber}>{threat.number}</span><strong>{threat.label}</strong>
               </button>
             ))}
           </div>
         </section>
 
-        <section ref={detailRef} className={styles.detail} aria-live="polite" aria-labelledby="selected-threat-heading" key={selected.code}>
+        <section className={styles.detail} aria-live="polite" aria-labelledby="selected-threat-heading">
           <div className={styles.detailGallery} aria-label={`${selected.label} visual examples`}>
             {[
               { image: selected.image, alt: selected.imageAlt },
-              { image: selected.exampleImage, alt: selected.exampleImageAlt },
-            ].map((item, index) => (
+              selected.exampleImage && selected.exampleImageAlt
+                ? { image: selected.exampleImage, alt: selected.exampleImageAlt }
+                : null,
+            ].filter((item): item is { image: string; alt: string } => Boolean(item)).map((item, index) => (
               <figure className={styles.detailImage} key={item.image}>
-                <Image src={item.image} alt={item.alt} fill sizes="(max-width: 900px) 82vw, 34vw" priority={selectedIndex === 0 && index === 0} />
-                <figcaption>Example {index + 1} of 2</figcaption>
+                <Image src={item.image} alt={item.alt} fill sizes="(max-width: 640px) 100vw, 45vw" priority={selectedIndex === 0 && index === 0} />
               </figure>
             ))}
           </div>
           <div className={styles.detailCopy}>
-            <p className={styles.eyebrowDark}>Know what you are seeing</p><h2 id="selected-threat-heading">{selected.label}</h2><p className={styles.lead}>{selected.summary}</p>
+            <h2 id="selected-threat-heading">{selected.label}</h2><p className={styles.lead}>{selected.summary}</p>
             <div className={styles.factGrid}>
               <div><h3>What it looks like</h3><p>{selected.looksLike}</p></div>
-              <div><h3>Why it matters</h3><p>{selected.impact}</p></div>
+              <div><h3>Why it matters</h3><p>{selected.impact}</p><a className={styles.factSource} href={selected.impactSource.url} target="_blank" rel="noreferrer">Fact source: {selected.impactSource.label}<ExternalLink size={12} aria-hidden="true" /></a></div>
             </div>
             <div className={styles.cues}><h3>Recognition cues</h3><ol>{selected.recognitionCues.map((cue, index) => <li key={cue}><span>0{index + 1}</span>{cue}</li>)}</ol></div>
-            <aside className={styles.safety}><span aria-hidden="true">✦</span><div><strong>Observe safely</strong><p>{selected.safety}</p></div></aside>
+            <aside className={styles.safety}><ShieldCheck size={20} aria-hidden="true" /><div><strong>Observe safely</strong><p>{selected.safety}</p></div></aside>
             <Link className={styles.primaryAction} href={reportHref(selected.code)}>Report this threat <Arrow direction="right" /></Link>
           </div>
         </section>
 
         <section className={styles.quiz} aria-labelledby="spot-heading">
-          <div className={styles.quizIntro}><p className={styles.eyebrow}>Quick visual check</p><h2 id="spot-heading">Spot the threat</h2><p>Choose the closest match. No scientific diagnosis needed.</p></div>
+          <div className={styles.quizIntro}><h2 id="spot-heading">Spot the threat</h2><p>Small details reveal what is happening on a reef.</p></div>
           <div className={styles.quizPanel}>
             <figure className={styles.quizImage}>
               <Image src={example.image} alt={example.imageAlt} fill sizes="(max-width: 900px) 100vw, 52vw" />
-              <figcaption>Example {exampleIndex + 1} of {spotTheThreatExamples.length}</figcaption>
             </figure>
             <div className={styles.quizCopy}>
-              <h3>{example.prompt}</h3>
-              <div className={styles.answers}>{threatExplorerItems.map((threat) => <button aria-pressed={answer === threat.code} key={threat.code} type="button" onClick={() => setAnswer(threat.code)}>{threat.label}<span aria-hidden="true">›</span></button>)}</div>
-              {answer && <div className={styles.feedback} role="status"><strong>{answer === example.threatCode ? "Correct — you spotted it." : "Not quite — look once more."}</strong><p>{example.explanation}</p></div>}
-              {answer && <button className={styles.nextExample} type="button" onClick={nextExample}>Next example <Arrow direction="right" /></button>}
+              <div className={styles.answers} role="group" aria-label="Visual threat examples">{spotTheThreatExamples.map((item, index) => <button aria-pressed={exampleIndex === index} key={item.threatCode} type="button" onClick={() => setExampleIndex(index)}>{threatExplorerItems.find((threat) => threat.code === item.threatCode)?.label}<ChevronRight size={18} aria-hidden="true" /></button>)}</div>
+              <div className={styles.feedback} role="status"><h3>{example.prompt}</h3><p>{example.explanation}</p></div>
             </div>
           </div>
         </section>
 
+        <details className={styles.photoCredits}>
+          <summary>Image sources</summary>
+          <p>Educational images generated for ReefCare. They illustrate recognition cues and are not photographs of recorded incidents. Impact facts are linked to their NOAA sources above.</p>
+        </details>
+
         <section className={styles.unsure}>
-          <p className={styles.eyebrow}>Unsure is a valid answer</p><h2>You observe.<br />Conservation teams assess.</h2>
+          <h2>Not sure what you saw?</h2>
           <p>Share what you saw without guessing. A clear photo, place and simple description are enough to begin.</p>
           <Link className={styles.lightAction} href={reportHref("unsure")}>I’m not sure what I saw <Arrow direction="right" /></Link>
         </section>
