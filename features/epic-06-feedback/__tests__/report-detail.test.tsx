@@ -86,8 +86,7 @@ describe("US6.3 — information request reason is visible", () => {
       }),
     );
     mockedGetOpenInformationRequest.mockResolvedValue({
-      reportReference: "RC-0241",
-      reason: "Please confirm the approximate size of the net.",
+      requestText: "Please confirm the approximate size of the net.",
       requestedAt: "2026-09-10T04:00:00Z",
     });
     mockedSubmitInformationResponse.mockResolvedValue({
@@ -110,7 +109,7 @@ describe("US6.3 — information request reason is visible", () => {
     expect(screen.queryByLabelText(/Additional details/)).not.toBeInTheDocument();
   });
 
-  it("does not offer a photograph control until the backend upload contract exists", async () => {
+  it("keeps information responses text-only until the backend upload contract exists", async () => {
     mockedGetReportDetail.mockResolvedValue(
       baseReport({
         status: "needs_more_info",
@@ -119,8 +118,9 @@ describe("US6.3 — information request reason is visible", () => {
       }),
     );
     render(<ReportDetail reportReference="RC-0241" />);
-    expect(await screen.findByText(/Photograph replies are not available yet/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Photograph uploads are temporarily unavailable/i)).toBeInTheDocument();
     expect(screen.queryByLabelText("Choose photographs")).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Additional details/)).toHaveAttribute("maxlength", "2000");
   });
 
   it("requires written details", async () => {

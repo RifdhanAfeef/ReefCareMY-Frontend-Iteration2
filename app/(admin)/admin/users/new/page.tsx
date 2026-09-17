@@ -9,7 +9,7 @@ export default function AddNewUserPage() {
     <PageTemplate
       eyebrow="Administration / Users & roles"
       title="Add New User"
-      description="Create a Registered Observer account. Coordinator access can be approved separately."
+      description="Create a Registered Observer account. Coordinator access is approved separately from the user directory."
       showBackButton
       backFallbackHref="/admin/users"
     >

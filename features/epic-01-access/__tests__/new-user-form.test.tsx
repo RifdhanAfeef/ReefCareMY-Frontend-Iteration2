@@ -42,13 +42,13 @@ async function completeCreateForm() {
 }
 
 describe("Administrator account creation", () => {
-  it("creates only a Registered Observer through the backend", async () => {
+  it("creates only a Registered Observer account", async () => {
     mockedCreateAdminUser.mockResolvedValue({ ...observer, displayName: "Farah Aziz", email: "farah@example.org" });
     render(<NewUserForm />);
     const user = await completeCreateForm();
 
-    expect(screen.getByText("Registered Observer")).toBeInTheDocument();
     expect(screen.queryByLabelText("Account role")).not.toBeInTheDocument();
+    expect(screen.getByText(/Coordinator access can be approved later from the user directory/i)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Create user account" }));
 
     expect(mockedCreateAdminUser).toHaveBeenCalledWith({
@@ -57,6 +57,7 @@ describe("Administrator account creation", () => {
       password: "temporary-pass-2026",
       role: "observer",
     });
+    expect(mockedApproveCoordinator).not.toHaveBeenCalled();
     expect(push).toHaveBeenCalledWith("/admin/users");
   });
 
@@ -84,6 +85,7 @@ describe("Administrator user directory", () => {
 
     const user = userEvent.setup();
     await user.click(within(row as HTMLTableRowElement).getByRole("button", { name: "Manage account" }));
+    expect(screen.getByRole("dialog", { name: "Manage Existing Observer" })).toBeInTheDocument();
     await user.clear(screen.getByLabelText("Display name"));
     await user.type(screen.getByLabelText("Display name"), "Updated Observer");
     await user.selectOptions(screen.getByLabelText("Account status"), "suspended");
@@ -106,5 +108,26 @@ describe("Administrator user directory", () => {
 
     expect(mockedApproveCoordinator).toHaveBeenCalledWith(12);
     expect(await screen.findByText("Existing Observer now has Case Coordinator access.")).toBeInTheDocument();
+  });
+
+  it("shows ten users per page and moves through the directory", async () => {
+    const accounts = Array.from({ length: 12 }, (_, index) => ({
+      ...observer,
+      id: index + 1,
+      email: `observer${index + 1}@example.org`,
+      displayName: `Observer ${index + 1}`,
+    }));
+    mockedGetAdminUsers.mockResolvedValue({ items: accounts, page: 1, pageSize: 100, total: 12 });
+    render(<UserDirectory />);
+
+    expect(await screen.findByText("Observer 1")).toBeInTheDocument();
+    expect(screen.getByText("Observer 10")).toBeInTheDocument();
+    expect(screen.queryByText("Observer 11")).not.toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByText("Observer 11")).toBeInTheDocument();
+    expect(screen.getByText("Observer 12")).toBeInTheDocument();
+    expect(screen.queryByText("Observer 1")).not.toBeInTheDocument();
   });
 });

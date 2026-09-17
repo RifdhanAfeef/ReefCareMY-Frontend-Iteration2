@@ -134,10 +134,8 @@ export type ReportDetail = {
 };
 
 export type ObserverInformationRequest = {
-  reportReference?: string;
-  reason?: string | null;
-  requestReason?: string | null;
-  requestedAt?: string | null;
+  requestText: string;
+  requestedAt: string;
 };
 
 export type ObserverInformationResponseCreate = {
@@ -415,17 +413,20 @@ export type CoordinatorTriageContext = {
 export type CoordinatorAiAssisted = {
   available?: boolean;
   generatedAt?: string | null;
+  triageBrief?: string | null;
+  isUnverifiedAiOutput?: boolean;
   source?: string | null;
   summary?: string | null;
   suggestions?: Record<string, unknown> | Array<Record<string, unknown>> | null;
   warnings?: string[];
 };
 
-export type CoordinatorInformationExchange = {
-  requestReason?: string | null;
-  requestedAt?: string | null;
-  responseText?: string | null;
-  respondedAt?: string | null;
+export type CoordinatorInformationExchangeEntry = {
+  eventType: string;
+  message?: string | null;
+  occurredAt: string;
+  actorUserId?: number | null;
+  actorDisplayName?: string | null;
 };
 
 export type CoordinatorCase = {
@@ -451,7 +452,7 @@ export type CoordinatorCase = {
   evidence: CoordinatorEvidence[];
   triageContext?: CoordinatorTriageContext | null;
   aiAssisted?: CoordinatorAiAssisted | null;
-  informationExchange?: CoordinatorInformationExchange | null;
+  informationExchange?: CoordinatorInformationExchangeEntry[];
   latestDecision?: CoordinatorDecisionSummary | null;
 };
 

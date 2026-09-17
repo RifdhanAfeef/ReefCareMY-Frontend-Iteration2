@@ -143,10 +143,10 @@ export function ReportDetail({ reportReference }: { reportReference: string }) {
         </div>
       )}
 
-      {(informationRequest?.reason || informationRequest?.requestReason || report.informationRequestReason) && (
+      {(informationRequest?.requestText || report.informationRequestReason) && (
         <section className={styles.infoRequest} aria-labelledby="information-request-heading">
           <h2 id="information-request-heading">More information needed</h2>
-          <p>{informationRequest?.reason ?? informationRequest?.requestReason ?? report.informationRequestReason}</p>
+          <p>{informationRequest?.requestText ?? report.informationRequestReason}</p>
           {informationRequest?.requestedAt && (
             <p className={styles.requestedAt}>Requested {formatDateTime(new Date(informationRequest.requestedAt))}</p>
           )}
@@ -156,17 +156,16 @@ export function ReportDetail({ reportReference }: { reportReference: string }) {
               id="information-response"
               value={responseText}
               onChange={(event) => setResponseText(event.target.value)}
-              maxLength={4000}
+              maxLength={2000}
               disabled={submittingResponse}
               aria-invalid={Boolean(responseError)}
+              aria-describedby="information-response-help"
               placeholder="Add the details requested above."
             />
-            <small>{responseText.length}/4000 characters</small>
-
-            <aside className={styles.responseEvidence} aria-labelledby="additional-photographs-heading">
-              <h3 id="additional-photographs-heading">Additional photographs</h3>
-              <p>Photograph replies are not available yet. Submit the requested written details now.</p>
-            </aside>
+            <div className={styles.responseMeta} id="information-response-help">
+              <small>{responseText.length}/2000 characters</small>
+              <small>Photograph uploads are temporarily unavailable. Please respond in writing.</small>
+            </div>
             {responseError && <p className={styles.responseError} role="alert">{responseError}</p>}
             <button type="submit" disabled={submittingResponse}>
               {submittingResponse ? "Submitting…" : "Submit additional information"}

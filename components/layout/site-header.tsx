@@ -8,7 +8,6 @@ import { useAuth } from "@/features/epic-01-access/auth-context";
 import { clearSelectedReefSite } from "@/features/epic-02-reef-explorer/selected-site-storage";
 import { clearDraftPhotos } from "@/features/epic-02-reporting/draft-storage";
 import { useMockAppState } from "@/features/shared/mock-app-state";
-import type { UserRole } from "@/lib/api/types";
 import { Brand } from "./brand";
 import styles from "./site-header.module.css";
 
@@ -60,13 +59,8 @@ export function SiteHeader({
   const router = useRouter();
   const { user, logout } = useAuth();
 
-  const roleLabels: Record<UserRole, string> = {
-    observer: "Registered Observer",
-    case_coordinator: "Case Coordinator",
-    system_administrator: "System Administrator",
-  };
   const resolvedIdentity = identity ?? (user
-    ? { label: roleLabels[user.role], initial: user.displayName.trim().charAt(0).toUpperCase() || "U" }
+    ? { label: user.displayName.trim() || "Signed-in user", initial: user.displayName.trim().charAt(0).toUpperCase() || "U" }
     : undefined);
 
   async function signOut() {

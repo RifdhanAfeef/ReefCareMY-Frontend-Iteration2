@@ -18,7 +18,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/features/epic-01-access/auth-context", () => ({
   useAuth: () => ({
-    user: { id: 7, role: "observer", displayName: "Observer" },
+    user: { id: 7, role: "observer", displayName: "Jamie Lee" },
     logout: vi.fn(),
   }),
 }));
@@ -62,5 +62,13 @@ describe("SiteHeader report navigation", () => {
 
     expect(resetReportDraft).not.toHaveBeenCalled();
     expect(clearDraftPhotos).not.toHaveBeenCalled();
+  });
+
+  it("shows the signed-in user's display name instead of their role", () => {
+    render(<SiteHeader navigation={[]} />);
+
+    expect(screen.getByText("Jamie Lee")).toBeInTheDocument();
+    expect(screen.getByLabelText("Signed in as Jamie Lee")).toBeInTheDocument();
+    expect(screen.queryByText("Registered Observer")).not.toBeInTheDocument();
   });
 });

@@ -103,6 +103,38 @@ describe("Coordinator case workflow", () => {
     expect(screen.queryByText("Authorised exact location")).not.toBeInTheDocument();
   });
 
+  it("renders the backend information-exchange event list for re-review", async () => {
+    mockedGetCoordinatorCase.mockResolvedValueOnce({
+      ...report,
+      informationExchange: [
+        {
+          eventType: "info_requested",
+          message: "Please describe the size of the net.",
+          occurredAt: "2026-09-04T01:10:00Z",
+          actorUserId: 8,
+          actorDisplayName: "Coordinator One",
+        },
+        {
+          eventType: "info_provided",
+          message: "The net was approximately three metres wide.",
+          occurredAt: "2026-09-05T02:20:00Z",
+          actorUserId: 14,
+          actorDisplayName: "Jamie Lee",
+        },
+      ],
+    });
+
+    render(<CoordinatorCaseRoute reportReference={report.reportReference} />);
+
+    expect(await screen.findByRole("heading", { name: "Information request and response" })).toBeInTheDocument();
+    expect(screen.getByText("Coordinator request")).toBeInTheDocument();
+    expect(screen.getByText("Please describe the size of the net.")).toBeInTheDocument();
+    expect(screen.getByText("Observer response")).toBeInTheDocument();
+    expect(screen.getByText("The net was approximately three metres wide.")).toBeInTheDocument();
+    expect(screen.getByText(/Coordinator One/)).toBeInTheDocument();
+    expect(screen.getByText(/Jamie Lee/)).toBeInTheDocument();
+  });
+
   it("shows only Observer-reviewed AI-assisted fields and never presents model output as verification", async () => {
     mockedGetCoordinatorCase.mockResolvedValueOnce({
       ...report,
@@ -121,7 +153,10 @@ describe("Coordinator case workflow", () => {
 
     render(<CoordinatorCaseRoute reportReference={report.reportReference} />);
 
-    expect(await screen.findByRole("heading", { name: "Observer-confirmed structured information" })).toBeInTheDocument();
+    const aiHeading = await screen.findByRole("heading", { name: "Observer-confirmed structured information" });
+    const caseControlPanel = screen.getByRole("heading", { name: "Case control" }).closest("aside");
+    expect(aiHeading).toBeInTheDocument();
+    expect(caseControlPanel?.nextElementSibling).toContainElement(aiHeading);
     expect(screen.getByText("12 metres")).toBeInTheDocument();
     expect(screen.getByText("Branching coral")).toBeInTheDocument();
     expect(screen.getAllByText("Observer confirmed")).toHaveLength(2);
@@ -201,8 +236,7 @@ describe("Coordinator case workflow", () => {
     render(<CoordinatorCaseRoute reportReference={report.reportReference} />);
 
     const startButton = await screen.findByRole("button", { name: "Start evidence assessment" });
-    expect(screen.getByRole("button", { name: "Request more information" })).toBeDisabled();
-    expect(screen.getByText("Start the evidence assessment before requesting more information.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Request more information" })).not.toBeInTheDocument();
     expect(startButton).toBeEnabled();
     await user.click(startButton);
     expect(screen.getByRole("heading", { name: "Assess the submitted evidence" })).toBeInTheDocument();
@@ -240,20 +274,6 @@ describe("Coordinator case workflow", () => {
     expect(mockedRecordEvidenceAssessment).toHaveBeenCalledWith(
       report.reportReference,
       expect.objectContaining({ evidenceUsable: true, observationCredible: false }),
-    );
-  });
-
-  it("sends an observer information request through the backend", async () => {
-    const user = userEvent.setup();
-    render(<CoordinatorCaseRoute reportReference={report.reportReference} />);
-
-    await user.click(await screen.findByRole("button", { name: "Request more information" }));
-    await user.click(screen.getByRole("button", { name: "Send request" }));
-
-    expect(await screen.findByRole("heading", { name: "Information request sent" })).toBeInTheDocument();
-    expect(mockedRequestMoreInformation).toHaveBeenCalledWith(
-      report.reportReference,
-      expect.stringContaining("A clearer photograph showing the issue"),
     );
   });
 

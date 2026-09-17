@@ -311,6 +311,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 14px;
 }
 
@@ -323,6 +324,96 @@
   min-height: 42px;
 }
 
+.modalBackdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(9, 36, 43, 0.58);
+  backdrop-filter: blur(3px);
+}
+
+.modalPanel {
+  width: min(760px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: 0 24px 70px rgba(8, 38, 45, 0.24);
+}
+
+.modalHeader {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 26px 28px 22px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.modalCloseButton {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  color: var(--color-ink);
+  background: #f5faf9;
+  font: inherit;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modalCloseButton:hover {
+  color: var(--color-primary-hover);
+  background: var(--color-info);
+}
+
+.modalBody {
+  padding: 0 28px 28px;
+}
+
+.modalPanel .formGrid {
+  margin: 26px 0 22px;
+}
+
+.modalActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.modalPanel .restrictionCard {
+  max-width: none;
+  margin: 26px 0 0;
+  padding: 22px;
+  text-align: left;
+  background: #f4faf9;
+}
+
+.modalPanel .restrictionCard h3 {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 18px;
+}
+
+.modalPanel .restrictionCard .buttonRow {
+  justify-content: flex-start;
+}
+
 .identifier {
   color: #087579;
   font-weight: 800;
@@ -332,7 +423,10 @@
 .priorityChip {
   display: inline-flex;
   align-items: center;
-  width: fit-content;
+  justify-content: center;
+  box-sizing: border-box;
+  flex: 0 0 88px;
+  width: 88px;
   padding: 5px 9px;
   color: #4f5960;
   background: #eef2f3;
@@ -784,5 +878,40 @@
   .historyFilterActions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pagination .secondaryButton {
+    width: 100%;
+  }
+
+  .modalBackdrop {
+    align-items: end;
+    padding: 0;
+  }
+
+  .modalPanel {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .modalHeader,
+  .modalBody {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  .modalActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .modalActions > * {
+    width: 100%;
   }
 }

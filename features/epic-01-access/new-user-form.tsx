@@ -52,6 +52,7 @@ export function NewUserForm() {
         password,
         role: "observer",
       });
+
       router.push("/admin/users");
     } catch (createError) {
       setError(
@@ -72,16 +73,9 @@ export function NewUserForm() {
       <div>
         <h2 className={styles.sectionHeading}>Account details</h2>
         <p className={styles.sectionDescription}>
-          New accounts start as Registered Observers. Coordinator access can be approved
-          separately from the user directory.
+          Create a Registered Observer account. Coordinator access can be approved later from the user directory.
         </p>
       </div>
-
-      <section className={styles.notice} role="status">
-        <strong>Registered Observer</strong>
-        This protects Coordinator and Administrator access from being assigned during account
-        creation.
-      </section>
 
       <div className={styles.formGrid}>
         <div className={styles.field}>
