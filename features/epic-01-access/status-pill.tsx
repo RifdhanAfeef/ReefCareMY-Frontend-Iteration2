@@ -5,20 +5,28 @@ type StatusPillProps = {
 };
 
 const styleByStatus: Record<string, string> = {
-  Active: styles.pillActive,
-  Approved: styles.pillApproved,
-  Claimed: styles.pillReviewing,
-  "Under Review": styles.pillReviewing,
-  "Being reviewed": styles.pillReviewing,
-  Pending: styles.pillPending,
-  Received: styles.pillReceived,
-  Rejected: styles.pillRejected,
-  Suspended: styles.pillSuspended,
+  active: styles.pillActive,
+  approved: styles.pillApproved,
+  claimed: styles.pillReviewing,
+  "under review": styles.pillReviewing,
+  "being reviewed": styles.pillReviewing,
+  "evidence accepted": styles.pillReviewing,
+  "response recommended": styles.pillReviewing,
+  "response planned": styles.pillPending,
+  "response complete": styles.pillApproved,
+  monitoring: styles.pillReviewing,
+  referred: styles.pillReviewing,
+  pending: styles.pillPending,
+  received: styles.pillReceived,
+  rejected: styles.pillRejected,
+  suspended: styles.pillSuspended,
 };
 
 export function StatusPill({ status }: StatusPillProps) {
+  const statusStyle = styleByStatus[status.trim().toLowerCase()] ?? "";
+
   return (
-    <span className={`${styles.pill} ${styleByStatus[status] ?? ""}`}>
+    <span className={`${styles.pill} ${statusStyle}`}>
       {status}
     </span>
   );

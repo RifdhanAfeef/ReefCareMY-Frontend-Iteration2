@@ -44,7 +44,7 @@ beforeEach(() => {
       actionDate: "2026-09-20",
       responsibleTeam: "Tioman response team",
       notes: "Awaiting safe sea conditions.",
-      statusCode: "monitoring",
+      statusCode: "response_planned",
       createdBy: 8,
       createdByName: "Farid",
       createdAt: "2026-09-13T08:30:00Z",
@@ -54,7 +54,7 @@ beforeEach(() => {
 
 describe("Epic 7 conservation action record", () => {
   it("loads action history and distinguishes a plan from completed work", async () => {
-    render(<ConservationActionPanel reportReference="RC-0710" coordinatorName="Farid Rahman" />);
+    render(<ConservationActionPanel reportReference="RC-0710" />);
 
     expect(screen.queryByText(/Epic 7/i)).not.toBeInTheDocument();
     expect(screen.getByText("Conservation action")).toBeInTheDocument();
@@ -64,7 +64,7 @@ describe("Epic 7 conservation action record", () => {
     expect(screen.getByText("Farid")).toBeInTheDocument();
   });
 
-  it("uses the current coordinator name when the action response omits the creator name", async () => {
+  it("uses the recorder returned by the backend instead of the current case owner", async () => {
     mockedGetActions.mockResolvedValueOnce({
       reportReference: "RC-0710",
       total: 1,
@@ -79,14 +79,14 @@ describe("Epic 7 conservation action record", () => {
         notes: null,
         statusCode: "response_complete",
         createdBy: 8,
-        createdByName: null,
+        createdByName: "Original Coordinator",
         createdAt: "2026-09-17T14:15:00Z",
       }],
     });
 
-    render(<ConservationActionPanel reportReference="RC-0710" coordinatorName="Farid Rahman" />);
+    render(<ConservationActionPanel reportReference="RC-0710" />);
 
-    expect(await screen.findByText("Farid Rahman")).toBeInTheDocument();
+    expect(await screen.findByText("Original Coordinator")).toBeInTheDocument();
     expect(screen.queryByText("Authorised coordinator")).not.toBeInTheDocument();
   });
 
@@ -114,7 +114,7 @@ describe("Epic 7 conservation action record", () => {
       actionDate: "2026-09-20",
       responsibleTeam: "Marine Park response team",
       notes: "Equipment and weather check required.",
-      statusCode: "monitoring",
+      statusCode: "response_planned",
       createdBy: 8,
       createdByName: "Farid",
       createdAt: "2026-09-13T09:30:00Z",
@@ -149,7 +149,7 @@ describe("Epic 7 conservation action record", () => {
       actionDate: null,
       responsibleTeam: "Marine Park response team",
       notes: null,
-      statusCode: "monitoring",
+      statusCode: "response_planned",
       createdBy: 8,
       createdByName: "Farid",
       createdAt: "2026-09-13T09:30:00Z",

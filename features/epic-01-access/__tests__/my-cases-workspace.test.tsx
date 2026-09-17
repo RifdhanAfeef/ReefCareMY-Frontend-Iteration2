@@ -71,6 +71,35 @@ describe("Coordinator My Cases workspace", () => {
     expect(screen.queryByText("Another Coordinator")).not.toBeInTheDocument();
   });
 
+  it("keeps planned and completed action-stage cases in the active workspace", async () => {
+    mockedGetCoordinatorQueue.mockResolvedValue({
+      items: [
+        {
+          ...report,
+          reportReference: "RC-PLANNED",
+          statusCode: "response_planned",
+          statusLabel: "Response Planned",
+        },
+        {
+          ...report,
+          reportReference: "RC-COMPLETE",
+          statusCode: "response_complete",
+          statusLabel: "Response Complete",
+        },
+      ],
+      page: 1,
+      pageSize: 100,
+      total: 2,
+    });
+
+    render(<MyCasesWorkspace />);
+
+    expect(await screen.findByRole("cell", { name: "RC-PLANNED" })).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "RC-COMPLETE" })).toBeInTheDocument();
+    expect(screen.getByText("Response Planned")).toBeInTheDocument();
+    expect(screen.getByText("Response Complete")).toBeInTheDocument();
+  });
+
   it("shows an error when the shared queue cannot be loaded", async () => {
     mockedGetCoordinatorQueue.mockRejectedValue(new Error("Service unavailable."));
 

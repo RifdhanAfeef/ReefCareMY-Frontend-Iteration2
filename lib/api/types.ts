@@ -570,7 +570,7 @@ export type ConservationAction = {
   notes: string | null;
   statusCode: ReportStatusCode;
   createdBy: number;
-  createdByName: string | null;
+  createdByName: string;
   createdAt: string;
   evidence?: ConservationActionEvidence[];
 };

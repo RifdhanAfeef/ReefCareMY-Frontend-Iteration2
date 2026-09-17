@@ -136,7 +136,7 @@ describe("Coordinator case workflow", () => {
         actionDate: "2026-09-17",
         responsibleTeam: "Team 18",
         notes: "Debris has been removed.",
-        statusCode: "monitoring",
+        statusCode: "response_complete",
         createdBy: 8,
         createdByName: "Case Coordinator",
         createdAt: "2026-09-17T14:15:00Z",
