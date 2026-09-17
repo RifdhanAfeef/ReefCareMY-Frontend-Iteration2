@@ -30,10 +30,25 @@ describe("Epic 2 Reef Explorer", () => {
     expect(images).toHaveLength(48);
     expect(new Set(images.map((image) => image.src)).size).toBe(48);
     images.forEach((image) => {
-      expect(image.caption).toMatch(/^Representative feature:/);
+      expect(image.caption).toMatch(/^Illustrative marine image \(not photographed at this dive site\):/);
       expect(image.credit).toBeTruthy();
       expect(image.license).toBeTruthy();
       expect(image.sourceUrl).toMatch(/^https:\/\/commons\.wikimedia\.org\/wiki\//);
+    });
+  });
+
+  it("uses sourced site-specific facts without presenting safety guidance as an attraction", () => {
+    const temple = reefSites.find((site) => site.id === "perhentian-temple-of-the-sea");
+    const sugarWreck = reefSites.find((site) => site.id === "perhentian-sugar-wreck");
+
+    expect(temple?.preparation).toContain("Maximum depth listed by PADI: 25 metres.");
+    expect(temple?.preparation.join(" ")).toContain("surface marker buoy");
+    expect(temple?.source.url).toBe("https://www.padi.com/dive-site/malaysia/temple-of-the-sea/");
+    expect(sugarWreck?.introduction).toContain("MV Union Star 17");
+    expect(sugarWreck?.preparation).toContain("Maximum depth listed by PADI: 18 metres.");
+    reefSites.forEach((site) => {
+      expect(site.popularReasons).toHaveLength(1);
+      expect(site.popularReasons).not.toContain("Responsible observation without touching or removing marine life");
     });
   });
 
@@ -52,7 +67,7 @@ describe("Epic 2 Reef Explorer", () => {
     expect(screen.getByRole("heading", { name: "D'Lagoon" })).toBeInTheDocument();
     expect(screen.getByText(/General area only/i)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Experience suitability" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Tourism Malaysia/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /PADI — Diving the Perhentian Islands/i })).toBeInTheDocument();
     expect(screen.getByLabelText("Dive conditions reminder")).toHaveTextContent(
       "Conditions and requirements can change. Confirm them with a licensed operator and the relevant authority.",
     );
@@ -78,8 +93,8 @@ describe("Epic 2 Reef Explorer", () => {
     await user.click(screen.getByRole("button", { name: "Report a Reef Threat" }));
 
     expect(screen.getByRole("dialog", { name: "Sign in to report this reef threat" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/login?next=%2Freport-a-reef");
-    expect(screen.getByRole("link", { name: "Create Observer account" })).toHaveAttribute("href", "/register?next=%2Freport-a-reef");
+    expect(screen.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/login?next=%2Freport-a-reef%3Fsource%3Dexplore");
+    expect(screen.getByRole("link", { name: "Create Observer account" })).toHaveAttribute("href", "/register?next=%2Freport-a-reef%3Fsource%3Dexplore");
     expect(screen.getByText(/track it, respond to information requests/i)).toBeInTheDocument();
   });
 

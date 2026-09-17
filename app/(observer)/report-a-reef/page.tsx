@@ -19,9 +19,11 @@ function normaliseThreatHandoff(value: string) {
 export default async function ReportAReefPage({
   searchParams,
 }: {
-  searchParams: Promise<{ threat?: string | string[] }>;
+  searchParams: Promise<{ threat?: string | string[]; source?: string | string[] }>;
 }) {
-  const threatValue = (await searchParams).threat;
+  const params = await searchParams;
+  const threatValue = params.threat;
+  const fromExplorer = params.source === "explore" && !threatValue;
   const normalisedThreat = typeof threatValue === "string" ? normaliseThreatHandoff(threatValue) : undefined;
   const initialThreat = normalisedThreat && supportedThreats.has(normalisedThreat) ? normalisedThreat : undefined;
 
@@ -34,7 +36,7 @@ export default async function ReportAReefPage({
       backLabel="Back to reef threats"
       backFallbackHref="/reef-threats"
     >
-      <ObservationForm initialThreat={initialThreat} />
+      <ObservationForm initialThreat={initialThreat} fromExplorer={fromExplorer} />
     </PageTemplate>
   );
 }

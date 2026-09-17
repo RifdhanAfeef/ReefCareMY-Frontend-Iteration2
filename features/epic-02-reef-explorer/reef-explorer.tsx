@@ -141,7 +141,7 @@ function SiteGallery({
   const image = site.images[imageIndex];
 
   return (
-    <section className={styles.siteGallery} aria-label={`${site.name} representative images`}>
+    <section className={styles.siteGallery} aria-label={`${site.name} illustrative marine images`}>
       <figure className={styles.siteImage}>
         <button
           type="button"
@@ -209,7 +209,7 @@ function SiteDetail({
           ))}</div>
         </div>
         <div>
-          <h3>Representative marine life</h3>
+          <h3>Marine life you may encounter</h3>
           <ul>{site.marineLife.map((item) => <li key={item}>{item}</li>)}</ul>
         </div>
         <div>
@@ -276,7 +276,7 @@ function ImageDialog({ site, imageIndex, onClose }: { site: ReefSite; imageIndex
 }
 
 function AuthenticationDialog({ site, onClose }: { site: ReefSiteReference; onClose: () => void }) {
-  const next = encodeURIComponent("/report-a-reef");
+  const next = encodeURIComponent("/report-a-reef?source=explore");
   const rememberSite = () => storeSelectedReefSite(site);
 
   return (
@@ -338,7 +338,7 @@ export function ReefExplorer() {
     if (!selectedSite) return;
     storeSelectedReefSite(selectedSite);
     if (status === "authenticated" && user?.role === "observer") {
-      router.push("/report-a-reef");
+      router.push("/report-a-reef?source=explore");
       return;
     }
     if (status === "authenticated") return;

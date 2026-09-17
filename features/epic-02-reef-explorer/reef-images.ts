@@ -32,8 +32,8 @@ const sources: Record<string, [ImageSource, ImageSource]> = {
 export function imagesFor(siteId: string): [ReefImage, ReefImage] {
   return sources[siteId].map(([file, caption, credit, license], index) => ({
     src: `/images/reef-sites/profiles/${siteId}-${index + 1}.jpg`,
-    alt: `${caption}, shown as a representative feature rather than a live site-condition record`,
-    caption: `Representative feature: ${caption}`,
+    alt: `${caption}; illustrative marine image, not a photograph of this dive site`,
+    caption: `Illustrative marine image (not photographed at this dive site): ${caption}`,
     credit,
     license,
     sourceUrl: `https://commons.wikimedia.org/wiki/${encodeURIComponent(`File:${file}`).replaceAll("%2F", "/")}`,

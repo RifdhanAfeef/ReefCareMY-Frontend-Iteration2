@@ -25,6 +25,7 @@ import {
 } from "./smart-report-state";
 import { createPhotoId, loadDraftPhotos, saveDraftPhotos, type StoredDraftPhoto } from "./draft-storage";
 import {
+  clearSelectedReefSite,
   readSelectedReefSite,
   selectedReefSiteClearedEvent,
   type StoredReefSite,
@@ -80,7 +81,7 @@ function formatFileSize(bytes: number) {
   return bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.ceil(bytes / 1024)} KB`;
 }
 
-export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
+export function ObservationForm({ initialThreat, fromExplorer = false }: { initialThreat?: string; fromExplorer?: boolean }) {
   const router = useRouter();
   const { reportDraft, isAccountDraftRestored, updateReportDraft, saveReportDraft } = useMockAppState();
   const [photos, setPhotos] = useState<PhotoPreview[]>([]);
@@ -149,7 +150,8 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      setSelectedReefSite(readSelectedReefSite());
+      if (!fromExplorer) clearSelectedReefSite();
+      setSelectedReefSite(fromExplorer ? readSelectedReefSite() : null);
     }, 0);
 
     const clearFreshReportState = () => {
@@ -168,7 +170,7 @@ export function ObservationForm({ initialThreat }: { initialThreat?: string }) {
       window.clearTimeout(timeoutId);
       window.removeEventListener(selectedReefSiteClearedEvent, clearFreshReportState);
     };
-  }, []);
+  }, [fromExplorer]);
 
   useEffect(() => {
     // Wait for the authenticated account's local draft before restoring photo
