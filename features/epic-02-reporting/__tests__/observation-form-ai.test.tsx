@@ -1,17 +1,18 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildAutomaticPhotoDraftChanges, ObservationForm } from "../observation-form";
 import { structureReportDescription } from "@/lib/api/smartReportApi";
 import { getThreatCategories } from "@/lib/api/referenceApi";
-import { loadDraftPhotos } from "@/features/epic-02-reporting/draft-storage";
+import { clearDraftPhotos, loadDraftPhotos } from "@/features/epic-02-reporting/draft-storage";
 
-const { updateReportDraft, runtime } = vi.hoisted(() => ({
+const { resetReportDraft, updateReportDraft, runtime } = vi.hoisted(() => ({
+  resetReportDraft: vi.fn(),
   updateReportDraft: vi.fn(),
   runtime: { draftRestored: undefined as boolean | undefined },
 }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
 vi.mock("@/features/shared/mock-app-state", () => ({
@@ -37,11 +38,13 @@ vi.mock("@/features/shared/mock-app-state", () => ({
     },
     updateReportDraft,
     saveReportDraft: vi.fn(),
+    resetReportDraft,
   }),
 }));
 
 vi.mock("@/features/epic-02-reporting/draft-storage", () => ({
   createPhotoId: vi.fn(),
+  clearDraftPhotos: vi.fn().mockResolvedValue(undefined),
   loadDraftPhotos: vi.fn().mockResolvedValue([]),
   saveDraftPhotos: vi.fn().mockResolvedValue(undefined),
 }));
@@ -154,5 +157,22 @@ describe("automatic Smart Report Structuring", () => {
     view.rerender(<ObservationForm />);
     await act(async () => { await Promise.resolve(); });
     expect(loadDraftPhotos).toHaveBeenCalledTimes(1);
+  });
+
+  it("confirms before clearing the current report and locally stored photos", async () => {
+    render(<ObservationForm />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset report" }));
+    const dialog = screen.getByRole("dialog", { name: "Start a fresh report?" });
+    expect(dialog).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(within(dialog).getByRole("button", { name: "Reset report" }));
+      await Promise.resolve();
+    });
+
+    expect(clearDraftPhotos).toHaveBeenCalledTimes(1);
+    expect(resetReportDraft).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("dialog", { name: "Start a fresh report?" })).not.toBeInTheDocument();
   });
 });

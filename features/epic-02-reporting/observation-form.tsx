@@ -23,7 +23,7 @@ import {
   smartReportFields,
   suggestionStateLabel,
 } from "./smart-report-state";
-import { createPhotoId, loadDraftPhotos, saveDraftPhotos, type StoredDraftPhoto } from "./draft-storage";
+import { clearDraftPhotos, createPhotoId, loadDraftPhotos, saveDraftPhotos, type StoredDraftPhoto } from "./draft-storage";
 import {
   clearSelectedReefSite,
   readSelectedReefSite,
@@ -83,10 +83,13 @@ function formatFileSize(bytes: number) {
 
 export function ObservationForm({ initialThreat, fromExplorer = false }: { initialThreat?: string; fromExplorer?: boolean }) {
   const router = useRouter();
-  const { reportDraft, isAccountDraftRestored, updateReportDraft, saveReportDraft } = useMockAppState();
+  const { reportDraft, isAccountDraftRestored, updateReportDraft, saveReportDraft, resetReportDraft } = useMockAppState();
   const [photos, setPhotos] = useState<PhotoPreview[]>([]);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [uploadMessage, setUploadMessage] = useState("");
+  const [showResetConfirmation, setShowResetConfirmation] = useState(false);
+  const [resettingReport, setResettingReport] = useState(false);
+  const [resetError, setResetError] = useState("");
   const [categoryOptions, setCategoryOptions] = useState<ThreatCategoryReference[]>([]);
   const [categoryLoadError, setCategoryLoadError] = useState("");
   const [selectedReefSite, setSelectedReefSite] = useState<StoredReefSite | null>(null);
@@ -100,6 +103,7 @@ export function ObservationForm({ initialThreat, fromExplorer = false }: { initi
   const [assistantBusy, setAssistantBusy] = useState(false);
   const [followUpQuestions, setFollowUpQuestions] = useState<SmartReportFollowUpQuestion[]>([]);
   const smartStructuringRequest = useRef(0);
+  const ignoreInitialHandoff = useRef(false);
   const lastStructuredDescription = useRef(
     reportDraft.aiSuggestions.length > 0 ? reportDraft.description.trim() : "",
   );
@@ -219,7 +223,7 @@ export function ObservationForm({ initialThreat, fromExplorer = false }: { initi
   }, [reportDraft.description, runSmartStructuring]);
 
   useEffect(() => {
-    if (!initialThreat || reportDraft.threatCategoryCode || reportDraft.threatCategoryId) return;
+    if (ignoreInitialHandoff.current || !initialThreat || reportDraft.threatCategoryCode || reportDraft.threatCategoryId) return;
     const matchedThreat = categoryOptions.find((category) => category.code === initialThreat);
     if (!matchedThreat) return;
     updateReportDraft({
@@ -371,6 +375,36 @@ export function ObservationForm({ initialThreat, fromExplorer = false }: { initi
     setUploadMessage("Draft saved on this device. You can return and continue later.");
   }
 
+  async function confirmResetReport() {
+    setResettingReport(true);
+    setResetError("");
+    try {
+      await clearDraftPhotos();
+      smartStructuringRequest.current += 1;
+      ignoreInitialHandoff.current = true;
+      previewUrls.current.forEach((url) => URL.revokeObjectURL(url));
+      previewUrls.current = [];
+      initialPhotoMetadata.current = [];
+      initialObservationValues.current = { date: "", time: "" };
+      lastStructuredDescription.current = "";
+      setPhotos([]);
+      setErrors({});
+      setAssistantMessage("");
+      setAssistantBusy(false);
+      setFollowUpQuestions([]);
+      setCategoryLoadError("");
+      clearSelectedReefSite();
+      resetReportDraft();
+      setShowResetConfirmation(false);
+      setUploadMessage("Report reset. You can start a fresh report.");
+      router.replace("/report-a-reef");
+    } catch {
+      setResetError("The saved report could not be cleared from this device. Please try again.");
+    } finally {
+      setResettingReport(false);
+    }
+  }
+
   function continueToLocation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!validate()) return;
@@ -470,9 +504,20 @@ export function ObservationForm({ initialThreat, fromExplorer = false }: { initi
 
         <div className={styles.formFooter}>
           <div>{reportDraft.lastSavedAt ? <span className={styles.savedText}>Draft saved {reportDraft.lastSavedAt}</span> : <span className={styles.muted}>Draft details stay on this device.</span>}</div>
-          <div className={styles.actions}><button className={styles.secondaryButton} type="button" onClick={saveDraft}>Save draft</button><button className={styles.primaryButton} type="submit">Continue to location</button></div>
+          <div className={styles.actions}><button className={styles.dangerButton} type="button" onClick={() => { setResetError(""); setShowResetConfirmation(true); }}>Reset report</button><button className={styles.secondaryButton} type="button" onClick={saveDraft}>Save draft</button><button className={styles.primaryButton} type="submit">Continue to location</button></div>
         </div>
       </section>
+      {showResetConfirmation && <div className={styles.dialogBackdrop} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !resettingReport) setShowResetConfirmation(false); }}>
+        <section className={styles.confirmDialog} role="dialog" aria-modal="true" aria-labelledby="reset-report-heading" aria-describedby="reset-report-description">
+          <h2 id="reset-report-heading">Start a fresh report?</h2>
+          <p id="reset-report-description">This will clear the current observation, photographs, AI-assisted fields and selected location details. This cannot be undone.</p>
+          {resetError && <p className={styles.errorText} role="alert">{resetError}</p>}
+          <div className={styles.dialogActions}>
+            <button className={styles.secondaryButton} type="button" disabled={resettingReport} onClick={() => setShowResetConfirmation(false)}>Keep current report</button>
+            <button className={styles.dangerConfirmButton} type="button" disabled={resettingReport} onClick={confirmResetReport}>{resettingReport ? "Resetting…" : "Reset report"}</button>
+          </div>
+        </section>
+      </div>}
     </form>
   );
 }
