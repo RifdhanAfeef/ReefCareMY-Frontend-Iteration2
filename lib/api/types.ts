@@ -71,10 +71,14 @@ export type ReportStatusCode =
   | "evidence_accepted"
   | "monitoring"
   | "referred"
+  | "response_recommended"
+  | "response_planned"
+  | "response_complete"
   | "closed_no_action"
   | "closed_not_substantiated"
   | "closed_no_partner"
-  | "closed_logged";
+  | "closed_logged"
+  | "closed_resolved";
 
 export type ReportSummary = {
   reportReference: string;

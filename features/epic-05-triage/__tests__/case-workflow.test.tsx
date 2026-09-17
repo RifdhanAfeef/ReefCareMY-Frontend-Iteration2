@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CoordinatorCaseRoute } from "../case-workflow";
 import * as coordinatorApi from "@/lib/api/coordinatorApi";
+import { ApiError } from "@/lib/api/client";
 import type { CoordinatorCase } from "@/lib/api/types";
 
 vi.mock("@/lib/api/coordinatorApi");
@@ -322,6 +323,28 @@ describe("Coordinator case workflow", () => {
       report.reportReference,
       expect.objectContaining({ evidenceUsable: true, observationCredible: false }),
     );
+  });
+
+  it("recovers when a conflicting Not Substantiated response was already committed", async () => {
+    const user = userEvent.setup();
+    mockedRecordEvidenceAssessment.mockRejectedValueOnce(new ApiError("The case status changed.", 409));
+    mockedGetCoordinatorCase
+      .mockResolvedValueOnce(report)
+      .mockResolvedValueOnce({
+        ...report,
+        statusCode: "closed_not_substantiated",
+        statusLabel: "Closed — Not Substantiated",
+      });
+
+    render(<CoordinatorCaseRoute reportReference={report.reportReference} />);
+
+    await user.click(await screen.findByRole("button", { name: "Start evidence assessment" }));
+    await user.click(screen.getByLabelText("Yes — the evidence can be assessed"));
+    await user.click(screen.getByLabelText("No — prepare a Not Substantiated closure"));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+
+    expect(await screen.findByRole("heading", { name: "Case outcome recorded" })).toBeInTheDocument();
+    expect(mockedGetCoordinatorCase).toHaveBeenCalledTimes(2);
   });
 
   it("records unusable evidence before showing the information-needed result", async () => {

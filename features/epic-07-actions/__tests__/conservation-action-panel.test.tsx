@@ -54,13 +54,40 @@ beforeEach(() => {
 
 describe("Epic 7 conservation action record", () => {
   it("loads action history and distinguishes a plan from completed work", async () => {
-    render(<ConservationActionPanel reportReference="RC-0710" />);
+    render(<ConservationActionPanel reportReference="RC-0710" coordinatorName="Farid Rahman" />);
 
     expect(screen.queryByText(/Epic 7/i)).not.toBeInTheDocument();
     expect(screen.getByText("Conservation action")).toBeInTheDocument();
     expect(await screen.findByText("Action planned — not completed")).toBeInTheDocument();
     expect(screen.getByText("This is a plan only. It does not confirm that conservation work has happened.")).toBeInTheDocument();
     expect(screen.getByText("Tioman response team")).toBeInTheDocument();
+    expect(screen.getByText("Farid")).toBeInTheDocument();
+  });
+
+  it("uses the current coordinator name when the action response omits the creator name", async () => {
+    mockedGetActions.mockResolvedValueOnce({
+      reportReference: "RC-0710",
+      total: 1,
+      items: [{
+        caseActionId: 8,
+        reportReference: "RC-0710",
+        actionTypeCode: "reef_cleanup",
+        actionTypeLabel: "Reef clean-up",
+        actionState: "action_taken",
+        actionDate: "2026-09-17",
+        responsibleTeam: "Team 18",
+        notes: null,
+        statusCode: "response_complete",
+        createdBy: 8,
+        createdByName: null,
+        createdAt: "2026-09-17T14:15:00Z",
+      }],
+    });
+
+    render(<ConservationActionPanel reportReference="RC-0710" coordinatorName="Farid Rahman" />);
+
+    expect(await screen.findByText("Farid Rahman")).toBeInTheDocument();
+    expect(screen.queryByText("Authorised coordinator")).not.toBeInTheDocument();
   });
 
   it("requires a date before recording an action as taken", async () => {

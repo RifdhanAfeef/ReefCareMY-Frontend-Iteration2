@@ -112,9 +112,11 @@ function ActionEvidencePreview({
 function ActionHistory({
   actions,
   reportReference,
+  coordinatorName,
 }: {
   actions: ConservationAction[];
   reportReference: string;
+  coordinatorName?: string;
 }) {
   if (actions.length === 0) {
     return (
@@ -139,7 +141,7 @@ function ActionHistory({
           <dl className={styles.actionDetails}>
             <div><dt>Action date</dt><dd>{displayCalendarDate(action.actionDate)}</dd></div>
             <div><dt>Responsible team</dt><dd>{action.responsibleTeam || "Not provided"}</dd></div>
-            <div><dt>Recorded by</dt><dd>{action.createdByName || "Authorised coordinator"}</dd></div>
+            <div><dt>Recorded by</dt><dd>{action.createdByName?.trim() || coordinatorName?.trim() || "Coordinator name unavailable"}</dd></div>
           </dl>
           {action.notes && <p className={styles.notes}>{action.notes}</p>}
           {(action.evidence?.length ?? 0) > 0 && <section className={styles.actionEvidence} aria-label={`Supporting evidence for ${action.actionTypeLabel}`}>
@@ -170,9 +172,11 @@ function ActionHistory({
 
 export function ConservationActionPanel({
   reportReference,
+  coordinatorName,
   onEvidenceIdsChange,
 }: {
   reportReference: string;
+  coordinatorName?: string;
   onEvidenceIdsChange?: (evidenceIds: number[]) => void;
 }) {
   const [actionTypes, setActionTypes] = useState<ConservationActionTypeOption[]>([]);
@@ -375,7 +379,7 @@ export function ConservationActionPanel({
         <div className={styles.contentGrid}>
           <section className={styles.historySection} aria-labelledby="action-history-heading">
             <h3 id="action-history-heading">Case action history</h3>
-            <ActionHistory actions={actions} reportReference={reportReference} />
+            <ActionHistory actions={actions} reportReference={reportReference} coordinatorName={coordinatorName} />
           </section>
 
           <form className={styles.actionForm} onSubmit={saveAction} noValidate>
