@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { ReportDetail } from "../report-detail";
 import * as reportsApi from "@/lib/api/reportsApi";
 import type { ReportDetail as ReportDetailData } from "@/lib/api/types";
@@ -11,6 +11,7 @@ const mockedGetOpenInformationRequest = vi.mocked(reportsApi.getOpenInformationR
 const mockedSubmitInformationResponse = vi.mocked(reportsApi.submitInformationResponse);
 
 beforeEach(() => {
+  window.localStorage.clear();
   mockedGetReportDetail.mockReset();
   mockedGetOpenInformationRequest.mockReset();
   mockedGetOpenInformationRequest.mockResolvedValue(null);
@@ -46,6 +47,33 @@ describe("Report detail — shows what was observed", () => {
     expect(await screen.findByText("Ghost fishing gear")).toBeInTheDocument();
     expect(screen.getByText("Large fishing net tangled around coral")).toBeInTheDocument();
     expect(screen.getByText("Tiger Reef")).toBeInTheDocument();
+  });
+
+  it("lets the Observer expand the submitted structured fields", async () => {
+    window.localStorage.setItem(
+      "reefcare:submitted-structured-details:RC-0241",
+      JSON.stringify({
+        approximate_size: "About 3 metres",
+        animal_interaction: "No animal interaction",
+        site_reference: "North of Tiger Reef",
+      }),
+    );
+    mockedGetReportDetail.mockResolvedValue(baseReport());
+
+    render(<ReportDetail reportReference="RC-0241" />);
+
+    const summary = await screen.findByText("Structured report details");
+    const details = summary.closest("details");
+    expect(details).not.toHaveAttribute("open");
+
+    fireEvent.click(summary);
+
+    expect(details).toHaveAttribute("open");
+    expect(within(details!).getByText("12.5 m")).toBeInTheDocument();
+    expect(within(details!).getByText("About 3 metres")).toBeInTheDocument();
+    expect(within(details!).getByText("No animal interaction")).toBeInTheDocument();
+    expect(within(details!).getByText("North of Tiger Reef")).toBeInTheDocument();
+    expect(within(details!).getByText("Not included")).toBeInTheDocument();
   });
 
   it("does not display technical failure details", async () => {

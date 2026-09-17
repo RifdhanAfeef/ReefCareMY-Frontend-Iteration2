@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   getOpenInformationRequest,
   getReportDetail,
@@ -12,6 +12,10 @@ import type {
 } from "@/lib/api/types";
 import { userFacingError } from "@/lib/api/user-facing-error";
 import { formatDateTime } from "@/lib/format/date";
+import {
+  readSubmittedStructuredDetails,
+  type SubmittedStructuredDetails,
+} from "@/features/epic-02-reporting/submitted-structured-details";
 import styles from "./report-detail.module.css";
 
 type LoadState = "loading" | "loaded" | "error";
@@ -24,6 +28,10 @@ export function ReportDetail({ reportReference }: { reportReference: string }) {
   const [responseError, setResponseError] = useState("");
   const [responseSuccess, setResponseSuccess] = useState("");
   const [submittingResponse, setSubmittingResponse] = useState(false);
+  const structuredDetails = useMemo<SubmittedStructuredDetails>(
+    () => readSubmittedStructuredDetails(reportReference),
+    [reportReference],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -142,6 +150,20 @@ export function ReportDetail({ reportReference }: { reportReference: string }) {
           </p>
         </div>
       )}
+
+      <details className={styles.structuredDetails}>
+        <summary>Structured report details</summary>
+        <dl>
+          <div>
+            <dt>Estimated depth</dt>
+            <dd>{structuredDetails.estimated_depth_metres ?? (report.estimatedDepthMetres != null ? `${report.estimatedDepthMetres} m` : "Not included")}</dd>
+          </div>
+          <div><dt>Approximate size</dt><dd>{structuredDetails.approximate_size ?? "Not included"}</dd></div>
+          <div><dt>Coral interaction</dt><dd>{structuredDetails.coral_interaction ?? "Not included"}</dd></div>
+          <div><dt>Marine-animal interaction</dt><dd>{structuredDetails.animal_interaction ?? "Not included"}</dd></div>
+          <div><dt>Site reference</dt><dd>{structuredDetails.site_reference ?? "Not included"}</dd></div>
+        </dl>
+      </details>
 
       {(informationRequest?.requestText || report.informationRequestReason) && (
         <section className={styles.infoRequest} aria-labelledby="information-request-heading">
