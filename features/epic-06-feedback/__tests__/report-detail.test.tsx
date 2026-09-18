@@ -76,6 +76,26 @@ describe("Report detail — shows what was observed", () => {
     expect(within(details!).getByText("Not included")).toBeInTheDocument();
   });
 
+  it("shows optional surface context separately from the exact underwater location", async () => {
+    mockedGetReportDetail.mockResolvedValue(baseReport({
+      preciseLocation: {
+        latitude: null,
+        longitude: null,
+        uncertaintyMetres: null,
+        confidenceLabel: "Dive-site only",
+        sourceLabel: "Named dive site",
+        relocationNotes: "Surface entry context: Entered from the northern boat mooring\nSurface exit context: Surfaced beside the jetty",
+      },
+    }));
+
+    render(<ReportDetail reportReference="RC-0241" />);
+
+    expect(await screen.findByText("Surface entry and exit context")).toBeInTheDocument();
+    expect(screen.getByText(/Entered from the northern boat mooring/)).toBeInTheDocument();
+    expect(screen.getByText(/not the exact underwater threat location/i)).toBeInTheDocument();
+    expect(screen.queryByText("Submitted location")).not.toBeInTheDocument();
+  });
+
   it("does not display technical failure details", async () => {
     mockedGetReportDetail.mockRejectedValue(new ApiError("Database query failed", 500));
 

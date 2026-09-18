@@ -53,6 +53,8 @@ export type LocationDraft = {
   pin: MapPin | null;
   locationSource: "dive_site" | "map_pin" | "manual_coordinates";
   confidence: LocationConfidenceCode | "";
+  surfaceEntryContext: string;
+  surfaceExitContext: string;
 };
 
 export const initialLocationDraft: LocationDraft = {
@@ -63,6 +65,8 @@ export const initialLocationDraft: LocationDraft = {
   pin: null,
   locationSource: "dive_site",
   confidence: "",
+  surfaceEntryContext: "",
+  surfaceExitContext: "",
 };
 
 export const initialReportDraft: ReportDraft = {
@@ -137,7 +141,9 @@ export function MockAppStateProvider({ children }: { children: React.ReactNode }
       if (activeStorageKey) window.localStorage.removeItem(activeStorageKey);
     }
     const restoreTimer = window.setTimeout(() => {
-      setLocationDraft(storedLocationDraft ?? initialLocationDraft);
+      setLocationDraft(storedLocationDraft
+        ? { ...initialLocationDraft, ...storedLocationDraft }
+        : initialLocationDraft);
       setReportDraft(restoreReportDraft(storedReportDraft));
       setRestoredKey(activeStorageKey);
     }, 0);

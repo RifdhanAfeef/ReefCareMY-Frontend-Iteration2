@@ -1,9 +1,3 @@
-export type ReefActivity = {
-  title: string;
-  dateLabel: string;
-  summary: string;
-};
-
 export type ReefImage = {
   src: string;
   alt: string;
@@ -39,7 +33,6 @@ export type ReefSite = {
     label: string;
     url: string;
   };
-  publicActivity: ReefActivity[];
 };
 
 export type ReefSiteReference = Pick<

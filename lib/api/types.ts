@@ -105,6 +105,24 @@ export type MyReportsResult = {
   total: number;
 };
 
+export type PublicActivityItem = {
+  activityId: number;
+  activityType: string;
+  title: string;
+  summary: string;
+  activityDate: string | null;
+  sourceLabel: string | null;
+};
+
+export type PublicSiteActivityResponse = {
+  diveSiteId: number;
+  diveSiteName: string;
+  publicAreaLabel: string;
+  hasActivity: boolean;
+  items: PublicActivityItem[];
+  message: string;
+};
+
 export type ReportPreciseLocation = {
   latitude: number | null;
   longitude: number | null;

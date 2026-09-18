@@ -151,6 +151,14 @@ export function ReportDetail({ reportReference }: { reportReference: string }) {
         </div>
       )}
 
+      {report.preciseLocation?.relocationNotes && (
+        <div className={styles.surfaceContextNote}>
+          <strong>Surface entry and exit context</strong>
+          <p>{report.preciseLocation.relocationNotes}</p>
+          <small>Context only — not the exact underwater threat location.</small>
+        </div>
+      )}
+
       <details className={styles.structuredDetails}>
         <summary>Structured report details</summary>
         <dl>

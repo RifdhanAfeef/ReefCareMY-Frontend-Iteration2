@@ -697,6 +697,16 @@
   background: #f3f1ff;
 }
 
+.surfaceContext {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #c8c2e3;
+}
+
+.surfaceContext p {
+  white-space: pre-wrap;
+}
+
 .warningBox p,
 .infoBox p,
 .purpleBox p,

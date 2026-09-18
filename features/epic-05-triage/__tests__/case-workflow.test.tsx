@@ -35,6 +35,7 @@ const report: CoordinatorCase = {
     uncertaintyMetres: 25,
     confidenceLabel: "Within 100 m",
     sourceLabel: "Observer map pin",
+    relocationNotes: "Surface entry context: Entered from the northern boat mooring\nSurface exit context: Surfaced beside the jetty",
   },
   statusCode: "under_review",
   statusLabel: "Under Review",
@@ -105,6 +106,9 @@ describe("Coordinator case workflow", () => {
     expect(screen.getByText("Submitted location")).toBeInTheDocument();
     expect(screen.getByText("Confidence: Within 100 m")).toBeInTheDocument();
     expect(screen.getByText("Source: Observer map pin")).toBeInTheDocument();
+    expect(screen.getByText("Surface entry and exit context")).toBeInTheDocument();
+    expect(screen.getByText(/Entered from the northern boat mooring/)).toBeInTheDocument();
+    expect(screen.getByText(/not an exact underwater location/i)).toBeInTheDocument();
     expect(screen.queryByText("Authorised exact location")).not.toBeInTheDocument();
   });
 

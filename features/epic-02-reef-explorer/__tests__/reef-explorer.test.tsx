@@ -1,9 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ReefExplorer } from "../reef-explorer";
 import { diveSiteCatalog } from "../dive-site-catalog";
 import { reefSites } from "../reef-sites";
+import { getPublicSiteActivity } from "@/lib/api/publicApi";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -18,6 +19,19 @@ vi.mock("next/dynamic", () => ({
 vi.mock("@/features/epic-01-access/auth-context", () => ({
   useAuth: () => ({ status: "anonymous", user: null }),
 }));
+vi.mock("@/lib/api/publicApi");
+
+beforeEach(() => {
+  vi.mocked(getPublicSiteActivity).mockReset();
+  vi.mocked(getPublicSiteActivity).mockResolvedValue({
+    diveSiteId: 3,
+    diveSiteName: "Renggis Island",
+    publicAreaLabel: "Tioman Island",
+    hasActivity: false,
+    items: [],
+    message: "No public ReefCare activity is currently available for this site.",
+  });
+});
 
 describe("Epic 2 Reef Explorer", () => {
   it("provides a sourced two-image profile for every backend dive site", () => {
@@ -105,8 +119,46 @@ describe("Epic 2 Reef Explorer", () => {
 
     await user.click(screen.getByRole("button", { name: /Renggis Island/i }));
 
-    expect(screen.getByText("No public ReefCare activity is currently available")).toBeInTheDocument();
+    expect(await screen.findByText("No public ReefCare activity is currently available")).toBeInTheDocument();
     expect(screen.getByText(/Only approved, privacy-safe updates appear here/i)).toBeInTheDocument();
+    expect(getPublicSiteActivity).toHaveBeenCalledWith(3, expect.any(AbortSignal));
+  });
+
+  it("shows approved public-safe activity returned by the backend", async () => {
+    vi.mocked(getPublicSiteActivity).mockResolvedValueOnce({
+      diveSiteId: 19,
+      diveSiteName: "D'Lagoon",
+      publicAreaLabel: "Perhentian Islands",
+      hasActivity: true,
+      items: [{
+        activityId: 101,
+        activityType: "community_update",
+        title: "ReefCare observation reviewed",
+        summary: "An approved, general site update is available for this area.",
+        activityDate: "2026-09-12",
+        sourceLabel: "ReefCare MY",
+      }],
+      message: "Public-safe ReefCare activity is available for this site.",
+    });
+    const user = userEvent.setup();
+    render(<ReefExplorer />);
+
+    await user.click(screen.getByRole("button", { name: /D'Lagoon/i }));
+
+    expect(await screen.findByText("ReefCare observation reviewed")).toBeInTheDocument();
+    expect(screen.getByText("An approved, general site update is available for this area.")).toBeInTheDocument();
+    expect(screen.getByText(/12 Sept 2026.*ReefCare MY/)).toBeInTheDocument();
+  });
+
+  it("distinguishes an API failure from a genuine no-activity state", async () => {
+    vi.mocked(getPublicSiteActivity).mockRejectedValueOnce(new Error("offline"));
+    const user = userEvent.setup();
+    render(<ReefExplorer />);
+
+    await user.click(screen.getByRole("button", { name: /D'Lagoon/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Public activity is temporarily unavailable");
+    expect(screen.queryByText("No public ReefCare activity is currently available")).not.toBeInTheDocument();
   });
 
   it("uses one stable guidance panel instead of expanding cards in the grid", async () => {

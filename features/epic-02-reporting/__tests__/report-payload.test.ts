@@ -38,6 +38,8 @@ describe("report submission boundary", () => {
       ],
       pin: { x: 50, y: 50, latitude: 5.123456, longitude: 103.123456 },
       locationSource: "map_pin" as const,
+      surfaceEntryContext: "Entered from the boat north of the site",
+      surfaceExitContext: "Surfaced beside the mooring line",
     };
 
     const result = buildReportSubmissionPayload(report, location);
@@ -51,11 +53,29 @@ describe("report submission boundary", () => {
         locationConfidence: "within_100m",
         locationSource: "manual_map_pin",
         mapPin: { latitude: 5.123456, longitude: 103.123456 },
+        relocationNotes: "Surface entry context: Entered from the boat north of the site\nSurface exit context: Surfaced beside the mooring line",
       },
       evidenceMetadata: [],
       aiSuggestions: [],
     });
     expect(result.observedAt).toBe(new Date("2026-08-27T09:10:00+08:00").toISOString());
+  });
+
+  it("omits relocation notes when the optional surface fields are empty", () => {
+    const result = buildReportSubmissionPayload({
+      ...initialReportDraft,
+      threatCategoryId: 1,
+      observationDate: "27/08/2026",
+      observationTime: "09:10",
+      description: "Observed reef condition.",
+    }, {
+      ...initialLocationDraft,
+      confidence: "dive_site_only",
+      selectedSessionId: "session-4",
+      sessions: [{ id: "session-4", backendId: 4, namedDiveSiteId: 13, site: "Temple of the Sea" }],
+    });
+
+    expect(result.location).not.toHaveProperty("relocationNotes");
   });
 
   it.each([

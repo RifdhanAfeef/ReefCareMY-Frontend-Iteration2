@@ -76,6 +76,7 @@
 .activityList strong, .activityList small { display: block; }
 .activityList small { margin-top: 3px; color: var(--color-muted); }
 .activityList p { margin: 6px 0 0; font-size: 13px; }
+.activityRetry { margin-top: 10px; padding: 0; color: var(--color-primary); background: transparent; border: 0; font: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }
 .emptyActivity { margin-top: 16px; padding: 16px; color: var(--color-muted); background: #f4f8f7; border-radius: 12px; }
 .emptyActivity strong { color: var(--color-ink); }
 .emptyActivity p { margin: 5px 0 0; font-size: 13px; }

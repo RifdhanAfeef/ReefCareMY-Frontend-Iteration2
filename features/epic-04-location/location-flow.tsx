@@ -108,7 +108,17 @@ function distanceMetres(first: MapPin, second: MapPin) {
 
 export function LocationFlow() {
   const { reportDraft, locationDraft, updateLocationDraft } = useMockAppState();
-  const { step, sessions, selectedSessionId, form, pin, locationSource, confidence } = locationDraft;
+  const {
+    step,
+    sessions,
+    selectedSessionId,
+    form,
+    pin,
+    locationSource,
+    confidence,
+    surfaceEntryContext,
+    surfaceExitContext,
+  } = locationDraft;
   const [sessionError, setSessionError] = useState("");
   const [dateError, setDateError] = useState("");
   const [confidenceError, setConfidenceError] = useState("");
@@ -407,18 +417,55 @@ export function LocationFlow() {
 
   if (step === "confirm") return <section className={styles.page}>
     <PageHeading eyebrow="Report a Reef / Location" title="Confirm the map location" description="Check the location and choose the option that best describes its accuracy." currentStep="confirm" furthestStep={furthestProgressIndex} onNavigate={navigateProgress} />
-    <form className={styles.confirmGrid} onSubmit={confirmLocation}><section className={styles.card}><h2>{session.site}</h2><MapPreview pin={pin} siteCentre={siteCentre} /><p className={styles.mapCaption}>{hasExactCoordinates ? `${locationSource === "manual_coordinates" ? "Entered coordinates" : "Selected map pin"}${coordinates ? ` — ${coordinates}` : ""}` : confidence === "unsure" ? "Exact location unknown" : "Named dive-site location only"}</p></section><aside className={styles.card}><fieldset className={styles.confidenceList}><legend>Location confidence</legend>{availableConfidenceOptions.map((item) => <label key={item.value}><input type="radio" name="confidence" value={item.value} checked={confidence === item.value} onChange={() => updateLocationDraft({ confidence: item.value })} />{item.label}</label>)}</fieldset><p className={styles.supporting}>{hasExactCoordinates ? "Choose how closely the coordinates represent the observed location." : "Choose Dive-site only or Unsure."}</p>{confidenceError && <p className={styles.errorText} role="alert">{confidenceError}</p>}<div className={styles.actions}><button className={styles.secondaryButton} type="button" onClick={() => setStep("location")}>Back</button><button className={styles.primaryButton} type="submit" disabled={checkingLocation}>{checkingLocation ? "Checking…" : "Confirm location"}</button></div></aside></form>
+    <form className={styles.confirmGrid} onSubmit={confirmLocation}>
+      <section className={styles.card}>
+        <h2>{session.site}</h2>
+        <MapPreview pin={pin} siteCentre={siteCentre} />
+        <p className={styles.mapCaption}>{hasExactCoordinates ? `${locationSource === "manual_coordinates" ? "Entered coordinates" : "Selected map pin"}${coordinates ? ` — ${coordinates}` : ""}` : confidence === "unsure" ? "Exact location unknown" : "Named dive-site location only"}</p>
+        <section className={styles.surfaceContext} aria-labelledby="surface-context-heading">
+          <h3 id="surface-context-heading">Optional surface entry and exit context</h3>
+          <p className={styles.supporting}>Add surface-only context if it may help a reviewer. These notes are not treated as the exact underwater threat location.</p>
+          <label className={styles.field}>
+            Surface entry context <span>Optional</span>
+            <textarea
+              maxLength={450}
+              value={surfaceEntryContext}
+              onChange={(event) => updateLocationDraft({ surfaceEntryContext: event.target.value })}
+              placeholder="For example, entered from the boat north of the site"
+            />
+          </label>
+          <label className={styles.field}>
+            Surface exit context <span>Optional</span>
+            <textarea
+              maxLength={450}
+              value={surfaceExitContext}
+              onChange={(event) => updateLocationDraft({ surfaceExitContext: event.target.value })}
+              placeholder="For example, surfaced beside the mooring line"
+            />
+          </label>
+        </section>
+      </section>
+      <aside className={styles.card}>
+        <fieldset className={styles.confidenceList}>
+          <legend>Location confidence</legend>
+          {availableConfidenceOptions.map((item) => <label key={item.value}><input type="radio" name="confidence" value={item.value} checked={confidence === item.value} onChange={() => updateLocationDraft({ confidence: item.value })} />{item.label}</label>)}
+        </fieldset>
+        <p className={styles.supporting}>{hasExactCoordinates ? "Choose how closely the coordinates represent the observed location." : "Choose Dive-site only or Unsure."}</p>
+        {confidenceError && <p className={styles.errorText} role="alert">{confidenceError}</p>}
+        <div className={styles.actions}><button className={styles.secondaryButton} type="button" onClick={() => setStep("location")}>Back</button><button className={styles.primaryButton} type="submit" disabled={checkingLocation}>{checkingLocation ? "Checking…" : "Confirm location"}</button></div>
+      </aside>
+    </form>
   </section>;
 
   if (step === "privacy") return <section className={styles.page}>
     <PageHeading eyebrow="Report a Reef / Location privacy" title="Review your location privacy" description="See how ReefCare protects the precise location you submitted." currentStep="privacy" furthestStep={furthestProgressIndex} onNavigate={navigateProgress} />
-    <div className={styles.privacyGrid}><section className={styles.card}><h2>Your submitted location</h2><MapPreview pin={pin} /><p><strong>{hasExactCoordinates ? `Coordinates within ${session.site}` : session.site}</strong></p><p>Confidence: <strong>{confidenceLabel}</strong></p><p className={styles.supporting}>You will see this location in your own report.</p></section><section className={`${styles.card} ${styles.sidePanel}`}><h2>Who can see what?</h2><dl className={styles.accessList}><div><dt>You</dt><dd>Your submitted location</dd></div><div><dt>Claiming Case Coordinator</dt><dd>Your location and accuracy</dd></div><div><dt>Other coordinators</dt><dd>General site until they claim the case</dd></div><div><dt>System Administrator</dt><dd>General site only</dd></div><div><dt>Unauthenticated visitors</dt><dd>Report location is not displayed</dd></div></dl></section></div>
+    <div className={styles.privacyGrid}><section className={styles.card}><h2>Your submitted location</h2><MapPreview pin={pin} /><p><strong>{hasExactCoordinates ? `Coordinates within ${session.site}` : session.site}</strong></p><p>Confidence: <strong>{confidenceLabel}</strong></p><p className={styles.supporting}>You will see this location in your own report.</p>{(surfaceEntryContext.trim() || surfaceExitContext.trim()) && <div className={styles.contextNotice}><strong>Surface entry and exit context</strong><p>These optional notes are kept as supporting context and are not treated as the exact underwater threat location.</p></div>}</section><section className={`${styles.card} ${styles.sidePanel}`}><h2>Who can see what?</h2><dl className={styles.accessList}><div><dt>You</dt><dd>Your submitted location</dd></div><div><dt>Claiming Case Coordinator</dt><dd>Your location, accuracy and optional surface context</dd></div><div><dt>Other coordinators</dt><dd>General site until they claim the case</dd></div><div><dt>System Administrator</dt><dd>General site only</dd></div><div><dt>Unauthenticated visitors</dt><dd>Report location is not displayed</dd></div></dl></section></div>
     <div className={styles.splitActions}><button className={styles.secondaryButton} type="button" onClick={() => setStep("confirm")}>Back</button><button className={styles.primaryButton} type="button" onClick={() => setStep("saved")}>Confirm privacy and continue</button></div>
   </section>;
 
   if (step === "saved") return <section className={styles.page}>
     <PageHeading eyebrow="Report a Reef / Location" title="Location saved to your draft" description="Review the Dive Session, map pin and location accuracy saved with this report draft." currentStep="review" furthestStep={furthestProgressIndex} onNavigate={navigateProgress} />
-    <div className={styles.savedGrid}><section className={styles.card}><h2>Current report draft</h2><p className={styles.supporting}>A report reference will be created after final submission.</p><div className={styles.savedContent}><MapPreview pin={pin} /><dl className={styles.detailList}><div><dt>Dive Session</dt><dd>{sessionTitle}</dd></div><div><dt>Location source</dt><dd>{locationSource === "manual_coordinates" ? "Entered coordinates" : locationSource === "map_pin" ? "Map pin" : confidence === "unsure" ? "Exact location unknown" : "Named dive site"}</dd></div><div><dt>Location confidence</dt><dd>{confidenceLabel}</dd></div>{coordinates && <div><dt>Selected coordinates</dt><dd>{coordinates}</dd></div>}</dl></div></section><aside className={styles.sidePanel}><h2>Privacy reminder</h2><p>Exact submitted coordinates are visible only to you and the Case Coordinator who claims the case.</p><div className={styles.purpleBox}><strong>General site</strong><p>{session.site} is retained as the restricted location view.</p></div></aside></div>
+    <div className={styles.savedGrid}><section className={styles.card}><h2>Current report draft</h2><p className={styles.supporting}>A report reference will be created after final submission.</p><div className={styles.savedContent}><MapPreview pin={pin} /><dl className={styles.detailList}><div><dt>Dive Session</dt><dd>{sessionTitle}</dd></div><div><dt>Location source</dt><dd>{locationSource === "manual_coordinates" ? "Entered coordinates" : locationSource === "map_pin" ? "Map pin" : confidence === "unsure" ? "Exact location unknown" : "Named dive site"}</dd></div><div><dt>Location confidence</dt><dd>{confidenceLabel}</dd></div>{coordinates && <div><dt>Selected coordinates</dt><dd>{coordinates}</dd></div>}{surfaceEntryContext.trim() && <div><dt>Surface entry context</dt><dd>{surfaceEntryContext.trim()}</dd></div>}{surfaceExitContext.trim() && <div><dt>Surface exit context</dt><dd>{surfaceExitContext.trim()}</dd></div>}</dl></div></section><aside className={styles.sidePanel}><h2>Privacy reminder</h2><p>Exact submitted coordinates are visible only to you and the Case Coordinator who claims the case.</p><div className={styles.purpleBox}><strong>General site</strong><p>{session.site} is retained as the restricted location view.</p></div></aside></div>
     <div className={styles.splitActions}><button className={styles.secondaryButton} type="button" onClick={() => setStep("privacy")}>Back</button><Link className={styles.primaryButton} href="/report-a-reef/review">Continue to review</Link></div>
   </section>;
 
@@ -437,5 +484,5 @@ export function ReviewLocationSummary() {
   const confidenceLabel = confidenceOptions.find((item) => item.value === locationDraft.confidence)?.label;
   const coordinates = mapCoordinates(locationDraft.pin);
   const aiSiteReference = reportDraft?.aiSuggestions?.find((suggestion) => suggestion.field === "site_reference" && suggestion.status !== "removed")?.suggestedValue;
-  return <section className={styles.card} aria-labelledby="review-location-heading"><h2 id="review-location-heading">Dive Session and location</h2><dl className={styles.detailList}><div><dt>Named dive site</dt><dd>{session?.site ?? "Not yet selected"}</dd></div>{aiSiteReference && <div><dt>Description location note</dt><dd>{aiSiteReference} <small>AI-assisted context only</small></dd></div>}<div><dt>Location source</dt><dd>{locationDraft.locationSource === "manual_coordinates" ? "Entered coordinates" : locationDraft.locationSource === "map_pin" ? "Optional map pin" : locationDraft.confidence === "unsure" ? "Exact location unknown" : "Named dive site"}</dd></div><div><dt>Location confidence</dt><dd>{confidenceLabel ?? "Not yet selected"}</dd></div>{coordinates && <div><dt>Selected coordinates</dt><dd>{coordinates}</dd></div>}</dl><Link className={styles.secondaryButton} href="/report-a-reef/location">Edit location</Link></section>;
+  return <section className={styles.card} aria-labelledby="review-location-heading"><h2 id="review-location-heading">Dive Session and location</h2><dl className={styles.detailList}><div><dt>Named dive site</dt><dd>{session?.site ?? "Not yet selected"}</dd></div>{aiSiteReference && <div><dt>Description location note</dt><dd>{aiSiteReference} <small>AI-assisted context only</small></dd></div>}<div><dt>Location source</dt><dd>{locationDraft.locationSource === "manual_coordinates" ? "Entered coordinates" : locationDraft.locationSource === "map_pin" ? "Optional map pin" : locationDraft.confidence === "unsure" ? "Exact location unknown" : "Named dive site"}</dd></div><div><dt>Location confidence</dt><dd>{confidenceLabel ?? "Not yet selected"}</dd></div>{coordinates && <div><dt>Selected coordinates</dt><dd>{coordinates}</dd></div>}{locationDraft.surfaceEntryContext.trim() && <div><dt>Surface entry context</dt><dd>{locationDraft.surfaceEntryContext.trim()} <small>Context only — not an exact underwater location</small></dd></div>}{locationDraft.surfaceExitContext.trim() && <div><dt>Surface exit context</dt><dd>{locationDraft.surfaceExitContext.trim()} <small>Context only — not an exact underwater location</small></dd></div>}</dl><Link className={styles.secondaryButton} href="/report-a-reef/location">Edit location</Link></section>;
 }

@@ -26,6 +26,8 @@ type TestLocationDraft = {
   pin: { x: number; y: number; latitude: number; longitude: number } | null;
   locationSource: "dive_site" | "map_pin" | "manual_coordinates";
   confidence: "" | "exact" | "within_100m" | "within_1km" | "dive_site_only" | "unsure";
+  surfaceEntryContext: string;
+  surfaceExitContext: string;
 };
 
 const appState = vi.hoisted(() => ({
@@ -38,6 +40,8 @@ const appState = vi.hoisted(() => ({
     pin: null,
     locationSource: "dive_site",
     confidence: "",
+    surfaceEntryContext: "",
+    surfaceExitContext: "",
   },
 })) as { updateLocationDraft: ReturnType<typeof vi.fn>; locationDraft: TestLocationDraft };
 
@@ -65,6 +69,8 @@ beforeEach(() => {
     pin: null,
     locationSource: "dive_site",
     confidence: "",
+    surfaceEntryContext: "",
+    surfaceExitContext: "",
   });
   vi.mocked(getDiveSites).mockResolvedValue([
     { diveSiteId: 1, name: "Batu Nisan", publicAreaLabel: "Perhentian Islands" },
@@ -142,6 +148,58 @@ describe("Finding 4 — no-session journey", () => {
     expect(await screen.findByRole("heading", { name: "Where on the reef did you observe it?" })).toBeInTheDocument();
     expect(screen.getByText("Batu Nisan — Perhentian Islands")).toBeInTheDocument();
     expect(screen.queryByRole("combobox", { name: /Named dive site/i })).not.toBeInTheDocument();
+  });
+});
+
+describe("US4.6 — optional surface entry and exit context", () => {
+  const selectedSession = {
+    id: "backend-session-7",
+    backendId: 7,
+    namedDiveSiteId: 1,
+    site: "Batu Nisan — Perhentian Islands",
+    date: "05/09/2026",
+  };
+
+  beforeEach(() => {
+    Object.assign(appState.locationDraft, {
+      step: "confirm",
+      sessions: [selectedSession],
+      selectedSessionId: selectedSession.id,
+      confidence: "dive_site_only",
+    });
+    vi.mocked(getDiveSessions).mockResolvedValue([{
+      diveSessionId: 7,
+      label: null,
+      diveDate: "2026-09-05",
+      namedDiveSite: { diveSiteId: 1, name: "Batu Nisan", publicAreaLabel: "Perhentian Islands" },
+      approximateStartTime: null,
+      approximateEndTime: null,
+    }]);
+  });
+
+  it("labels both context fields optional and saves edits to the draft", async () => {
+    const user = userEvent.setup();
+    render(<LocationFlow />);
+
+    const entryField = await screen.findByLabelText(/Surface entry context/i);
+    const exitField = screen.getByLabelText(/Surface exit context/i);
+    expect(entryField).toHaveAttribute("maxlength", "450");
+    expect(exitField).toHaveAttribute("maxlength", "450");
+
+    await user.type(entryField, "Entered north of the site");
+    await user.type(exitField, "Surfaced beside the mooring line");
+
+    expect(appState.updateLocationDraft).toHaveBeenCalledWith({ surfaceEntryContext: expect.any(String) });
+    expect(appState.updateLocationDraft).toHaveBeenCalledWith({ surfaceExitContext: expect.any(String) });
+  });
+
+  it("allows the flow to continue when both optional fields are empty", async () => {
+    const user = userEvent.setup();
+    render(<LocationFlow />);
+
+    await user.click(await screen.findByRole("button", { name: "Confirm location" }));
+
+    expect(appState.updateLocationDraft).toHaveBeenCalledWith({ step: "privacy" });
   });
 });
 

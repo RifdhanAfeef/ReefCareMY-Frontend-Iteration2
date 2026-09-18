@@ -32,6 +32,18 @@ function evidenceMetadata(report: ReportDraft) {
   }));
 }
 
+function surfaceContextNotes(location: LocationDraft): string | null {
+  const notes = [
+    location.surfaceEntryContext.trim()
+      ? `Surface entry context: ${location.surfaceEntryContext.trim()}`
+      : null,
+    location.surfaceExitContext.trim()
+      ? `Surface exit context: ${location.surfaceExitContext.trim()}`
+      : null,
+  ].filter((note): note is string => Boolean(note));
+  return notes.length > 0 ? notes.join("\n") : null;
+}
+
 export function buildReportCompletenessPayload(
   report: ReportDraft,
   location: LocationDraft,
@@ -40,6 +52,7 @@ export function buildReportCompletenessPayload(
   const session = location.sessions.find((item) => item.id === location.selectedSessionId);
   const source = locationSourceFor(location);
   const point = pointFor(location);
+  const relocationNotes = surfaceContextNotes(location);
   const observedAt = report.observationDate && report.observationTime && isValidDisplayDate(report.observationDate)
     ? displayDateAndTimeToIso(report.observationDate, report.observationTime)
     : null;
@@ -56,6 +69,7 @@ export function buildReportCompletenessPayload(
       locationSource: source,
       ...(source === "manual_map_pin" ? { mapPin: point } : {}),
       ...(source === "entered_coordinates" ? { coordinates: point } : {}),
+      ...(relocationNotes ? { relocationNotes } : {}),
     } : null,
     evidenceCount,
   };
@@ -96,6 +110,7 @@ export function buildReportSubmissionPayload(
 
   const source = locationSourceFor(location);
   const point = pointFor(location);
+  const relocationNotes = surfaceContextNotes(location);
   const payload: ReportSubmissionPayload = {
     threatCategoryId: Number(report.threatCategoryId),
     observedAt: displayDateAndTimeToIso(report.observationDate, report.observationTime),
@@ -107,6 +122,7 @@ export function buildReportSubmissionPayload(
       locationSource: source,
       ...(source === "manual_map_pin" ? { mapPin: point } : {}),
       ...(source === "entered_coordinates" ? { coordinates: point } : {}),
+      ...(relocationNotes ? { relocationNotes } : {}),
     },
     evidenceMetadata: evidenceMetadata(report),
     aiSuggestions: resolvedSuggestions(report),

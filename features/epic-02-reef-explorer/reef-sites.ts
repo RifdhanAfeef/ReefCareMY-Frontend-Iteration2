@@ -67,7 +67,6 @@ export const reefSites: ReefSite[] = profileSpecs.map((site) => ({
   experience: { level: site.level, explanation: `${site.level} is a general planning indicator only. A licensed operator must assess current conditions and individual suitability.` },
   preparation: [...(site.preparation ?? []), ...commonPreparation],
   source: site.source ?? sources[site.island],
-  publicActivity: [],
 }));
 
 export const reefIslands = ["Perhentian", "Redang", "Tioman"] as const;

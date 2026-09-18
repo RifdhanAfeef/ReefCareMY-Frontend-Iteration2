@@ -117,6 +117,23 @@
   color: var(--color-muted);
 }
 
+.surfaceContextNote {
+  padding: 14px 16px;
+  border-left: 4px solid #6e55a3;
+  border-radius: 10px;
+  color: var(--color-ink);
+  background: #f5f0fb;
+}
+
+.surfaceContextNote p {
+  margin: 6px 0;
+  white-space: pre-wrap;
+}
+
+.surfaceContextNote small {
+  color: var(--color-muted);
+}
+
 .structuredDetails {
   padding: 16px;
   border: 1px solid var(--color-border);

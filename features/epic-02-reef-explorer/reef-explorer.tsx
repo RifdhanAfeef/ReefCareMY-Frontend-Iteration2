@@ -7,6 +7,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/epic-01-access/auth-context";
 import { threatCategories } from "@/features/epic-02-reporting/threat-data";
+import { getPublicSiteActivity } from "@/lib/api/publicApi";
+import type { PublicActivityItem } from "@/lib/api/types";
 import { diveSiteCatalog } from "./dive-site-catalog";
 import { reefIslands, reefSites } from "./reef-sites";
 import { storeSelectedReefSite } from "./selected-site-storage";
@@ -96,6 +98,38 @@ function BasicSiteDetail({
 }
 
 function ActivityPanel({ site }: { site: ReefSite }) {
+  const [items, setItems] = useState<PublicActivityItem[]>([]);
+  const [state, setState] = useState<"loading" | "loaded" | "error">("loading");
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getPublicSiteActivity(site.backendDiveSiteId, controller.signal)
+      .then((result) => {
+        setItems(result.items);
+        setState("loaded");
+      })
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setState("error");
+      });
+    return () => controller.abort();
+  }, [reloadKey, site.backendDiveSiteId]);
+
+  const retry = () => {
+    setState("loading");
+    setItems([]);
+    setReloadKey((value) => value + 1);
+  };
+
+  const dateLabel = (item: PublicActivityItem) => [
+    item.activityDate
+      ? new Intl.DateTimeFormat("en-MY", { dateStyle: "medium", timeZone: "UTC" })
+        .format(new Date(`${item.activityDate}T00:00:00Z`))
+      : null,
+    item.sourceLabel,
+  ].filter(Boolean).join(" · ") || "Approved public update";
+
   return (
     <section className={styles.activity} aria-labelledby="site-activity-heading">
       <div className={styles.sectionTitleRow}>
@@ -105,14 +139,24 @@ function ActivityPanel({ site }: { site: ReefSite }) {
         </div>
         <span className={styles.generalisedBadge}>General area only</span>
       </div>
-      {site.publicActivity.length > 0 ? (
+      {state === "loading" ? (
+        <div className={styles.emptyActivity} role="status">
+          <strong>Loading public ReefCare activity…</strong>
+        </div>
+      ) : state === "error" ? (
+        <div className={styles.emptyActivity} role="alert">
+          <strong>Public activity is temporarily unavailable</strong>
+          <p>Try again to load the approved public updates for this site.</p>
+          <button className={styles.activityRetry} type="button" onClick={retry}>Try again</button>
+        </div>
+      ) : items.length > 0 ? (
         <ul className={styles.activityList}>
-          {site.publicActivity.map((item) => (
-            <li key={`${site.id}-${item.title}`}>
+          {items.map((item) => (
+            <li key={item.activityId}>
               <span className={styles.activityDot} aria-hidden="true" />
               <div>
                 <strong>{item.title}</strong>
-                <small>{item.dateLabel}</small>
+                <small>{dateLabel(item)}</small>
                 <p>{item.summary}</p>
               </div>
             </li>
@@ -236,7 +280,7 @@ function SiteDetail({
         </p>
       </aside>
 
-      <ActivityPanel site={site} />
+      <ActivityPanel key={site.backendDiveSiteId} site={site} />
 
       <div className={styles.siteActions}>
         <button className={styles.primaryButton} type="button" onClick={onReport}>
