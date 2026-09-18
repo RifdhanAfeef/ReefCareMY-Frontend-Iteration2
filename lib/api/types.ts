@@ -414,14 +414,21 @@ export type CoordinatorTriageContext = {
   hoursInQueue?: number;
 };
 
+export type CoordinatorAiSuggestion = {
+  field: string;
+  label: string;
+  value: unknown;
+  status: "confirmed" | "corrected";
+};
+
 export type CoordinatorAiAssisted = {
-  available?: boolean;
-  generatedAt?: string | null;
+  available: boolean;
+  generatedAt: string | null;
+  source: string | null;
+  isUnverifiedAiOutput: boolean;
+  suggestions: CoordinatorAiSuggestion[];
   triageBrief?: string | null;
-  isUnverifiedAiOutput?: boolean;
-  source?: string | null;
   summary?: string | null;
-  suggestions?: Record<string, unknown> | Array<Record<string, unknown>> | null;
   warnings?: string[];
 };
 

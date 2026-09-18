@@ -188,13 +188,12 @@ describe("Coordinator case workflow", () => {
       ...report,
       aiAssisted: {
         available: true,
-        summary: "Possible ghost gear entanglement affecting coral.",
-        generatedAt: "2026-09-03T04:25:00Z",
+        source: "smart_report_structuring",
+        isUnverifiedAiOutput: true,
+        generatedAt: null,
         suggestions: [
-          { field: "estimated_depth", label: "Estimated depth", suggestedValue: "12 metres", status: "confirmed" },
-          { field: "affected_area", label: "Affected area", suggestedValue: "Branching coral", status: "corrected" },
-          { field: "interaction", label: "Observed interaction", suggestedValue: "Net caught across coral", status: "unresolved" },
-          { field: "colour", label: "Colour", suggestedValue: "Blue", status: "removed" },
+          { field: "estimated_depth", label: "Estimated depth", value: "12 metres", status: "confirmed" },
+          { field: "affected_area", label: "Affected area", value: "Branching coral", status: "corrected" },
         ],
       },
     });
@@ -210,19 +209,20 @@ describe("Coordinator case workflow", () => {
     expect(screen.getAllByText("Observer confirmed")).toHaveLength(2);
     expect(screen.getByText("AI-assisted · accepted by Observer")).toBeInTheDocument();
     expect(screen.getByText("AI-assisted · edited by Observer")).toBeInTheDocument();
-    expect(screen.queryByText("Possible ghost gear entanglement affecting coral.")).not.toBeInTheDocument();
-    expect(screen.queryByText("Net caught across coral")).not.toBeInTheDocument();
-    expect(screen.queryByText("Blue")).not.toBeInTheDocument();
     expect(screen.getByText(/do not independently verify that a genuine threat exists/i)).toBeInTheDocument();
     expect(screen.getByText(/not Coordinator-confirmed findings/i)).toBeInTheDocument();
+    expect(screen.queryByText(/AI structuring completed/i)).not.toBeInTheDocument();
   });
 
-  it("does not infer Observer confirmation from legacy AI fields without review statuses", async () => {
+  it("hides AI-assisted information for reports submitted before provenance was captured", async () => {
     mockedGetCoordinatorCase.mockResolvedValueOnce({
       ...report,
       aiAssisted: {
-        available: true,
-        suggestions: { interaction: "Net caught across coral" },
+        available: false,
+        source: null,
+        isUnverifiedAiOutput: true,
+        generatedAt: null,
+        suggestions: [],
       },
     });
 
@@ -230,7 +230,6 @@ describe("Coordinator case workflow", () => {
 
     expect(await screen.findByRole("heading", { name: "Review reef observation" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Observer-confirmed structured information" })).not.toBeInTheDocument();
-    expect(screen.queryByText("Net caught across coral")).not.toBeInTheDocument();
   });
 
   it("claims a queue report through the backend before loading protected details", async () => {
