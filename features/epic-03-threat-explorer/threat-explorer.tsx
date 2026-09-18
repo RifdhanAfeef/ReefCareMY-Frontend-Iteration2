@@ -3,9 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, ArrowRight, ChevronRight, ShieldCheck, ExternalLink } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, ChevronRight, Info, ShieldCheck, ExternalLink } from "lucide-react";
 import { useAuth } from "@/features/epic-01-access/auth-context";
-import { spotTheThreatExamples, threatExplorerItems, type ThreatExplorerCode } from "./threat-explorer-data";
+import { recognitionNotice, spotTheThreatExamples, threatExplorerItems, type ThreatExplorerCode } from "./threat-explorer-data";
 import styles from "./threat-explorer.module.css";
 
 function Arrow({ direction }: { direction: "left" | "right" }) {
@@ -27,6 +27,10 @@ export function ThreatExplorer({ initialThreat }: { initialThreat?: ThreatExplor
     setSelectedIndex(index);
   };
 
+  const nextExample = () => {
+    setExampleIndex((exampleIndex + 1) % spotTheThreatExamples.length);
+  };
+
   const reportHref = (code: ThreatExplorerCode | "unsure") => {
     const categoryCode = code === "physical_reef_damage" ? "physical_damage" : code;
     const destination = `/report-a-reef?threat=${categoryCode}`;
@@ -41,6 +45,7 @@ export function ThreatExplorer({ initialThreat }: { initialThreat?: ThreatExplor
         <div className={styles.heroContent}>
           <h1>Reef threats</h1>
           <p>Meet the four threats facing Malaysia’s reefs. Know the signs. Observe safely.</p>
+          <p className={styles.recognitionNotice}><Info size={14} aria-hidden="true" />{recognitionNotice}</p>
         </div>
       </header>
 
@@ -75,14 +80,10 @@ export function ThreatExplorer({ initialThreat }: { initialThreat?: ThreatExplor
 
         <section className={styles.detail} aria-live="polite" aria-labelledby="selected-threat-heading">
           <div className={styles.detailGallery} aria-label={`${selected.label} visual examples`}>
-            {[
-              { image: selected.image, alt: selected.imageAlt },
-              selected.exampleImage && selected.exampleImageAlt
-                ? { image: selected.exampleImage, alt: selected.exampleImageAlt }
-                : null,
-            ].filter((item): item is { image: string; alt: string } => Boolean(item)).map((item, index) => (
+            {selected.examples.map((item, index) => (
               <figure className={styles.detailImage} key={item.image}>
-                <Image src={item.image} alt={item.alt} fill sizes="(max-width: 640px) 100vw, 45vw" priority={selectedIndex === 0 && index === 0} />
+                <Image src={item.image} alt={item.alt} fill sizes="(max-width: 640px) 50vw, 22vw" priority={selectedIndex === 0 && index === 0} />
+                {item.caption && <figcaption>{item.caption}</figcaption>}
               </figure>
             ))}
           </div>
@@ -93,6 +94,7 @@ export function ThreatExplorer({ initialThreat }: { initialThreat?: ThreatExplor
               <div><h3>Why it matters</h3><p>{selected.impact}</p><a className={styles.factSource} href={selected.impactSource.url} target="_blank" rel="noreferrer">Fact source: {selected.impactSource.label}<ExternalLink size={12} aria-hidden="true" /></a></div>
             </div>
             <div className={styles.cues}><h3>Recognition cues</h3><ol>{selected.recognitionCues.map((cue, index) => <li key={cue}><span>0{index + 1}</span>{cue}</li>)}</ol></div>
+            <aside className={styles.evidence} aria-label={`What to record for ${selected.label}`}><Camera size={20} aria-hidden="true" /><div><strong>What to record</strong><p>{selected.evidenceGuidance}</p></div></aside>
             <aside className={styles.safety}><ShieldCheck size={20} aria-hidden="true" /><div><strong>Observe safely</strong><p>{selected.safety}</p></div></aside>
             <Link className={styles.primaryAction} href={reportHref(selected.code)}>Report this threat <Arrow direction="right" /></Link>
           </div>
@@ -106,14 +108,22 @@ export function ThreatExplorer({ initialThreat }: { initialThreat?: ThreatExplor
             </figure>
             <div className={styles.quizCopy}>
               <div className={styles.answers} role="group" aria-label="Visual threat examples">{spotTheThreatExamples.map((item, index) => <button aria-pressed={exampleIndex === index} key={item.threatCode} type="button" onClick={() => setExampleIndex(index)}>{threatExplorerItems.find((threat) => threat.code === item.threatCode)?.label}<ChevronRight size={18} aria-hidden="true" /></button>)}</div>
-              <div className={styles.feedback} role="status"><h3>{example.prompt}</h3><p>{example.explanation}</p></div>
+              <div className={styles.feedback} role="status">
+                <h3>{example.prompt}</h3>
+                <p>{example.explanation}</p>
+                <div className={styles.feedbackActions}>
+                  <button type="button" className={styles.nextExample} onClick={nextExample}>
+                    Next example <Arrow direction="right" />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
         <details className={styles.photoCredits}>
           <summary>Image sources</summary>
-          <p>Educational images generated for ReefCare. They illustrate recognition cues and are not photographs of recorded incidents. Impact facts are linked to their NOAA sources above.</p>
+          <p>Illustrations are generated for ReefCare, including the healthy-versus-affected comparisons above; they show recognition cues and are not photographs of recorded incidents. Impact facts are linked to their NOAA sources above.</p>
         </details>
 
         <section className={styles.unsure}>

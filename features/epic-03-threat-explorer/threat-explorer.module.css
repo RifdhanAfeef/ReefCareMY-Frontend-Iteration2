@@ -4,6 +4,8 @@
 .hero { padding-block: 28px 18px; }
 .hero h1 { margin: 0 0 6px; font-size: 36px; line-height: 1.15; letter-spacing: 0; }
 .hero p { margin: 0; color: #576c71; font-size: 15px; line-height: 1.5; }
+.recognitionNotice { display: flex; align-items: start; gap: 8px; margin-top: 12px !important; padding: 10px 12px; border-left: 3px solid #087b80; border-radius: 0 10px 10px 0; background: #e8f3ef; color: #2f5a5f !important; font-size: 13px !important; line-height: 1.5; }
+.recognitionNotice svg { flex-shrink: 0; margin-top: 2px; color: #087b80; }
 .explorer { padding-bottom: 22px; }
 .sectionHeader { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .sectionHeader h2 { margin: 0; font-size: 18px; letter-spacing: 0; }
@@ -22,7 +24,7 @@
 .threatCard:hover { border-color: #75c8c5; }
 .page button:focus-visible, .page a:focus-visible, .page summary:focus-visible { outline: 3px solid #087b80; outline-offset: 4px; }
 .detail { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; gap: 24px; padding-block: 0 32px; scroll-margin-top: calc(var(--header-height) + 16px); }
-.detailGallery { display: grid; gap: 12px; align-content: start; }
+.detailGallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-content: start; }
 .detailImage { position: relative; margin: 0; aspect-ratio: 4 / 3; border-radius: 16px; overflow: hidden; background: #e5ebea; }
 .detailImage img { object-fit: cover; }
 .detailImage figcaption, .quizImage figcaption { position: absolute; right: 12px; bottom: 12px; padding: 5px 9px; border-radius: 8px; color: white; background: rgba(0, 30, 36, .82); font-size: 12px; }
@@ -38,6 +40,10 @@
 .cues ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
 .cues li { display: flex; gap: 10px; font-size: 13px; line-height: 1.4; }
 .cues li span { color: #087b80; font-size: 11px; font-weight: 700; padding-top: 1px; }
+.evidence { display: flex; align-items: start; gap: 10px; margin-bottom: 10px; padding: 12px 14px; border: 1px dashed #a6c8ca; border-radius: 14px; background: #f2f7f6; }
+.evidence svg { flex-shrink: 0; color: #087b80; }
+.evidence strong { display: block; margin-bottom: 4px; font-size: 13px; }
+.evidence p { margin: 0; font-size: 13px; line-height: 1.5; color: #576c71; }
 .safety { display: flex; align-items: start; gap: 10px; padding: 12px 14px; background: #e8f3ef; border-radius: 14px; }
 .safety svg { flex-shrink: 0; color: #087b80; }
 .safety strong { display: block; margin-bottom: 4px; font-size: 13px; }
@@ -62,6 +68,7 @@
 .feedback { margin-top: 18px; padding-top: 18px; border-top: 1px solid #c8d6d7; min-height: 190px; font-size: 15px; line-height: 1.7; }
 .feedback strong { font-size: 14px; }
 .feedback p { margin: 10px 0 0; color: #425f66; max-width: 60ch; }
+.feedbackActions { display: flex; justify-content: flex-end; margin-top: 14px; }
 .nextExample { margin-top: 14px; }
 .photoCredits { padding-block: 18px; color: #576c71; font-size: 12px; line-height: 1.5; }
 .photoCredits summary { width: fit-content; cursor: pointer; color: #173d45; }
@@ -89,7 +96,6 @@
   .detail, .quizPanel { grid-template-columns: minmax(0, 1fr); gap: 16px; }
   .detailGallery { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .detailImage { aspect-ratio: 4 / 3; border-radius: 12px; }
-  .detailImage:only-child { grid-column: 1 / -1; aspect-ratio: 16 / 9; }
   .detailImage figcaption { right: 6px; bottom: 6px; font-size: 10px; padding: 4px 6px; }
   .detailCopy h2 { font-size: 24px; }
   .factGrid { gap: 14px; }
