@@ -17,6 +17,32 @@ import type {
   ReportTimeline,
 } from "./types";
 
+function isReportSummary(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const report = value as Record<string, unknown>;
+  return typeof report.reportReference === "string"
+    && typeof report.threatCategory === "string"
+    && typeof report.generalLocation === "string"
+    && typeof report.status === "string"
+    && typeof report.statusLabel === "string"
+    && (report.outcome === null || typeof report.outcome === "string")
+    && typeof report.submittedAt === "string";
+}
+
+function parseMyReportsResult(value: unknown): MyReportsResult {
+  if (!value || typeof value !== "object") {
+    throw new Error("Invalid My Reports response.");
+  }
+  const result = value as Record<string, unknown>;
+  const validPagination = Number.isInteger(result.page) && Number(result.page) >= 1
+    && Number.isInteger(result.pageSize) && Number(result.pageSize) >= 1
+    && Number.isInteger(result.total) && Number(result.total) >= 0;
+  if (!Array.isArray(result.items) || !result.items.every(isReportSummary) || !validPagination) {
+    throw new Error("Invalid My Reports response.");
+  }
+  return result as unknown as MyReportsResult;
+}
+
 export async function checkReportCompleteness(payload: ReportCompletenessRequest): Promise<ReportCompletenessResponse> {
   return apiRequest<ReportCompletenessResponse>({
     path: "/api/v1/reports/completeness-check",
@@ -50,9 +76,10 @@ export async function getMyReports(filters: MyReportsFilters = {}): Promise<MyRe
   if (filters.pageSize) query.set("pageSize", String(filters.pageSize));
 
   const queryString = query.toString();
-  return apiRequest<MyReportsResult>({
+  const result = await apiRequest<unknown>({
     path: `/api/v1/reports/mine${queryString ? `?${queryString}` : ""}`,
   });
+  return parseMyReportsResult(result);
 }
 
 export async function getReportDetail(reportReference: string): Promise<ReportDetail> {

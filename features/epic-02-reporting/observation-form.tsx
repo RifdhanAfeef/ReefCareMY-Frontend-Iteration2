@@ -94,11 +94,7 @@ export function ObservationForm({ initialThreat, fromExplorer = false }: { initi
   const [categoryLoadError, setCategoryLoadError] = useState("");
   const [selectedReefSite, setSelectedReefSite] = useState<StoredReefSite | null>(null);
   const previewUrls = useRef<string[]>([]);
-  const initialPhotoMetadata = useRef(reportDraft.photos);
-  const initialObservationValues = useRef({
-    date: reportDraft.observationDate,
-    time: reportDraft.observationTime,
-  });
+  const latestReportDraft = useRef(reportDraft);
   const [assistantMessage, setAssistantMessage] = useState("");
   const [assistantBusy, setAssistantBusy] = useState(false);
   const [followUpQuestions, setFollowUpQuestions] = useState<SmartReportFollowUpQuestion[]>([]);
@@ -107,6 +103,10 @@ export function ObservationForm({ initialThreat, fromExplorer = false }: { initi
   const lastStructuredDescription = useRef(
     reportDraft.aiSuggestions.length > 0 ? reportDraft.description.trim() : "",
   );
+
+  useEffect(() => {
+    latestReportDraft.current = reportDraft;
+  }, [reportDraft]);
 
   const runSmartStructuring = useCallback(async (description: string, requestId: number) => {
     setAssistantBusy(true);
@@ -185,6 +185,7 @@ export function ObservationForm({ initialThreat, fromExplorer = false }: { initi
     loadDraftPhotos()
       .then((stored) => {
         if (cancelled) return;
+        const hydratedDraft = latestReportDraft.current;
         const restored = stored.map((photo) => {
           const previewUrl = URL.createObjectURL(photo.file);
           previewUrls.current.push(previewUrl);
@@ -193,9 +194,9 @@ export function ObservationForm({ initialThreat, fromExplorer = false }: { initi
         setPhotos(restored);
         const { changes } = buildAutomaticPhotoDraftChanges(
           stored,
-          initialPhotoMetadata.current,
-          initialObservationValues.current.date,
-          initialObservationValues.current.time,
+          hydratedDraft.photos,
+          hydratedDraft.observationDate,
+          hydratedDraft.observationTime,
         );
         updateReportDraft(changes);
       })
@@ -384,8 +385,6 @@ export function ObservationForm({ initialThreat, fromExplorer = false }: { initi
       ignoreInitialHandoff.current = true;
       previewUrls.current.forEach((url) => URL.revokeObjectURL(url));
       previewUrls.current = [];
-      initialPhotoMetadata.current = [];
-      initialObservationValues.current = { date: "", time: "" };
       lastStructuredDescription.current = "";
       setPhotos([]);
       setErrors({});

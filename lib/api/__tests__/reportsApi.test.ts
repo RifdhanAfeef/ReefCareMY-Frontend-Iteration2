@@ -13,7 +13,7 @@ const mockedApiRequest = vi.mocked(client.apiRequest);
 
 beforeEach(() => {
   mockedApiRequest.mockReset();
-  mockedApiRequest.mockResolvedValue({} as never);
+  mockedApiRequest.mockResolvedValue({ items: [], page: 1, pageSize: 20, total: 0 } as never);
 });
 
 describe("getMyReports", () => {
@@ -32,6 +32,16 @@ describe("getMyReports", () => {
     expect(params.get("status")).toBe("needs_more_info");
     expect(params.get("page")).toBe("2");
     expect(params.get("pageSize")).toBe("10");
+  });
+
+  it.each([
+    ["null", null],
+    ["a null items collection", { items: null, page: 1, pageSize: 20, total: 0 }],
+    ["an incomplete object", {}],
+  ])("rejects a malformed HTTP 200 response containing %s", async (_label, payload) => {
+    mockedApiRequest.mockResolvedValueOnce(payload as never);
+
+    await expect(getMyReports()).rejects.toThrow("Invalid My Reports response.");
   });
 });
 

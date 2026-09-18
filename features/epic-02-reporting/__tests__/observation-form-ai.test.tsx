@@ -8,15 +8,8 @@ import { clearDraftPhotos, loadDraftPhotos } from "@/features/epic-02-reporting/
 const { resetReportDraft, updateReportDraft, runtime } = vi.hoisted(() => ({
   resetReportDraft: vi.fn(),
   updateReportDraft: vi.fn(),
-  runtime: { draftRestored: undefined as boolean | undefined },
-}));
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
-}));
-
-vi.mock("@/features/shared/mock-app-state", () => ({
-  useMockAppState: () => ({
+  runtime: {
+    draftRestored: undefined as boolean | undefined,
     reportDraft: {
       threatCategoryCode: "",
       threatCategoryId: null,
@@ -28,6 +21,16 @@ vi.mock("@/features/shared/mock-app-state", () => ({
       aiSuggestions: [],
       lastSavedAt: null,
     },
+  },
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
+
+vi.mock("@/features/shared/mock-app-state", () => ({
+  useMockAppState: () => ({
+    reportDraft: runtime.reportDraft,
     isAccountDraftRestored: runtime.draftRestored,
     locationDraft: {
       sessions: [],
@@ -65,8 +68,22 @@ describe("automatic Smart Report Structuring", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     runtime.draftRestored = undefined;
+    runtime.reportDraft = {
+      threatCategoryCode: "",
+      threatCategoryId: null,
+      observationDate: "",
+      observationTime: "",
+      estimatedDepthMetres: "",
+      description: "A large fishing net is tangled around coral at about 12 metres.",
+      photos: [],
+      aiSuggestions: [],
+      lastSavedAt: null,
+    };
     vi.setSystemTime(new Date("2026-09-16T00:00:00Z"));
     vi.clearAllMocks();
+    URL.createObjectURL = vi.fn(() => "blob:restored-photo");
+    URL.revokeObjectURL = vi.fn();
+    vi.mocked(loadDraftPhotos).mockResolvedValue([]);
     vi.mocked(structureReportDescription).mockResolvedValue({
       available: true,
       suggestions: [{ field: "estimated_depth", label: "Estimated depth", suggestedValue: "12m" }],
@@ -147,16 +164,37 @@ describe("automatic Smart Report Structuring", () => {
     });
   });
 
-  it("waits for the account draft before restoring photo metadata", async () => {
+  it("waits for the account draft and preserves its observation time when restoring photos", async () => {
+    const file = new File(["reef"], "reef.jpg", {
+      type: "image/jpeg",
+      lastModified: Date.parse("2026-09-16T15:14:00Z"),
+    });
+    vi.mocked(loadDraftPhotos).mockResolvedValue([{ id: "photo-1", file }]);
     runtime.draftRestored = false;
     const view = render(<ObservationForm />);
     await act(async () => { await Promise.resolve(); });
     expect(loadDraftPhotos).not.toHaveBeenCalled();
 
+    runtime.reportDraft = {
+      ...runtime.reportDraft,
+      observationDate: "16/09/2026",
+      observationTime: "10:30",
+    };
     runtime.draftRestored = true;
     view.rerender(<ObservationForm />);
-    await act(async () => { await Promise.resolve(); });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
     expect(loadDraftPhotos).toHaveBeenCalledTimes(1);
+    const photoRestoreChanges = vi.mocked(updateReportDraft).mock.calls
+      .map(([changes]) => changes)
+      .find((changes) => "photos" in changes);
+    expect(photoRestoreChanges).toEqual(expect.objectContaining({
+      photos: [expect.objectContaining({ id: "photo-1" })],
+    }));
+    expect(photoRestoreChanges).not.toHaveProperty("observationDate");
+    expect(photoRestoreChanges).not.toHaveProperty("observationTime");
   });
 
   it("confirms before clearing the current report and locally stored photos", async () => {
