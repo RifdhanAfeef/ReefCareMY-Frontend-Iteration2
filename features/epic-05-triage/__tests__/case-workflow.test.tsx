@@ -200,16 +200,13 @@ describe("Coordinator case workflow", () => {
 
     render(<CoordinatorCaseRoute reportReference={report.reportReference} />);
 
-    const aiHeading = await screen.findByRole("heading", { name: "Observer-confirmed structured information" });
-    const caseControlPanel = screen.getByRole("heading", { name: "Case control" }).closest("aside");
-    expect(aiHeading).toBeInTheDocument();
-    expect(caseControlPanel?.nextElementSibling).toContainElement(aiHeading);
+    expect(await screen.findByRole("heading", { name: "Review reef observation" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Observer-confirmed structured information" })).not.toBeInTheDocument();
     expect(screen.getByText("12 metres")).toBeInTheDocument();
     expect(screen.getByText("Branching coral")).toBeInTheDocument();
-    expect(screen.getAllByText("Observer confirmed")).toHaveLength(2);
     expect(screen.getByText("AI-assisted · accepted by Observer")).toBeInTheDocument();
     expect(screen.getByText("AI-assisted · edited by Observer")).toBeInTheDocument();
-    expect(screen.getByText(/do not independently verify that a genuine threat exists/i)).toBeInTheDocument();
+    expect(screen.getByText(/do not independently verify that the reported threat is present/i)).toBeInTheDocument();
     expect(screen.getByText(/not Coordinator-confirmed findings/i)).toBeInTheDocument();
     expect(screen.queryByText(/AI structuring completed/i)).not.toBeInTheDocument();
   });
@@ -229,7 +226,8 @@ describe("Coordinator case workflow", () => {
     render(<CoordinatorCaseRoute reportReference={report.reportReference} />);
 
     expect(await screen.findByRole("heading", { name: "Review reef observation" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Observer-confirmed structured information" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/AI-assisted · accepted by Observer/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/AI-assisted values were reviewed/i)).not.toBeInTheDocument();
   });
 
   it("claims a queue report through the backend before loading protected details", async () => {

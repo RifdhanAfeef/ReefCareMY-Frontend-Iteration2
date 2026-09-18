@@ -111,6 +111,7 @@ function formatFieldName(value: string) {
 
 type AiStructuredItem = {
   key: string;
+  field: string;
   label: string;
   value: string;
   provenanceLabel: string;
@@ -147,8 +148,24 @@ function aiStructuredItems(suggestions: CoordinatorAiAssisted["suggestions"] | u
     const provenanceLabel = status === "corrected"
       ? "AI-assisted · edited by Observer"
       : "AI-assisted · accepted by Observer";
-    return [{ key: `${field}-${index}`, label, value: displayAiValue(value), provenanceLabel }];
+    return [{ key: `${field}-${index}`, field, label, value: displayAiValue(value), provenanceLabel }];
   });
+}
+
+function normaliseAiField(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function findAiItem(items: AiStructuredItem[], aliases: string[]): AiStructuredItem | undefined {
+  const normalisedAliases = aliases.map(normaliseAiField);
+  return items.find((item) => {
+    const candidates = [normaliseAiField(item.field), normaliseAiField(item.label)];
+    return candidates.some((candidate) => normalisedAliases.includes(candidate));
+  });
+}
+
+function AiProvenanceIndicator({ item }: { item: AiStructuredItem }) {
+  return <small className={styles.inlineAiProvenance}>{item.provenanceLabel}</small>;
 }
 
 function formatEvidenceField(key: string, value: string | number | boolean) {
@@ -534,6 +551,16 @@ function CaseWorkflow({ report, refreshCase, claimConfirmation }: { report: Coor
   const priorityReasons = triage?.priorityReasons ?? [];
   const informationExchange = report.informationExchange;
   const structuredAiItems = aiStructuredItems(report.aiAssisted?.suggestions);
+  const threatAiItem = findAiItem(structuredAiItems, ["possible_threat", "threat_type", "threat"]);
+  const depthAiItem = findAiItem(structuredAiItems, ["estimated_depth", "estimated_depth_metres"]);
+  const embeddedAiItemKeys = new Set([threatAiItem?.key, depthAiItem?.key].filter((key): key is string => Boolean(key)));
+  const additionalAiItems = structuredAiItems.filter((item) => !embeddedAiItemKeys.has(item.key));
+  const displayedThreat = threatAiItem
+    ? (/^[a-z0-9_-]+$/i.test(threatAiItem.value) ? formatFieldName(threatAiItem.value) : threatAiItem.value)
+    : report.threat;
+  const displayedDepth = depthAiItem
+    ? (/^-?\d+(\.\d+)?$/.test(depthAiItem.value.trim()) ? `${depthAiItem.value} m` : depthAiItem.value)
+    : report.estimatedDepthMetres == null ? "Not provided" : `${report.estimatedDepthMetres} m`;
   const observerEvidence = report.evidence.filter((item) => !actionEvidenceIds.includes(item.evidenceId));
 
   if (activeStage === "detail") return <section className={styles.page}>
@@ -546,12 +573,20 @@ function CaseWorkflow({ report, refreshCase, claimConfirmation }: { report: Coor
     {informationExchange && informationExchange.length > 0 && <section className={styles.informationExchange} aria-labelledby="information-exchange-heading"><h2 id="information-exchange-heading">Information request and response</h2>{informationExchange.map((entry, index) => <div key={`${entry.eventType}-${entry.occurredAt}-${index}`}><strong>{informationExchangeLabel(entry.eventType)}</strong>{entry.message && <p>{entry.message}</p>}<small>{entry.actorDisplayName ? `${entry.actorDisplayName} · ` : ""}{displayDateTime(entry.occurredAt)}</small></div>)}</section>}
     <div className={styles.reviewGrid}><section className={styles.card}>
       <h2>Submitted evidence</h2><p className={styles.muted}>Evidence provided by the observer with this report.</p><EvidenceRecords reportReference={report.reportReference} evidence={observerEvidence} />
-      <dl className={styles.detailList}><div><dt>Threat type</dt><dd>{report.threat}</dd></div><div><dt>Observed</dt><dd>{observationDateMissing ? "Unavailable" : displayDateTime(report.observedAt)}</dd></div><div><dt>Estimated depth</dt><dd>{report.estimatedDepthMetres == null ? "Not provided" : `${report.estimatedDepthMetres} m`}</dd></div><div><dt>Description</dt><dd>{report.description}</dd></div><div><dt>General area</dt><dd>{report.area ?? "Not provided"}</dd></div><div><dt>Submitted</dt><dd>{displayDateTime(report.submittedAt)}</dd></div></dl>
+      <dl className={styles.detailList}>
+        <div><dt>Threat type{threatAiItem && <AiProvenanceIndicator item={threatAiItem} />}</dt><dd>{displayedThreat}</dd></div>
+        <div><dt>Observed</dt><dd>{observationDateMissing ? "Unavailable" : displayDateTime(report.observedAt)}</dd></div>
+        <div><dt>Estimated depth{depthAiItem && <AiProvenanceIndicator item={depthAiItem} />}</dt><dd>{displayedDepth}</dd></div>
+        {additionalAiItems.map((item) => <div key={item.key}><dt>{item.label}<AiProvenanceIndicator item={item} /></dt><dd>{item.value}</dd></div>)}
+        <div><dt>Description</dt><dd>{report.description}</dd></div>
+        <div><dt>General area</dt><dd>{report.area ?? "Not provided"}</dd></div>
+        <div><dt>Submitted</dt><dd>{displayDateTime(report.submittedAt)}</dd></div>
+      </dl>
+      {structuredAiItems.length > 0 && <p className={styles.inlineAiDisclaimer}>AI-assisted values were reviewed by the Observer before submission. They do not independently verify that the reported threat is present and are not Coordinator-confirmed findings.</p>}
       {observationDateMissing && <div className={styles.warningBox} role="status"><strong>Observation date could not be loaded</strong><p>The observation date is temporarily unavailable. Refresh the case and try again. If it remains unavailable, report the problem to your system administrator.</p></div>}
       <div className={styles.protectedBox}><strong>Submitted location</strong><p>{exactLocation}</p>{report.preciseLocation?.confidenceLabel && <small>Confidence: {report.preciseLocation.confidenceLabel}</small>}{report.preciseLocation?.sourceLabel && <small>Source: {report.preciseLocation.sourceLabel}</small>}{uncertainty && <small>{uncertainty}</small>}</div>
     </section><div className={styles.caseSidebar}>
       <aside className={styles.sidePanel}><h2>Case control</h2><dl className={styles.detailList}><div><dt>Active owner</dt><dd>{report.owner.displayName}</dd></div><div><dt>Status</dt><dd>{report.statusLabel}</dd></div></dl><div className={styles.infoBox}><strong>Review type</strong><p>Your assessment is a desk review, not an on-site confirmation.</p></div>{assessmentError && <p className={styles.errorText} role="alert">{assessmentError}</p>}<button className={styles.primaryButton} type="button" onClick={beginAssessment} disabled={pendingAction !== null || !["claimed", "under_review", "evidence_accepted"].includes(currentStatus)}>{pendingAction === "start-review" ? "Starting review…" : currentStatus === "evidence_accepted" ? "Continue to response" : "Start evidence assessment"}</button>{canOpenClosure && <><button className={styles.secondaryButton} type="button" onClick={openClosure} disabled={pendingAction !== null}>Close case</button><p className={styles.muted}>Choose a closure reason and note before the case is closed.</p></>}</aside>
-      {report.aiAssisted && report.aiAssisted.available !== false && structuredAiItems.length > 0 && <section className={styles.aiContext} aria-labelledby="ai-context-heading"><span>Observer-confirmed · AI-assisted provenance</span><h2 id="ai-context-heading">Observer-confirmed structured information</h2><p>The Observer reviewed these structured values before submitting the report.</p><dl className={styles.aiStructuredGrid}>{structuredAiItems.map((item) => <div key={item.key}><dt>{item.label}<span className={styles.aiLabels}><small>Observer confirmed</small><small>{item.provenanceLabel}</small></span></dt><dd>{item.value}</dd></div>)}</dl><p className={styles.aiDisclaimer}>These values remain information confirmed by the Observer. AI assistance and Observer confirmation do not independently verify that a genuine threat exists, and they are not Coordinator-confirmed findings.</p>{report.aiAssisted.generatedAt && <small>AI structuring completed {displayDateTime(report.aiAssisted.generatedAt)}</small>}</section>}
     </div></div>
     {interventionDecisionRecorded && <ConservationActionPanel reportReference={report.reportReference} onEvidenceIdsChange={handleActionEvidenceIds} />}
   </section>;

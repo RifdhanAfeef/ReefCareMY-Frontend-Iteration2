@@ -466,6 +466,32 @@
   font-size: 13px;
 }
 
+.inlineAiProvenance {
+  display: block;
+  width: fit-content;
+  margin-top: 5px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: #315d6c;
+  background: #e6f0f3;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.inlineAiDisclaimer {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-left: 4px solid #547b9b;
+  border-radius: 8px;
+  color: var(--color-muted);
+  background: #f1f8fb;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .informationExchange {
   display: grid;
   gap: 14px;
